@@ -1,0 +1,29 @@
+Cert-Scripts package is a set of scripts created by OSG GOC to help with various 
+functions related to the DigiCERT PKI. 
+
+For questions, comments, info contact goc@opensciencegrid.org.
+
+Contents:
+osg-cert-scripts-v3/
+ README -                   This file
+ Host-Cert-Request-Guest.py This script is for guest (non-authenticated) 
+                            requests for host certificates
+ Host-Cert-Request.py       This script is for authenticated (via OSG issued 
+                            peraonal certificate) requests for host certificates
+ ManageCertRequests.py      This script allows a Grid Admin to approve, reject, 
+                            or cancel a certificate request via the ID number 
+                            that they receive via email and/or GOC ticket.
+ RetrieveCert.py            This script retrieves the PKCS7 certificate from the 
+                            server once it has been approved and issued. No 
+                            authentication is required.
+ certgen.py                 Python calls to create certificates (only used as
+                            an include, not an actively invoked script.
+ OSGTools.ini               Configuration file that holds the Hosts/Ports and
+                            URLS for each function
+
+Installation instructions:
+    Untar where you want them installed. No other dependencies other than
+    Python 2.7.x are required.
+
+Release notes:
+Version:    V3.0Beta    18  June    2012
