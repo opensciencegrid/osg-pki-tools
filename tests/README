@@ -19,6 +19,10 @@ tests/ subdirectory (the directory in which this README sits):
     cd test/
     ./do-tests.py
 
+If your user cert and user key aren't in ~/.globus or pointed to by
+X509_USER_CERT and X509_USER_KEY, you'll need to use -c and -p to
+direct the script at them.
+
 The script will prompt you for the passphrase for your X.509
 certificate, which will be used by the tested scripts for
 authentication to the OSG PKI server.
