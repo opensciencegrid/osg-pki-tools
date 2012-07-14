@@ -117,7 +117,7 @@ certdir = 'certificates'
 
 # Checking to make sure that the users give values that won't crash the
 
-outkeyfile = 'temp' + userprivkey
+outkeyfile = userprivkey + '_temp'
 
 
 #################################################
