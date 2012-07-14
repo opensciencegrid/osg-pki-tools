@@ -4,10 +4,10 @@
 #
 # Copyright (C) Martin Sjögren and AB Strakt 2001, All rights reserved
 #
-# $Id: certgen.py 14962 2012-06-07 20:43:33Z jeremy $
+# $Id: certgen.py 15162 2012-07-10 22:44:22Z rmathure $
 #
 
-# $Id: certgen.py 14962 2012-06-07 20:43:33Z jeremy $
+# $Id: certgen.py 15162 2012-07-10 22:44:22Z rmathure $
 
 """
 Certificate generation module.
@@ -30,12 +30,12 @@ def createKeyPair(type, bits):
     pkey.generate_key(type, bits)
     return pkey
 
-def createCertRequest(pkey, digest="md5", **name):
+def createCertRequest(pkey, digest="sha1", **name):
     """
     Create a certificate request.
 
     Arguments: pkey   - The key to associate with the request
-               digest - Digestion method to use for signing, default is md5
+               digest - Digestion method to use for signing, default is sha1
                **name - The name of the subject of the request, possible
                         arguments are:
                           C     - Country name
@@ -57,7 +57,7 @@ def createCertRequest(pkey, digest="md5", **name):
     req.sign(pkey, digest)
     return req
 
-def createCertificate(req, (issuerCert, issuerKey), serial, (notBefore, notAfter), digest="md5"):
+def createCertificate(req, (issuerCert, issuerKey), serial, (notBefore, notAfter), digest="sha1"):
     """
     Generate a certificate given a certificate request.
 
@@ -69,7 +69,7 @@ def createCertificate(req, (issuerCert, issuerKey), serial, (notBefore, notAfter
                             starts being valid
                notAfter   - Timestamp (relative to now) when the certificate
                             stops being valid
-               digest     - Digest method to use for signing, default is md5
+               digest     - Digest method to use for signing, default is sha1
     Returns:   The signed certificate in an X509 object
     """
     cert = crypto.X509()
