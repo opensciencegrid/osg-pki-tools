@@ -27,8 +27,9 @@ parser.add_argument(
     '--pkey',
     action='store',
     dest='userprivkey',
-    required=True,
-    help="Specify Requestor's private key (PEM Format)",
+    required=False,
+    help="Specify Requestor's private key (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+        ,
     metavar='PKEY',
     default='',
     )
@@ -37,8 +38,9 @@ parser.add_argument(
     '--cert',
     action='store',
     dest='usercert',
-    required=True,
-    help="Specify Requestor's certificate (PEM Format)",
+    required=False,
+    help="Specify Requestor's certificate (PEM Format). If not specified will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
+        ,
     metavar='CERT',
     )
 parser.add_argument(
