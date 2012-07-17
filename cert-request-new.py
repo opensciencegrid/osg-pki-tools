@@ -3,6 +3,11 @@
 
 # $Id: HostCertRequest.py 15033 2012-06-18 18:21:54Z jeremy $
 
+"""
+This script is used to request a certificate and the intended user for this script is a registered user with OIM.
+
+"""
+
 import urllib
 import httplib
 import sys
@@ -41,18 +46,22 @@ parser.add_argument(
     '--pkey',
     action='store',
     dest='userprivkey',
-    required=True,
-    help="Specify Requestor's private key (PEM Format)",
+    required=False,
+    help="Specify Requestor's private key (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+        ,
     metavar='PKEY',
+    default='',
     )
 parser.add_argument(
     '-ce',
     '--cert',
     action='store',
     dest='usercert',
-    required=True,
-    help="Specify Requestor's certificate (PEM Format)",
+    required=False,
+    help="Specify Requestor's certificate (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+        ,
     metavar='CERT',
+    default='',
     )
 parser.add_argument(
     '-t',
@@ -109,8 +118,33 @@ kname = 'hostkeyfile'
 
 global csr, prikey, hostname, email, name, phone
 csr = args.csr
-userprivkey = args.userprivkey
-usercert = args.usercert
+
+if args.userprivkey == '':
+    try:
+        userprivkey = os.environ('X509_USER_KEY')
+    except:
+        userprivkey = str(os.environ('HOME')) + '/.globus/userkey.pem'
+else:
+    userprivkey = args.userprivkey
+
+if os.path.exists(userprivkey):
+    pass
+else:
+    sys.exit('Unable to locate the private key file:' + userprivkey)
+
+if args.usercert == '':
+    try:
+        usercert = os.environ('X509_USER_CERT')
+    except:
+        usercert = str(os.environ('HOME')) + '/.globus/usercert.pem'
+else:
+    usercert = args.usercert
+
+if os.path.exists(usercert):
+    pass
+else:
+    sys.exit('Unable to locate the user certificate file:' + usercert)
+
 prikey = args.prikey
 
 hostname = args.hostname
