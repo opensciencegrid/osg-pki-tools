@@ -30,6 +30,7 @@ parser.add_argument(
     required=True,
     help="Specify Requestor's private key (PEM Format)",
     metavar='PKEY',
+    default='',
     )
 parser.add_argument(
     '-ce',
@@ -88,10 +89,34 @@ parser.add_argument(
 args = parser.parse_args()
 
 global hostname, domain, email, name, phone, outkeyfile
-userprivkey = args.userprivkey
-usercert = args.usercert
-hostfile = args.hostfile
 
+if args.userprivkey == '':
+    try:
+        userprivkey = os.environ('X509_USER_KEY')
+    except:
+        userprivkey = str(os.environ('HOME')) + '/.globus/userkey.pem'
+else:
+    userprivkey = args.userprivkey
+
+if os.path.exists(userprivkey):
+    pass
+else:
+    sys.exit('Unable to locate the private key file:' + userprivkey)
+
+if args.usercert == '':
+    try:
+        usercert = os.environ('X509_USER_CERT')
+    except:
+        usercert = str(os.environ('HOME')) + '/.globus/usercert.pem'
+else:
+    usercert = args.usercert
+
+if os.path.exists(usercert):
+    pass
+else:
+    sys.exit('Unable to locate the user certificate file:' + usercert)
+
+hostfile = args.hostfile
 email = args.email
 name = args.name
 phone = args.phone
@@ -166,9 +191,11 @@ def connect_request(bulk_csr):
 '''
         sys.exit(1)
     return_data = json.loads(data)
+    print return_data
     for (key, value) in return_data.iteritems():
         if 'host_request_id' in key:
             id = value
+            print 'Id is:', id
 
 
 # ID from the request is passed in here via secure connection and the request
@@ -250,7 +277,7 @@ def connect_retrieve():
             sys.exit(1)
     data = response.read()
     conn.close()
-
+    print data
     while 'PENDING' in data:
         conn.request('POST', returl, params, headers)
         try:
@@ -284,6 +311,7 @@ def connect_retrieve():
     #
 
     pkcs7raw = str(pkcs7raw)
+    print pkcs7raw
     pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
     pkcs7raw = pkcs7raw.partition('[')
     pkcs7raw = pkcs7raw[2]
@@ -356,7 +384,7 @@ if __name__ == '__main__':
         config_items.update({'CN': line})  # ### New Config item list for every host#######
         print 'Beginning request process for', line
         csr = create_certificate(line)
-        bulk_csr = bulk_csr + csr + '\n'
+        bulk_csr = bulk_csr + csr  # + '\n'
         if count == 50:
             connect_request(bulk_csr)
             connect_approve()
@@ -367,6 +395,7 @@ if __name__ == '__main__':
     # ####################################################################################################################################
 
     if count != 0 and count != 50:
+        print bulk_csr
         connect_request(bulk_csr)
         connect_approve()
         connect_retrieve()
