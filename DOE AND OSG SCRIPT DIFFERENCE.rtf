@@ -1,0 +1,399 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1138\cocoasubrtf470
+{\fonttbl\f0\fmodern\fcharset0 Courier;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww28600\viewh11180\viewkind0
+\deftab720
+\pard\pardeftab720
+
+\f0\fs26 \cf0 Instructions to read this document:\
+\
+The script with names having '-new' suffix are the ones that are for Open Science Grid PKI Command Line Interface(CLI). These script are written in python. The original ones (with no '-new' suffix') are the scripts for DOE Grids. They are written in perl.\
+\
+Usage of the script if given as the scripts --help would produce. Apart from that, the beginning of each section has a brief introduction of the scripts behavior.\
+\
+The intended user for this document is the user of these scripts. The intention of this document is to provide an idea of how these scripts behave to new users as well as to the users who are acquainted with the old DOE scripts, this document would provide and idea of how the new scripts differ from the old DOE scripts in terms of usage.\
+\
+\
+\pard\tx720\pardeftab720
+\cf0 =====================================================================================================================================================\
+\pard\pardeftab720
+\cf0 \
+cert-gridadmin [DOE Grid Script]\
+\
+This script is used by the GridAdmin to manage certificates by simulating the Grid Admin interface. The parameters about the requestor's information are passed as per the below parameters.\
+The output of the script is certificate and key files in PEM format.\
+\
+\pard\tx720\pardeftab720
+\cf0 usage  :  ./cert-gridadmin  <arguments>\
+    version V2-7\
+       --host <FQDN>              required\
+       --service <service name>   optional\
+       --email <your email, as the owner of the requested certificate>\
+       --affiliation <user's affiliation>\
+          (name of your RA to process this request)\
+       --vo <virtual organization>\
+          (name of primary virtual organization, only for the OSG RA)\
+       --list  display list of available RA affiliations and exit\
+       --prefix <prefix>  prefix for <prefix>\{cert|key\}.pem file names\
+            typically used to match service/host to file names\
+       --password <optional file containing passphrase for private key>\
+       --request  <optional certificate request>\
+       --pdir  <optional directory to find user credential for authentication>\
+                    defaults to ~/.globus\
+       --sdir  <optional directory to put services credential being generated>\
+                   defaults to .\
+       --ca <optional name of CA> to use, default is doegrids,\
+                 or test2 for worthless certs for testing\
+       --show  list several parameters of the issued certificate upon successful completion\
+       --debug spews lots of output to the terminal\
+       --dryrun  executes script but does not actually post request to CA\
+       --noclean  do not delete temporary files\
+       --timeout <seconds> timeout for http transactions\
+       --help  prints this message\
+       -V    prints package version and exits\
+       --read <filename> a file containing parameter values in 'name = value'\
+                      format for all arguments that take a value except\
+                      -timeout.  Values on the command line take precedence\
+                      over values in the file.  Argument flags that don't take\
+                      a value must be specified on the command line.\
+       --write <filename> the converse of --read\
+       any required omitted argruments will be prompted for\
+\
+=====================================================================================================================================================\
+cert-gridadmin-new.py [OSG Grid script- CLI version]\
+\
+\pard\pardeftab720
+\cf0 The intended user for this script is the GridAdmin.\
+Approve (request) is done when the vetting process is success and the request can be approved.\
+Reject (request) is done when during the vetting process the RA/GA has the opinion that the request\
+has bogus or incorrect information and cannot be approved. this action is taken by the RA/GA.\
+Cancel (request) is done when the request is made by the user and the user decides to withdraw it.\
+This action is taken by the user.\
+\pard\tx720\pardeftab720
+\cf0 \
+usage: cert-gridadmin-new.py [-h] [-pk PKEY] [-ce CERT] -a ACTION -i ID [-q]\
+\
+optional arguments:\
+  -h, --help            show this help message and exit\
+  -pk PKEY, --pkey PKEY\
+                        Specify Requestor's private key (PEM Format). If not\
+                        specified will take the value of X509_USER_KEY or\
+                        $HOME/.globus/userkey.pem\
+  -ce CERT, --cert CERT\
+                        Specify Requestor's certificate (PEM Format). If not\
+                        specified will take the value of X509_USER_KEY or\
+                        $HOME/.globus/userkey.pem\
+  -a ACTION, --action ACTION\
+                        Action to take (reject, cancel, revoke\
+  -i ID, --id ID        Specify ID# of certificate request to act on\
+  -q, --quiet           don't print status messages to stdout\
+\
+========================================================================================================================================================\
+\
+cert-request\
+\
+This scripts is used to request a certificate by providing the information about the user and its sponsors as given below in their respective parameters.\
+\
+usage is :  ./cert-request  <arguments> [-in filename]\
+       version V2-7\
+       --agree  flag to indicate acceptance of the DOEGrids policies\
+               described at \
+               and asserting that you are authorized to request and install\
+               this certificate on the specified host.\
+       --ou  [p | s]   for OU=People or OU=Services\
+       --name <user's full name>       required (quote "multiple words")\
+       --host <FQDN>  for OU=Services, required\
+       --service <service name>   for OU=Services, optional\
+       --email <user's email>\
+       --phone <user's phone>\
+       --reason <short description of why you qualify to receive a certificate>\
+         e.g.   the science project or collaboration you are a member of,\
+                the DOE facility where you are employee or guest\
+                the university and department where you are a student\
+                (quote "multiple words")\
+       --affiliation <user's affiliation>\
+          (name of your RA to process this request)\
+       --vo <user's virtual organization>\
+          (name of your Virtual Organization, only when OSG is selected as your RA)\
+       --keyfile <filename> name of file holding the private key for the\
+                 certificate, not normally needed\
+       --list  display list of available RA affiliations and exit\
+       --label <request label> optional label for request used to identify local\
+                files used when certificate is later retrieved,\
+                necessary when making multiple requests before retrieving\
+                approved certificates.\
+                if files with this label exist already an error exit occurs\
+\
+       Sponsor information required for OU=People\
+       --sponsor_name <sponsor's name>  (quote "multiple words")\
+       --sponsor_email <sponsor's email>\
+       --sponsor_phone <sponsor's phone>\
+\
+       --ca <optional name of CA> to use, default is doegrids,\
+                            or testca for worthless certs for testing\
+       --password <optional file containing passphrase for private key>\
+       --request  <optional certificate request>\
+       --dir      <optional directory in which to store the private key>\
+                    default is ~/.globus for -ou p\
+                    default is . for -ou s\
+                    if the specified directory does not exist it is created\
+       --debug spews lots of output to the terminal\
+       --dryrun  executes script but does not actually post request to CA\
+       --noclean  do not delete temporary files\
+       --timeout <seconds> time limit for http requests\
+       --help  prints this message\
+       -V  print package version and exit\
+       --read <filename> a file containing parameter values in 'name = value'\
+                      format for all arguments that take a value except\
+                      -timeout.  Values on the command line take precedence\
+                      over values in the file.  Argument flags that don't take\
+                      a value must be specified on the command line.\
+       --write <filename> the converse of --read\
+\
+========================================================================================================================================================\
+\
+cert-request-new.py\
+\
+The intense user of the script is an unauthenticated user by the OIM who can provide his private key(optional) and can submit the request to the OIM API.\
+If in case he doesn't provide the key file, a new key is generated and is stored in ./genprivate.key file.\
+\
+usage: cert-request-new.py [-h] [-c CSR] [-k PRIKEY] [-o ID] -t CN -e EMAIL -n\
+                           NAME -p PHONE [-q]\
+\
+optional arguments:\
+  -h, --help            show this help message and exit\
+  -c CSR, --csr CSR     Specify CSR name (default = gennew.csr)\
+  -k PRIKEY, --key PRIKEY\
+                        Specify Private Key Name (default=genprivate.key)\
+  -o ID, --outkeyfile ID\
+                        Specify the output filename for the retrieved user\
+                        certificate. Default is ./hostcert.pem\
+  -t CN, --hostname CN  Specify hostname for CSR (FQDN)\
+  -e EMAIL, --email EMAIL\
+                        Email address to receive certificate\
+  -n NAME, --name NAME  Name of user receiving certificate\
+  -p PHONE, --phone PHONE\
+                        Phone number of user receiving certificate\
+  -q, --quiet           don't print status messages to stdout\
+\
+========================================================================================================================================================\
+\
+cert-retrieve\
+\
+This script is used to retrieve certificates using the below parameters. The certificates can be exported to browser friendly pkcs12 format.\
+\
+usage: ./cert-retrieve  \{--serialnum SN | --certnum SN | --url URL | --reqid RID\} \
+            [--dir DIR] [--keyfile KEY] [--prefix PREFIX] [--label LABEL] \
+            [--read R_PARAMS] [--write S_PARAMS]\
+            [--ca CA] [--p12 PKCS12file] [--force] [--debug] [--help] [--V]\
+      version: V2-7\
+        SN certificate serial number\
+        URL the download url for the certificate sometimes sent in an\
+            email notificate that the certificate is approved\
+        RID is the request ID of the Request (not certificate) to download.\
+              NOTE - this uses the agent interface and needs to be\
+              authenticated with an agent certificate, which means\
+              it does notwork for most people\
+        DIR directory for the usercert and key, defaults to ~/.globus\
+        KEY name of keyfile for private key corresponding to this cert\
+        PREFIX  causes the key and cert files to be named PREFIXcert.pem\
+                and PREFIXkey.pem rather than usercert.pem and userkey.pem.\
+        LABEL  a label used to match the certificate request\
+             files (incl. private key) with the retrieved certificate.\
+        R_PARAMS name of file from which to read parameters\
+        S_PARAMS name of file into which the parameters and options are saved\
+        CA is the optional name of the CA to use, default is doegrids,\
+                 other allowed values are for testing\
+        PKCS12file is the filename to use for exporting your certificate\
+                   into a PKCS12 format file that can be used to import\
+                   your certificate into your web browser or email application.\
+                   This is useful for personal certificates but not very\
+                   useful for host or service certificates.\
+                   This file is not affected by the -dir argument.\
+       --force causes existing credential files to be overwritten with asking\
+       --debug prints what it is doing\
+       --help  prints this message\
+       -V  prints package version and exits\
+       any omitted argruments will be prompted for.\
+\
+========================================================================================================================================================\
+\
+cert-retrieve.py\
+\
+This script is used to retrieve certificates that are requested using the request ID. This script differs from the original DOE script in the format of the certificate which is PEM format.\
+\
+usage: cert-retrieve-new.py [-h] -i ID [-o ID] [-q]\
+\
+optional arguments:\
+  -h, --help            show this help message and exit\
+  -i ID, --id ID        Specify ID# of certificate to retrieve\
+  -o ID, --certfile ID  Specify the output filename for the retrieved user\
+                        certificate. Default is ./hostcert.pem\
+  -q, --quiet           don't print status messages to stdout\
+\
+\pard\tx720\pardeftab720
+\cf0 ========================================================================================================================================================\
+\
+multi-cert-gridadmin \
+\
+    It is used to generate CSRs (certificate signing requests) and to submit the CSRs to the CA for generating certificates. The submission is authenticated with the client certificate which has been pre-authorized to submit via the GridAdmin interface. It functions in four basic modes called csr-from-list, csr-from-cert, csr-submit and cn-submit, as described below, in addition to help and information.  Options and arguments are not order dependent except that the mode label listeed above should be the first non-optional  argument.\
+\pard\pardeftab720
+\cf0 \
+    multi-cert-gridadmin [-h | -l | -n | | -T seconds | -z ] [anything]\
+\
+    multi-cert-gridadmin csr-from-list [-n] [-d wdir] [-i file-with-list]\
+                      [CN1 [CN2 [CN3 ...]]]\
+\
+    multi-cert-gridadmin csr-from-cert [-d wdir] [-i file-with-list] [cert1\
+                     [cert2 [cert3 ...]]]\
+\
+    multi-cert-gridadmin csr-submit -e email -a RA -v VO [-t] [-c creddir]\
+                [-s CA] [-d wdir] [-i file-with-list] [CSR1 [CSR2 [CSR3 ...]]]\
+\
+    multi-cert-gridadmin cn-submit -e email -a RA -v VO [-t] [-c creddir]\
+                [-s CA] [-d wdir] [-i file-with-list] [CN1 [CN2 [CN3 ...]]]\
+\
+      Options:\
+         -a RA is the RA affiliaiton\
+         -c creddir is the directory containing the users credentials,\
+                    usercert.pem and userkey.pem.  The default value\
+                    is ~/.globus. See also -p, -k.\
+         -d wdir is the working directory used for the request, key and\
+                 certificate files. It does not apply to -i.\
+         -e email is the email address submitted with the CSRs to be included\
+                  in the issued certificates\
+         -h print out usage (and exit)\
+         -i file-with-list is a path to the file (CSV format) containing\
+                           the list of items. See descriptions of modes\
+                           below for the content of this file.\
+         -k privkey-file is the name of the private key file of the users\
+                         credentials. The full path is creddir/privkey-file.\
+                         See also -c, -p.\
+         -l list valid choices for (-a RA), (-s CA), (-v VO), and exit\
+         -n more verbose output (Not quiet).\
+         -p public-cert-file is the filename of the users public certificate.\
+                             The full path is creddir/public-cert-file.\
+                             See also -c, -k.\
+         -s CA is the name of the Certification Authority to post the CSR to.\
+               Only doegrids is a production CA. The others are testing CAs\
+               or debugging web servers.\
+               See also -l.\
+         -t test only mode for cn-submit, csr-submit. Script is executed\
+            without posting to the CA.\
+         -T seconds - sets the timeout for http transactions\
+         -v VO is the Virtual Organization name associated with the OSG RA.\
+               See also -a, -l.\
+         -x ssl-debug-level sets the level of debug messages for the SSL\
+                            connection.\
+         -z print version info and exit\
+\
+    Information only mode:\
+        See -h, -l, -z.\
+\
+    csr-from-list mode:\
+        generates a set of PKCS10 format certificate signing requests\
+        for the list of CNs supplied, in the namespace\
+        OU=Services,DC=doegrids,DC-org.  The set of CSRs and private keys\
+        are located in wdir.  A CN has the form service/fqdn, and the\
+        corresponding CSRs and private key files are named as\
+        fdqn-service-req.pem and fqdn-service-key.pem, respectively.\
+        The contents of the (-i) file-with-list optional file is a\
+        list of CNs in CSV format. If the optional header line is used\
+        it should label the appropriate column with 'CN' (not case dependent).\
+        If not header line is used the values in the first column are used.\
+        Comment lines have a '#' as the first character.\
+        CN component names can also be provided as commandline arguments\
+        as indicated above.\
+                        \
+    csr-from-cert mode:\
+         generates a set of PKCS10 format certificate signing requests\
+         matching the list of certificates supplied, in the namespace\
+         OU=Services,DC=doegrids,DC-org.  The set of generated CSRs and private\
+         keys are located in wdir.  A CN has the form service/fqdn,\
+         and the corresponding CSRs and private key files are named as\
+         fdqn-service-req.pem and fqdn-service-key.pem, respectively.\
+         The optional (-i) file-with-list contains a list of path names\
+         to certificate files to be used, in CSV format.  If the optional\
+         header line is used the column should be labelled with 'CERTFILE'\
+         (not case dependent). If no header line is used the values in column\
+         one are used.  Comment lines have a '#' as the first character.\
+         Paths to certificate files can also be provided as command line\
+         arguments as shown above.\
+\
+    csr-submit mode:\
+         submits a set of CSRs to the GridAdmin interface of the\
+         CA and downloads the corresponding signed certificates.\
+         It is assumed that CSR files are named as fqdn-service-req.pem\
+         and the corresponding private key files are named\
+         fqdn-service-key.pem.  The downloaded certificates are stored\
+         in files named fqdn-service-cert.pem.\
+         Possibly, if no specific CSRs are given, it will submit all\
+         the *req.pem files it can find in wdir.\
+         The optional (-i) file-with-list contains, in CSV format, a list\
+         of path names to the CSR files to submit.  If the optional header\
+         line is used it should label the appropriate column with 'CSR'\
+         (case independent). If a header line is not used the first column\
+         is used.  Comment lines have a '#' as the first character.\
+         Path names to CSR files can also be given on the command line\
+         as shown above.\
+\
+    cn-submit mode:\
+         generates CSRs based on the CNs listed and submits these CSRs\
+         to the GridAdmin interface of the DOEGrids CA and downloads\
+         the corresponding signed certificates.\
+         The CSR files are named as fqdn-service-req.pem\
+         and the corresponding private key files are named\
+         fqdn-service-key.pem.  The downloaded certificates are stored\
+         in files named fqdn-service-cert.pem.\
+         The optional (-i) file-with-list contains, in CSV format, a list\
+         of CNs to submit.  If the optional header line is used it should\
+         label the appropriate column with 'CN' (case independent).\
+         If a header line is not given the value in the first column is used.\
+         Comment lines have a '#' as the first character.\
+         CNs can also be given on the command line as shown above.\
+         In this mode the private key generation and submission\
+         to the CA happens within the same command, which can be\
+         time consuming.\
+\
+    Note that file-with-list should be in CSV format (RFC4180), although\
+    this program does not contain a complete implementation of the RFC.\
+    A # in column one indicates a comment line, in variance with the RFC.\
+    If a header line is used, the labels CN, CSR and CertFile correspond\
+    to the values used for csr-from-list, csr-submit and csr-from-cert\
+    respectively.  Otherwise the interesting value is assumed to\
+    be in the left most column.\
+    Version V2-6\
+\
+\pard\tx720\pardeftab720
+\cf0 ========================================================================================================================================================\
+\pard\pardeftab720
+\cf0 \
+multi-cert-gridadmin.py\
+\
+This script also is used to request and retrieve multiple certificates(in chunks of 50 request at a time). The modes as given in the DOE script is handled at runtime depending upon the parameters passed to the script. It decides which mode it should use to process the request depending upon these parameters.\
+\
+The output of the certificates as well as the private key is in PEM format.\
+\
+usage: multi-cert-gridadmin-new.py [-h] [-pk PKEY] [-ce CERT] -f HOSTFILE -e\
+                                   EMAIL -n NAME -p PHONE [-q]\
+\
+optional arguments:\
+  -h, --help            show this help message and exit\
+  -pk PKEY, --pkey PKEY\
+                        Specify Requestor's private key (PEM Format). If not\
+                        specified will take the value of X509_USER_KEY or\
+                        $HOME/.globus/userkey.pem\
+  -ce CERT, --cert CERT\
+                        Specify Requestor's certificate (PEM Format). If not\
+                        specified will take the value of X509_USER_CERT or\
+                        $HOME/.globus/usercert.pem\
+  -f HOSTFILE, --hostfile HOSTFILE\
+                        Filename with one hostname per line\
+  -e EMAIL, --email EMAIL\
+                        Email address to receive certificate\
+  -n NAME, --name NAME  Name of user receiving certificate\
+  -p PHONE, --phone PHONE\
+                        Phone number of user receiving certificate\
+  -q, --quiet           don't print status messages to stdout\
+\
+}
