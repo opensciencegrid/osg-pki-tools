@@ -63,8 +63,8 @@ id = args.id
 
 if os.path.exists(args.certfile):
     opt = \
-        raw_input('This file already exists. Do you want to overwrite it? Y/N : \n'
-                  )
+        raw_input('The file %s already exists. Do you want to overwrite it? Y/N : \n'
+                   % args.certfile)
     if opt == 'y' or opt == 'Y':
         pem_filename = args.certfile
     elif opt == 'n' or opt == 'N':
@@ -165,13 +165,6 @@ def connect_retrieve():
     elif '"request_status":"APPROVED"' in data:
         print 'Certificate request in Approved state. Needs to be issued first\n'
         connect_issue()
-
-    if not 'PENDING' in response.reason:
-        if not 'OK' in response.reason:
-            print response.status, response.reason
-            sys.exit(1)
-    conn.close()
-
     try:
         conn.request('POST', requrl, params, headers)
         response = conn.getresponse()
@@ -229,16 +222,26 @@ The script has failed and will now exit.
 
     # pem_filename = '%s.%s.%s' % ('host-certs', id, 'pem')
 
-    certfile = open(temp_filename, 'w+')
-    certfile.write(pkcs7raw)
-    certfile.close()
-    os.system('openssl pkcs7 -print_certs -in ' + temp_filename
-              + ' -out ' + pem_filename)
-    os.remove(temp_filename)
+    try:
+        certfile = open(temp_filename, 'w+')
+        certfile.write(pkcs7raw)
+        certfile.close()
+        os.system('openssl pkcs7 -print_certs -in ' + temp_filename
+                  + ' -out ' + pem_filename)
+        os.remove(temp_filename)
+    except OSError, e:
+        sys.exit('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.'
+                 )
     print 'Certificate written to %s \n' % pem_filename
     return
 
 
 if __name__ == '__main__':
-    connect_retrieve()
+    try:
+        connect_retrieve()
+    except Exception, e:
+        sys.exit('''Uncaught Exception : %s
+Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+'''
+                 % e)
     sys.exit(0)

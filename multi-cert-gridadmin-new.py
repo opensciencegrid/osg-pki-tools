@@ -1,6 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+"""
+This script is used to submit multiple certifcate requests and the intended user for the script is the GridAdmin.
+This script requests certificates and then approves as well as issues them in bulk (limit of 50 at a time).
+"""
+
 import urllib
 import httplib
 import sys
@@ -14,6 +19,7 @@ import errno
 import getpass
 import StringIO
 import OpenSSL
+import M2Crypto
 
 from OpenSSL import crypto
 from certgen import *
@@ -90,13 +96,18 @@ parser.add_argument(
     )
 args = parser.parse_args()
 
-global hostname, domain, email, name, phone, outkeyfile
+global hostname, domain, email, name, phone, outkeyfile, num_requests
+
+hostfile = args.hostfile
+email = args.email
+name = args.name
+phone = args.phone
 
 if args.userprivkey == '':
     try:
-        userprivkey = os.environ('X509_USER_KEY')
+        userprivkey = os.environ['X509_USER_KEY']
     except:
-        userprivkey = str(os.environ('HOME')) + '/.globus/userkey.pem'
+        userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
 else:
     userprivkey = args.userprivkey
 
@@ -107,9 +118,9 @@ else:
 
 if args.usercert == '':
     try:
-        usercert = os.environ('X509_USER_CERT')
+        usercert = os.environ['X509_USER_CERT']
     except:
-        usercert = str(os.environ('HOME')) + '/.globus/usercert.pem'
+        usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
 else:
     usercert = args.usercert
 
@@ -118,10 +129,17 @@ if os.path.exists(usercert):
 else:
     sys.exit('Unable to locate the user certificate file:' + usercert)
 
-hostfile = args.hostfile
-email = args.email
-name = args.name
-phone = args.phone
+if os.path.exists(hostfile):
+    pass
+else:
+    sys.exit('Unable to locate the hostfile:' + hostfile)
+
+if not name.isalpha():
+    sys.exit('Name should contain only alphabets\n')
+
+phone_num = phone.replace('-', '')
+if not phone_num.isdigit():
+    sys.exit("Phone number should contain only numbers and/or '-'\n")
 
 #
 # Read from the ini file
@@ -158,7 +176,7 @@ def get_passphrase(userprivkey):
 # uses for all certificate operations via the API
 #
 
-def connect_request(bulk_csr):
+def connect_request(ssl_context, bulk_csr):
     print 'Connecting to server to request certificate...'
     global id
     params = urllib.urlencode({
@@ -166,12 +184,12 @@ def connect_request(bulk_csr):
         'email': email,
         'phone': phone,
         'csrs': bulk_csr,
-        })
+        }, doseq=True)
     headers = {'Content-type': content_type,
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
 
-    conn = httplib.HTTPSConnection(host, key_file=outkeyfile,
-                                   cert_file=usercert)
+    conn = M2Crypto.httpslib.HTTPSConnection(host,
+            ssl_context=ssl_context)
     try:
         conn.request('POST', requrl, params, headers)
         response = conn.getresponse()
@@ -179,11 +197,11 @@ def connect_request(bulk_csr):
 
         print 'Connection to %s failed : %s' % (requrl, e)
         raise e
-
+    data = response.read()
     if not 'OK' in response.reason:
         print response.status, response.reason
         print json.dumps(json.loads(data), sort_keys=True, indent=2)
-    data = response.read()
+
     conn.close()
     if 'FAILED' in data:
         print json.dumps(json.loads(data), sort_keys=True, indent=2)
@@ -193,7 +211,6 @@ def connect_request(bulk_csr):
 '''
         sys.exit(1)
     return_data = json.loads(data)
-    print return_data
     for (key, value) in return_data.iteritems():
         if 'host_request_id' in key:
             id = value
@@ -206,15 +223,14 @@ def connect_request(bulk_csr):
 # function
 #
 
-def connect_approve():
+def connect_approve(ssl_context):
     print 'Connecting to server to approve certificate...'
     action = 'approve'
     params = urllib.urlencode({'host_request_id': id})
     headers = {'Content-type': content_type,
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = httplib.HTTPSConnection(host, key_file=outkeyfile,
-                                   cert_file=usercert)
-
+    conn = M2Crypto.httpslib.HTTPSConnection(host,
+            ssl_context=ssl_context)
     try:
         conn.request('POST', appurl, params, headers)
         response = conn.getresponse()
@@ -230,8 +246,8 @@ def connect_approve():
     if action == 'approve' and 'OK' in data:
         print 'Contacting Server to initiate certificate issuance.'
         newrequrl = Config.get('OIMData', 'issurl')
-        conn = httplib.HTTPSConnection(host, key_file=outkeyfile,
-                cert_file=usercert)
+        conn = M2Crypto.httpslib.HTTPSConnection(host,
+                ssl_context=ssl_context)
         try:
             conn.request('POST', newrequrl, params, headers)
             response = conn.getresponse()
@@ -260,6 +276,36 @@ notified of this issue.
 # certificate
 #
 
+def write_certs(pkcs7raw, i):
+    pkcs7raw = str(pkcs7raw)
+    filename = '%s.%s.%s' % (filetype, id, fileext)
+    pem_filename = '%s.%s-%s.%s' % ('host-certs', id, i, 'pem')
+    cwd = os.getcwd()
+    try:
+        os.chdir(certdir)
+    except OSError, e:
+        sys.exit('''The directory %s does not exist or you cannot access the directory
+.Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+ %s''',
+                 certdir, e)
+    print 'Writing to:', certdir
+    try:
+        certfile = open(filename, 'w+')
+        certfile.write(pkcs7raw)
+        certfile.close()
+        os.system('openssl pkcs7 -print_certs -in ' + filename
+                  + ' -out ' + pem_filename)
+        os.remove(filename)
+    except OSError, e:
+        sys.exit('''You may not have write permission to the directory %s
+.Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+ %s''',
+                 certdir, e)
+    os.chdir(cwd)
+    print 'Certificate written to %s \n' % pem_filename
+    return
+
+
 def connect_retrieve():
     iterations = 1
     print 'Issuing certificate...'
@@ -279,7 +325,6 @@ def connect_retrieve():
             sys.exit(1)
     data = response.read()
     conn.close()
-    print data
     while 'PENDING' in data:
         conn.request('POST', returl, params, headers)
         try:
@@ -297,7 +342,6 @@ def connect_retrieve():
                 ' minutes.'
         else:
             pass
-
     pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
     if 'FAILED' in data:
         print 'Fatal error: Certificate request has failed. Goc staff has been\nnotified of this issue.'
@@ -313,34 +357,28 @@ def connect_retrieve():
     #
 
     pkcs7raw = str(pkcs7raw)
-    print pkcs7raw
     pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
     pkcs7raw = pkcs7raw.partition('[')
     pkcs7raw = pkcs7raw[2]
     pkcs7raw = pkcs7raw.partition('"')
     pkcs7raw = pkcs7raw[2]
-    pkcs7raw = pkcs7raw.partition('"')
-    pkcs7raw = pkcs7raw[0]
-
-    filename = '%s.%s.%s' % (filetype, id, fileext)
-    pem_filename = '%s.%s.%s' % ('host-certs', id, 'pem')
-    cwd = os.getcwd()
-    os.chdir(certdir)
-    print 'Writing to:', certdir
-    certfile = open(filename, 'w+')
-    certfile.write(pkcs7raw)
-    certfile.close()
-    os.system('openssl pkcs7 -print_certs -in ' + filename + ' -out '
-              + pem_filename)
-    os.remove(filename)
-    os.chdir(cwd)
-    print 'Certificate written to %s \n' % pem_filename
+    pkcs7raw = pkcs7raw.split('"')
+    i = 0
+    cert_num = 0
+    while cert_num < num_requests and i < len(pkcs7raw):
+        certstring = str(pkcs7raw[i])
+        if 'PKCS7' in certstring:
+            write_certs(certstring, cert_num)
+            cert_num = cert_num + 1
+        i = i + 1
+    print 'The number of requests made was ', num_requests
+    print 'The number of certificates received is ', cert_num
+    if cert_num != num_requests:
+        sys.exit('Request and certifucate received mismatch')
+    return
 
 
 def create_certificate(line):
-
-    # global csr
-
     print 'Generating certificate...'
     genprivate = createKeyPair(TYPE_RSA, 2048)
     keyname = line + '-key.pem'
@@ -359,49 +397,69 @@ def create_certificate(line):
     csr = csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n', ''
                       ).replace('-----END CERTIFICATE REQUEST-----\n',
                                 '')
+    csr = csr.replace('\n', '')
     return csr
 
 
 if __name__ == '__main__':
-    get_passphrase(userprivkey)
-    print 'Creating Certificate Directory (if necessary):', certdir
     try:
-        os.makedirs(certdir)
-    except OSError, exc:
-        if exc.errno == errno.EEXIST:
-            pass
-        else:
-            raise
 
-    config_items = {'emailAddress': email}
+
+        def prompt_for_password(verify):
+
+        # If verify == True, we are supposed to verify password.
+
+            return getpass.getpass("Please enter the pass phrase for '%s':"
+                                    % userprivkey)
+
+
+        ssl_context = M2Crypto.SSL.Context('sslv3')
+        ssl_context.load_cert_chain(usercert, userprivkey,
+                                    callback=prompt_for_password)
+
+        print 'Creating Certificate Directory (if necessary):', certdir
+        try:
+            os.makedirs(certdir)
+        except OSError, exc:
+            if exc.errno == errno.EEXIST:
+                pass
+            else:
+                raise
+
+        config_items = {'emailAddress': email}
 
     # ############################# Pipelining the bulk Certificate request process to send them at once##################################
 
-    bulk_csr = ''
-    count = 0
-    hosts = open(hostfile, 'rb')
-    for line in hosts:
-        count += 1
-        line = line.rstrip('\n')
-        config_items.update({'CN': line})  # ### New Config item list for every host#######
-        print 'Beginning request process for', line
-        csr = create_certificate(line)
-        bulk_csr = bulk_csr + csr  # + '\n'
-        if count == 50:
-            connect_request(bulk_csr)
-            connect_approve()
-            connect_retrieve()
-            bulk_csr = ''
-            count = 0
+        bulk_csr = list()
+        count = 0
+        num_requests = 0
+        hosts = open(hostfile, 'rb')
+        for line in hosts:
+            count += 1
+            line = line.rstrip('\n')
+            config_items.update({'CN': line})  # ### New Config item list for every host#######
+            print 'Beginning request process for', line
+            csr = create_certificate(line)
+            bulk_csr.append(csr)
+            num_requests = num_requests + 1
+            if count == 50:
+                connect_request(ssl_context, bulk_csr)
+                connect_approve(ssl_context)
+                connect_retrieve()
+                bulk_csr = ''
+                count = 0
 
     # ####################################################################################################################################
 
-    if count != 0 and count != 50:
-        print bulk_csr
-        connect_request(bulk_csr)
-        connect_approve()
-        connect_retrieve()
-    hosts.close()
-    os.remove(outkeyfile)
+        if count != 0 and count != 50:
+            connect_request(ssl_context, bulk_csr)
+            connect_approve(ssl_context)
+            connect_retrieve()
+        hosts.close()
+    except Exception, e:
+        sys.exit('''Uncaught Exception %s
+Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+''',
+                 e)
     sys.exit(0)
 

@@ -1,11 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# $Id: HostCertRequest.py 15033 2012-06-18 18:21:54Z jeremy $
-
 """
-This script is used to request a certificate and the intended user for this script is a registered user with OIM.
-
+This script submits the certificate request for an unauthenticated user. An unauthenticated user is a user that is not registered with the OIM. Hence no authorization is required in this script.
 """
 
 import urllib
@@ -16,7 +13,8 @@ import argparse
 import json
 import OpenSSL
 from OpenSSL import crypto
-from certgen import *
+from certgen import *  # Lazy, I know
+from pprint import pprint
 import os
 
 # Set up Option Parser
@@ -29,6 +27,7 @@ parser.add_argument(
     action='store',
     dest='csr',
     default='gennew.csr',
+    required=False,
     help='Specify CSR name (default = gennew.csr)',
     metavar='CSR',
     )
@@ -38,30 +37,20 @@ parser.add_argument(
     action='store',
     dest='prikey',
     default='genprivate.key',
-    help='Specify Private Key Name (default=genprivate.key) optional',
+    required=False,
+    help='Specify Private Key Name (default=genprivate.key)',
     metavar='PRIKEY',
     )
 parser.add_argument(
-    '-pk',
-    '--pkey',
+    '-o',
+    '--outkeyfile',
     action='store',
-    dest='userprivkey',
+    dest='keyfile',
     required=False,
-    help="Specify Requestor's private key (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+    help='Specify the output filename for the retrieved user certificate. Default is ./hostcert.pem'
         ,
-    metavar='PKEY',
-    default='',
-    )
-parser.add_argument(
-    '-ce',
-    '--cert',
-    action='store',
-    dest='usercert',
-    required=False,
-    help="Specify Requestor's certificate (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
-        ,
-    metavar='CERT',
-    default='',
+    metavar='ID',
+    default='./hostcert.pem',
     )
 parser.add_argument(
     '-t',
@@ -109,62 +98,56 @@ parser.add_argument(
     )
 args = parser.parse_args()
 
-################# Config items for key file write#########
-
-ext = 'pem'
-kname = 'hostkeyfile'
-
-##########################################################
+# print "Parsing variables..."
 
 global csr, prikey, hostname, email, name, phone
-csr = args.csr
 
-if args.userprivkey == '':
-    try:
-        userprivkey = os.environ('X509_USER_KEY')
-    except:
-        userprivkey = str(os.environ('HOME')) + '/.globus/userkey.pem'
+                        # , config_items
+
+if os.path.exists(args.keyfile):
+    opt = \
+        raw_input('%s already exists. Do you want to overwrite it? Y/N : \n'
+                   % args.keyfile)
+    if opt == 'y' or opt == 'Y':
+        pem_filename = args.keyfile
+    elif opt == 'n' or opt == 'N':
+        pem_filename = raw_input('Please enter a different file name\n')
+    else:
+        sys.exit('Invalid option')
 else:
-    userprivkey = args.userprivkey
-
-if os.path.exists(userprivkey):
-    pass
-else:
-    sys.exit('Unable to locate the private key file:' + userprivkey)
-
-if args.usercert == '':
-    try:
-        usercert = os.environ('X509_USER_CERT')
-    except:
-        usercert = str(os.environ('HOME')) + '/.globus/usercert.pem'
-else:
-    usercert = args.usercert
-
-if os.path.exists(usercert):
-    pass
-else:
-    sys.exit('Unable to locate the user certificate file:' + usercert)
-
-prikey = args.prikey
+    pem_filename = args.keyfile
 
 hostname = args.hostname
 email = args.email
 name = args.name
 phone = args.phone
+csr = args.csr
+prikey = args.prikey
 
-# Build the dictionary to feed into the CSR creation
+if not name.isalpha():
+    sys.exit('Name should contain only alphabets\n')
 
-config_items = {'CN': hostname, 'emailAddress': email}
+phone_num = phone.replace('-', '')
+if not phone_num.isdigit():
+    sys.exit("Phone number should contain only numbers and/or '-'\n")
+
+if args.prikey == 'genprivate.key':
+    pass
+elif not os.path.exists(args.prikey):
+    sys.exit('The file %s does not exist' % args.prikey)
+
+if args.csr == 'gennew.csr':
+    pass
+elif not os.path.exists(args.csr):
+    sys.exit('The file %s does not exist' % args.csr)
 
 #
-# Read from the ini file (OSGTools.ini)
-# We get the actual host url and whether it's http or https from there as well
-# as the URL for the request
+# Read from the ini file
 #
 
 Config = ConfigParser.ConfigParser()
 Config.read('OSGTools.ini')
-host = Config.get('OIMData', 'hostsec')
+host = Config.get('OIMData', 'host')
 requrl = Config.get('OIMData', 'requrl')
 content_type = Config.get('OIMData', 'content_type')
 
@@ -186,23 +169,28 @@ def connect():
         })
     headers = {'Content-type': content_type,
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = httplib.HTTPSConnection(host, key_file=userprivkey,
-                                   cert_file=usercert)
+    conn = httplib.HTTPConnection(host)
     try:
         conn.request('POST', requrl, params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        print 'Connection to %s failed: %s' % (requrl, e)
+        print 'Connection to %s failed: %s' % (requrl, repr(e))
         raise e
-    if not 'OK' in response.reason:
-        print response.status, response.reason
-        sys.exit(1)
+    except Exception, e:
+        print 'Error during request to %s' % (requrl, repr(e))
     data = response.read()
+    if 'FAILED' in json.dumps(data):
+        reason = json.loads(data)['detail']
+        reason = reason.split('--')[1]
+        print 'The request failed because : %s' % reason
+        sys.exit(1)
     conn.close()
     print json.dumps(json.loads(data), sort_keys=True, indent=2)
 
 
 if __name__ == '__main__':
+    try:
+        config_items = {'CN': hostname, 'emailAddress': email}
 
         #
         # Three options for the CSR request
@@ -212,44 +200,61 @@ if __name__ == '__main__':
         #    dump it and strip the text lines for the server
         #
 
-    if prikey == 'genprivate.key' and csr == 'gennew.csr':
-        genprivate = createKeyPair(TYPE_RSA, 2048)
-        keyname = kname + '.' + ext
+        if prikey == 'genprivate.key' and csr == 'gennew.csr':
+            genprivate = createKeyPair(TYPE_RSA, 2048)
 
       # #### Writing private key####
 
-        privkey = open(keyname, 'wb')
-        key = \
-            OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM,
-                genprivate)
-        privkey.write(key)
-        privkey.close()
-        new_csr = createCertRequest(genprivate, digest='sha1',
-                                    **config_items)
-        csr = crypto.dump_certificate_request(crypto.FILETYPE_PEM,
-                new_csr)
-        csr = csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n', ''
-                          ).replace('-----END CERTIFICATE REQUEST-----\n'
-                                    , '')
-        connect()
-    elif prikey != 'genprivate.key':
-        private_key = crypto.load_privatekey(crypto.FILETYPE_PEM,
-                open(prikey, 'r').read())
-        new_csr = createCertRequest(private_key, digest='sha1',
-                                    **config_items)
-        csr = crypto.dump_certificate_request(crypto.FILETYPE_PEM,
-                new_csr)
-        csr = csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n', ''
-                          ).replace('-----END CERTIFICATE REQUEST-----\n'
-                                    , '')
-        connect()
-    else:
-        new_csr = crypto.load_certificate_request(crypto.FILETYPE_PEM,
-                open(csr, 'r').read())
-        csr = crypto.dump_certificate_request(crypto.FILETYPE_PEM,
-                new_csr)
-        csr = csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n', ''
-                          ).replace('-----END CERTIFICATE REQUEST-----\n'
-                                    , '')
-        connect()
+            privkey = open(pem_filename, 'wb')
+            key = \
+                OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM,
+                    genprivate)
+            try:
+                privkey.write(key)
+            except OSError, e:
+                sys.exit('Cannot write to %s' % pem_filename)
+                raise e
+            privkey.close()
+
+      # ##############################
+
+            new_csr = createCertRequest(genprivate, digest='sha1',
+                    **config_items)
+
+            csr = crypto.dump_certificate_request(crypto.FILETYPE_PEM,
+                    new_csr)
+            csr = csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n',
+                              ''
+                              ).replace('-----END CERTIFICATE REQUEST-----\n'
+                    , '')
+            connect()
+        elif prikey != 'genprivate.key':
+            private_key = crypto.load_privatekey(crypto.FILETYPE_PEM,
+                    open(prikey, 'r').read())
+            new_csr = createCertRequest(private_key, digest='sha1',
+                    **config_items)
+            csr = crypto.dump_certificate_request(crypto.FILETYPE_PEM,
+                    new_csr)
+            csr = csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n',
+                              ''
+                              ).replace('-----END CERTIFICATE REQUEST-----\n'
+                    , '')
+            connect()
+        else:
+            new_csr = \
+                crypto.load_certificate_request(crypto.FILETYPE_PEM,
+                    open(csr, 'r').read())
+            csr = crypto.dump_certificate_request(crypto.FILETYPE_PEM,
+                    new_csr)
+            csr = csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n',
+                              ''
+                              ).replace('-----END CERTIFICATE REQUEST-----\n'
+                    , '')
+            connect()
+    except Exception, e:
+        sys.exit('''Uncaught Exception %s
+Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+''',
+                 e)
     sys.exit(0)
+
