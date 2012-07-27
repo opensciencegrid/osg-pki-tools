@@ -2,12 +2,18 @@
 # -*- coding: utf-8 -*-
 
 """
-This script is used to retrieve the certificates that are requested by the guests.
-This script requires no authorizaion.It can check the status of the request and can
-issue the certificate and the retrieve if it is in APPROVED state. However, it is
-required to approve the certificate through webUI before running this script.
-This script checks to see if the output file exists and allows user to correct it
-once.
+This script is used to retrieve certificates. This script requires no
+authentication. It will check the status of the request and request
+issuance of the certificate if needed (i.e. it is in the APPROVED
+state), wait for that issuance to complete, and then retrieve the
+certificate.
+
+Not that between requesting a certificate and retrieving it, it is
+required for a registration authority to approve the certificate
+through the webUI.
+
+This script checks to see if the output file exists and prompts the
+user if it does.
 """
 
 import urllib
