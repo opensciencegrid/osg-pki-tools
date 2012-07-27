@@ -337,11 +337,16 @@ def connect_retrieve():
         data = response.read()
         conn.close()
         if 'PENDING' in data:
-            print 'Waiting for response from Certificate Authority. Please wait.'
-            time.sleep(30)
+            time.sleep(5)
             iterations = iterations + 1
-            print 'Attempt:', iterations, ' Delay: ', iterations / 2, \
+            if iterations % 6 == 0:
+                print 'Waiting for response from Certificate Authority. Please wait.'
+                print ' Delay: ', float(iterations / 12), \
                 ' minutes.'
+            if iterations > 60:
+                print "Maximum number of attempts reached. This script will now exit.\n Goc staff has been\nnotified of this issue."
+                print  " You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n"
+                sys.exit(1)
         else:
             pass
     pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
