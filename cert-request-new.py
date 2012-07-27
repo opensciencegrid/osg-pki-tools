@@ -125,7 +125,8 @@ phone = args.phone
 csr = args.csr
 prikey = args.prikey
 
-if not name.isalpha():
+name_no_space = name.replace(' ', '')
+if not name_no_space.isalpha():
     sys.exit('Name should contain only alphabets\n')
 
 phone_num = phone.replace('-', '')

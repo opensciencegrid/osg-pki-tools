@@ -54,6 +54,7 @@ parser.add_argument(
     help="Specify Requestor's certificate (PEM Format). If not specified will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
         ,
     metavar='CERT',
+    default='',
     )
 parser.add_argument(
     '-f',
@@ -111,9 +112,10 @@ phone = args.phone
 
 if args.userprivkey == '':
     try:
-        userprivkey = os.environ['X509_USER_KEY']
+        userprivkey = os.environ["X509_USER_KEY"]
+        print userprivkey
     except:
-        userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
+        userprivkey = str(os.environ["HOME"]) + '/.globus/userkey.pem'
 else:
     userprivkey = args.userprivkey
 
@@ -124,9 +126,10 @@ else:
 
 if args.usercert == '':
     try:
-        usercert = os.environ['X509_USER_CERT']
+        usercert = os.environ["X509_USER_CERT"]
+        print usercert
     except:
-        usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
+        usercert = str(os.environ["HOME"]) + '/.globus/usercert.pem'
 else:
     usercert = args.usercert
 
