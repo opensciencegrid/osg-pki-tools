@@ -2,8 +2,14 @@
 # -*- coding: utf-8 -*-
 
 """
-This script is used to submit multiple certifcate requests and the intended user for the script is the GridAdmin.
-This script requests certificates and then approves as well as issues them in bulk (limit of 50 at a time).
+This script is used to submit multiple certifcate requests and the
+intended user for the script is a GridAdmin, who must provide
+credentials for authentication.
+
+This script requests certificates, then approves, issues, and retrieves them.
+
+Note that OSG has a policy limiting certificate issuances to 50 per
+day at this time.
 """
 
 import urllib
@@ -179,6 +185,16 @@ def get_passphrase(userprivkey):
 def connect_request(ssl_context, bulk_csr):
     print 'Connecting to server to request certificate...'
     global id
+    bulk_csr = bulk_csr[0]  # HACK
+    print "bulk_csr",bulk_csr
+    json_data = json.dumps({
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'csrs': bulk_csr,
+        })
+    #print "json_data:", json_data
+    #params = json_data
     params = urllib.urlencode({
         'name': name,
         'email': email,
@@ -448,7 +464,6 @@ if __name__ == '__main__':
                 connect_retrieve()
                 bulk_csr = ''
                 count = 0
-
     # ####################################################################################################################################
 
         if count != 0 and count != 50:
