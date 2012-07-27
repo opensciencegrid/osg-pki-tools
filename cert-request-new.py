@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-This script submits the certificate request for an unauthenticated user. An unauthenticated user is a user that is not registered with the OIM. Hence no authorization is required in this script.
+This script submits a host certificate request for an unauthenticated
+user.
 """
 
 import urllib
