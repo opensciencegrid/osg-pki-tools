@@ -48,10 +48,10 @@ parser.add_argument(
     action='store',
     dest='keyfile',
     required=False,
-    help='Specify the output filename for the retrieved user certificate. Default is ./hostcert.pem'
+    help='Specify the output filename for the retrieved user certificate. Default is ./host-key.pem'
         ,
-    metavar='ID',
-    default='./hostcert.pem',
+    metavar='Output Keyfile',
+    default='./host-key.pem',
     )
 parser.add_argument(
     '-t',
@@ -254,9 +254,9 @@ if __name__ == '__main__':
                     , '')
             connect()
     except Exception, e:
-        sys.exit('''Uncaught Exception %s
+        print e
+        sys.exit('''Uncaught Exception 
 Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
-''',
-                 e)
+''')
     sys.exit(0)
 

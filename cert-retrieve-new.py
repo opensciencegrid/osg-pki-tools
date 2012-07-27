@@ -246,8 +246,9 @@ if __name__ == '__main__':
     try:
         connect_retrieve()
     except Exception, e:
-        sys.exit('''Uncaught Exception : %s
+        print e
+        sys.exit('''Uncaught Exception : 
 Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
 '''
-                 % e)
+                 )
     sys.exit(0)

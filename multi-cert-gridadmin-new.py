@@ -380,10 +380,10 @@ def connect_retrieve():
     return
 
 
-def create_certificate(line):
+def create_certificate(line, count):
     print 'Generating certificate...'
     genprivate = createKeyPair(TYPE_RSA, 2048)
-    keyname = line + '-key.pem'
+    keyname = line + '-' + str(count) + '-key.pem'
 
     # #### Writing private key####
 
@@ -441,7 +441,7 @@ if __name__ == '__main__':
             line = line.rstrip('\n')
             config_items.update({'CN': line})  # ### New Config item list for every host#######
             print 'Beginning request process for', line
-            csr = create_certificate(line)
+            csr = create_certificate(line, count)
             bulk_csr.append(csr)
             num_requests = num_requests + 1
             if count == 50:
@@ -459,9 +459,10 @@ if __name__ == '__main__':
             connect_retrieve()
         hosts.close()
     except Exception, e:
-        sys.exit('''Uncaught Exception %s
+        print e
+        sys.exit('''Uncaught Exception 
 Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
-''',
-                 e)
+'''
+                 )
     sys.exit(0)
 
