@@ -27,150 +27,138 @@ from certgen import *
 # Set up Option Parser
 #
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    '-pk',
-    '--pkey',
-    action='store',
-    dest='userprivkey',
-    required=False,
-    help="Specify Requestor's private key (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
-        ,
-    metavar='PKEY',
-    default='',
-    )
-parser.add_argument(
-    '-ce',
-    '--cert',
-    action='store',
-    dest='usercert',
-    required=False,
-    help="Specify Requestor's certificate (PEM Format). If not specified will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
-        ,
-    metavar='CERT',
-    default='',
-    )
-parser.add_argument(
-    '-f',
-    '--hostfile',
-    action='store',
-    dest='hostfile',
-    required=True,
-    help='Filename with one hostname per line',
-    metavar='HOSTFILE',
-    default='hosts.txt',
-    )
-parser.add_argument(
-    '-e',
-    '--email',
-    action='store',
-    dest='email',
-    required=True,
-    help='Email address to receive certificate',
-    metavar='EMAIL',
-    )
-parser.add_argument(
-    '-n',
-    '--name',
-    action='store',
-    dest='name',
-    required=True,
-    help='Name of user receiving certificate',
-    metavar='NAME',
-    )
-parser.add_argument(
-    '-p',
-    '--phone',
-    action='store',
-    dest='phone',
-    required=True,
-    help='Phone number of user receiving certificate',
-    metavar='PHONE',
-    )
-parser.add_argument(
-    '-q',
-    '--quiet',
-    action='store_false',
-    dest='verbose',
-    default=True,
-    help="don't print status messages to stdout",
-    )
-args = parser.parse_args()
+def parse_args():
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-pk',
+        '--pkey',
+        action='store',
+        dest='userprivkey',
+        required=False,
+        help="Specify Requestor's private key (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+            ,
+        metavar='PKEY',
+        default='',
+        )
+    parser.add_argument(
+        '-ce',
+        '--cert',
+        action='store',
+        dest='usercert',
+        required=False,
+        help="Specify Requestor's certificate (PEM Format). If not specified will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
+            ,
+        metavar='CERT',
+        default='',
+        )
+    parser.add_argument(
+        '-f',
+        '--hostfile',
+        action='store',
+        dest='hostfile',
+        required=True,
+        help='Filename with one hostname per line',
+        metavar='HOSTFILE',
+        default='hosts.txt',
+        )
+    parser.add_argument(
+        '-e',
+        '--email',
+        action='store',
+        dest='email',
+        required=True,
+        help='Email address to receive certificate',
+        metavar='EMAIL',
+        )
+    parser.add_argument(
+        '-n',
+        '--name',
+        action='store',
+        dest='name',
+        required=True,
+        help='Name of user receiving certificate',
+        metavar='NAME',
+        )
+    parser.add_argument(
+        '-p',
+        '--phone',
+        action='store',
+        dest='phone',
+        required=True,
+        help='Phone number of user receiving certificate',
+        metavar='PHONE',
+        )
+    parser.add_argument(
+        '-q',
+        '--quiet',
+        action='store_false',
+        dest='verbose',
+        default=True,
+        help="don't print status messages to stdout",
+        )
+    args = parser.parse_args()
 
-global hostname, domain, email, name, phone, outkeyfile, num_requests
+    global hostname, domain, email, name, phone, outkeyfile, num_requests, usercert, userprivkey, certdir, hostfile
+    certdir = 'certificates'
 
-hostfile = args.hostfile
-email = args.email
-name = args.name
-phone = args.phone
 
-if args.userprivkey == '':
-    try:
-        userprivkey = os.environ["X509_USER_KEY"]
-    except:
-        userprivkey = str(os.environ["HOME"]) + '/.globus/userkey.pem'
-else:
-    userprivkey = args.userprivkey
+    hostfile = args.hostfile
+    email = args.email
+    name = args.name
+    phone = args.phone
 
-if os.path.exists(userprivkey):
-    pass
-else:
-    sys.exit('Unable to locate the private key file:' + userprivkey)
+    if args.userprivkey == '':
+        try:
+            userprivkey = os.environ["X509_USER_KEY"]
+        except:
+            userprivkey = str(os.environ["HOME"]) + '/.globus/userkey.pem'
+    else:
+        userprivkey = args.userprivkey
+    
+    if os.path.exists(userprivkey):
+        pass
+    else:
+        sys.exit('Unable to locate the private key file:' + userprivkey)
+    
+    if args.usercert == '':
+        try:
+            usercert = os.environ["X509_USER_CERT"]
+        except:
+            usercert = str(os.environ["HOME"]) + '/.globus/usercert.pem'
+    else:
+        usercert = args.usercert
+    
+    if os.path.exists(usercert):
+        pass
+    else:
+        sys.exit('Unable to locate the user certificate file:' + usercert)
+    
+    if os.path.exists(hostfile):
+        pass
+    else:
+        sys.exit('Unable to locate the hostfile:' + hostfile)
 
-if args.usercert == '':
-    try:
-        usercert = os.environ["X509_USER_CERT"]
-    except:
-        usercert = str(os.environ["HOME"]) + '/.globus/usercert.pem'
-else:
-    usercert = args.usercert
+    name_no_space = name.replace(' ', '')
+    if not name_no_space.isalpha():
+        sys.exit('Name should contain only alphabets\n')
+    
+    phone_num = phone.replace('-', '')
+    if not phone_num.isdigit():
+        sys.exit("Phone number should contain only numbers and/or '-'\n")
 
-if os.path.exists(usercert):
-    pass
-else:
-    sys.exit('Unable to locate the user certificate file:' + usercert)
-
-if os.path.exists(hostfile):
-    pass
-else:
-    sys.exit('Unable to locate the hostfile:' + hostfile)
-
-name_no_space = name.replace(' ', '')
-if not name_no_space.isalpha():
-    sys.exit('Name should contain only alphabets\n')
-
-phone_num = phone.replace('-', '')
-if not phone_num.isdigit():
-    sys.exit("Phone number should contain only numbers and/or '-'\n")
-
-#
-# Read from the ini file
-#
-
-Config = ConfigParser.ConfigParser()
-Config.read('OSGTools.ini')
-host = Config.get('OIMData', 'hostsec')
-requrl = Config.get('OIMData', 'requrl')
-appurl = Config.get('OIMData', 'appurl')
-issurl = Config.get('OIMData', 'issurl')
-returl = Config.get('OIMData', 'returl')
-content_type = Config.get('OIMData', 'content_type')
-
-# Some vars for file operations
-
-filetype = 'pkcs7-cert'
-fileext = 'pem'
-certdir = 'certificates'
-
-# Checking to make sure that the users give values that won't crash the
-
-outkeyfile = userprivkey + '_temp'
-
+    global host, requrl, appurl, issurl, returl, content_type, Config
+    Config = ConfigParser.ConfigParser()
+    Config.read('OSGTools.ini')
+    host = Config.get('OIMData', 'hostsec')
+    requrl = Config.get('OIMData', 'requrl')
+    appurl = Config.get('OIMData', 'appurl')
+    issurl = Config.get('OIMData', 'issurl')
+    returl = Config.get('OIMData', 'returl')
+    content_type = Config.get('OIMData', 'content_type')
+    return
 
 #################################################
-
-def get_passphrase(userprivkey):
-    os.system('openssl rsa -in ' + userprivkey + ' -out ' + outkeyfile)
 
 
 # We make the request here, causing the generation of the CSR and then
@@ -280,6 +268,8 @@ notified of this issue.
 
 def write_certs(pkcs7raw, i):
     pkcs7raw = str(pkcs7raw)
+    filetype = 'pkcs7-cert'
+    fileext = 'pem'
     filename = '%s.%s.%s' % (filetype, id, fileext)
     pem_filename = '%s.%s-%s.%s' % ('host-certs', id, i, 'pem')
     cwd = os.getcwd()
@@ -410,8 +400,7 @@ def create_certificate(line, count):
 
 if __name__ == '__main__':
     try:
-
-
+        parse_args()
         def prompt_for_password(verify):
 
         # If verify == True, we are supposed to verify password.
@@ -469,5 +458,8 @@ if __name__ == '__main__':
 Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
 '''
                  )
+    except KeyboardInterrupt, k:
+        print k
+        sys.exit('''Interrupted by user\n''')
     sys.exit(0)
 

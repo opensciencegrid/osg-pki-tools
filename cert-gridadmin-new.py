@@ -18,114 +18,116 @@ import sys
 import ConfigParser
 import argparse
 import json
+import os
 
 from certgen import *  # Lazy, I know
 
 # Set up Option Parser
 #
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    '-pk',
-    '--pkey',
-    action='store',
-    dest='userprivkey',
-    required=False,
-    help="Specify Requestor's private key (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
-        ,
-    metavar='PKEY',
-    default='',
-    )
-parser.add_argument(
-    '-ce',
-    '--cert',
-    action='store',
-    dest='usercert',
-    required=False,
-    help="Specify Requestor's certificate (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
-        ,
-    metavar='CERT',
-    default='',
-    )
-parser.add_argument(
-    '-a',
-    '--action',
-    action='store',
-    dest='action',
-    required=True,
-    help='Action to take (reject, cancel, revoke',
-    metavar='ACTION',
-    )
-parser.add_argument(
-    '-i',
-    '--id',
-    action='store',
-    dest='id',
-    required=True,
-    help='Specify ID# of certificate request to act on',
-    metavar='ID',
-    )
-parser.add_argument(
-    '-q',
-    '--quiet',
-    action='store_false',
-    dest='verbose',
-    default=True,
-    help="don't print status messages to stdout",
-    )
-args = parser.parse_args()
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-pk',
+        '--pkey',
+        action='store',
+        dest='userprivkey',
+        required=False,
+        help="Specify Requestor's private key (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+            ,
+        metavar='PKEY',
+        default='',
+        )
+    parser.add_argument(
+        '-ce',
+        '--cert',
+        action='store',
+        dest='usercert',
+        required=False,
+        help="Specify Requestor's certificate (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+            ,
+        metavar='CERT',
+        default='',
+        )
+    parser.add_argument(
+        '-a',
+        '--action',
+        action='store',
+        dest='action',
+        required=True,
+        help='Action to take (reject, cancel, approve)',
+        metavar='ACTION',
+        )
+    parser.add_argument(
+        '-i',
+        '--id',
+        action='store',
+        dest='id',
+        required=True,
+        help='Specify ID# of certificate request to act on',
+        metavar='ID',
+        )
+    parser.add_argument(
+        '-q',
+        '--quiet',
+        action='store_false',
+        dest='verbose',
+        default=True,
+        help="don't print status messages to stdout",
+        )
+    args = parser.parse_args()
+    global userprivkey, usercert
+    # print "Parsing variables..."
 
-# print "Parsing variables..."
+    if args.userprivkey == '':
+        try:
+            userprivkey = os.environ['X509_USER_KEY']
+        except:
+            userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
+    else:
+        userprivkey = args.userprivkey
+    
+    if os.path.exists(userprivkey):
+        pass
+    else:
+        sys.exit('Unable to locate the private key file:' + userprivkey)
+    
+    if args.usercert == '':
+        try:
+            usercert = os.environ['X509_USER_CERT']
+        except:
+            usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
+    else:
+        usercert = args.usercert
 
-if args.userprivkey == '':
-    try:
-        userprivkey = os.environ['X509_USER_KEY']
-    except:
-        userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
-else:
-    userprivkey = args.userprivkey
+    if os.path.exists(usercert):
+        pass
+    else:
+        sys.exit('Unable to locate the user certificate file:' + usercert)
+    global id, action
+    action = args.action
+    id = args.id
 
-if os.path.exists(userprivkey):
-    pass
-else:
-    sys.exit('Unable to locate the private key file:' + userprivkey)
+    #
+    # Read from the ini file
+    #
+    global Config, host, requrl, content_type
+    Config = ConfigParser.ConfigParser()
+    Config.read('OSGTools.ini')
+    host = Config.get('OIMData', 'hostsec')
+    if action == 'reject':
+        requrl = Config.get('OIMData', 'revurl')
+    elif action == 'approve':
+        requrl = Config.get('OIMData', 'appurl')
+    elif action == 'cancel':
+        requrl = Config.get('OIMData', 'canurl')
+    else:
+        sys.exit('''
+    Exiting: Action must be reject, approve, or cancel.
+    ''')
 
-if args.usercert == '':
-    try:
-        usercert = os.environ['X509_USER_CERT']
-    except:
-        usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
-else:
-    usercert = args.usercert
-
-if os.path.exists(usercert):
-    pass
-else:
-    sys.exit('Unable to locate the user certificate file:' + usercert)
-
-action = args.action
-id = args.id
-
-#
-# Read from the ini file
-#
-
-Config = ConfigParser.ConfigParser()
-Config.read('OSGTools.ini')
-host = Config.get('OIMData', 'hostsec')
-if action == 'reject':
-    requrl = Config.get('OIMData', 'revurl')
-elif action == 'approve':
-    requrl = Config.get('OIMData', 'appurl')
-elif action == 'cancel':
-    requrl = Config.get('OIMData', 'canurl')
-else:
-    sys.exit('''
-Exiting: Action must be reject, approve, or cancel.
-''')
-
-content_type = Config.get('OIMData', 'content_type')
-
+    content_type = Config.get('OIMData', 'content_type')
+    return
 
 def connect():
     print '\nConnecting to server...'
@@ -136,10 +138,16 @@ def connect():
                                    cert_file=usercert)
     conn.request('POST', requrl, params, headers)
     response = conn.getresponse()
+    data = response.read()
+    if not 'OK' in json.dumps(data):
+        reason = json.loads(data)['detail']
+        print 'The request failed because : %s' % reason
+        print 'To report a bug please contact goc@opensciencegrid.org. We would address your issue at the earliest.\n'
+        sys.exit(1)
+    
     if not 'OK' in response.reason:
         print response.status, response.reason
         sys.exit(1)
-    data = response.read()
     conn.close()
     print json.dumps(json.loads(data), sort_keys=True, indent=2)
 
@@ -164,11 +172,15 @@ Contacting Server to initiate certificate issuance.
 
 if __name__ == '__main__':
     try:
+        parse_args()
         connect()
     except Exception, e:
-        sys.exit('''Uncaught Exception.
+        sys.exit('''Uncaught Exception. %s
 Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
-'''
+''' % e
                  )
+    except KeyboardInterrupt, k:
+        print k
+        sys.exit('''Interrupted by user\n''')
     sys.exit(0)
 

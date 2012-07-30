@@ -29,76 +29,70 @@ import os
 # Set up Option Parser
 #
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    '-i',
-    '--id',
-    action='store',
-    dest='id',
-    required=True,
-    help='Specify ID# of certificate to retrieve',
-    metavar='ID',
-    )
-parser.add_argument(
-    '-o',
-    '--certfile',
-    action='store',
-    dest='certfile',
-    required=False,
-    help='Specify the output filename for the retrieved user certificate. Default is ./hostcert.pem'
-        ,
-    metavar='ID',
-    default='./hostcert.pem',
-    )
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-i',
+        '--id',
+        action='store',
+        dest='id',
+        required=True,
+        help='Specify ID# of certificate to retrieve',
+        metavar='ID',
+        )
+    parser.add_argument(
+        '-o',
+        '--certfile',
+        action='store',
+        dest='certfile',
+        required=False,
+        help='Specify the output filename for the retrieved user certificate. Default is ./hostcert.pem'
+            ,
+        metavar='ID',
+        default='./hostcert.pem',
+        )
 
-parser.add_argument(
-    '-q',
-    '--quiet',
-    action='store_false',
-    dest='verbose',
-    default=True,
-    required=False,
-    help="don't print status messages to stdout",
-    )
-args = parser.parse_args()
+    parser.add_argument(
+        '-q',
+        '--quiet',
+        action='store_false',
+        dest='verbose',
+        default=True,
+        required=False,
+        help="don't print status messages to stdout",
+        )
+    args = parser.parse_args()
+    
+    # print "Parsing variables..."
 
-# print "Parsing variables..."
+    global id, pem_filename
+    id = args.id
 
-global id, pem_filename
-id = args.id
-
-if os.path.exists(args.certfile):
-    opt = \
-        raw_input('The file %s already exists. Do you want to overwrite it? Y/N : \n'
-                   % args.certfile)
-    if opt == 'y' or opt == 'Y':
-        pem_filename = args.certfile
-    elif opt == 'n' or opt == 'N':
-        pem_filename = raw_input('Please enter a different file name\n')
+    if os.path.exists(args.certfile):
+        opt = \
+            raw_input('The file %s already exists. Do you want to overwrite it? Y/N : \n'
+                       % args.certfile)
+        if opt == 'y' or opt == 'Y':
+            pem_filename = args.certfile
+        elif opt == 'n' or opt == 'N':
+            pem_filename = raw_input('Please enter a different file name\n')
+        else:
+            sys.exit('Invalid option')
     else:
-        sys.exit('Invalid option')
-else:
-    pem_filename = args.certfile
-
-#
-# Read from the ini file
-#
-
-Config = ConfigParser.ConfigParser()
-Config.read('OSGTools.ini')
-host = Config.get('OIMData', 'host')
-requrl = Config.get('OIMData', 'returl')
-appurl = Config.get('OIMData', 'appurl')
-issurl = Config.get('OIMData', 'issurl')
-
-content_type = Config.get('OIMData', 'content_type')
-
-# Some vars for file operations
-
-filetype = 'host-cert'
-fileext = 'pkcs7'
-filename = '%s.%s.%s' % (filetype, id, fileext)
-
+        pem_filename = args.certfile
+    global Config, host, requrl, appurl, issurl, content_type
+    Config = ConfigParser.ConfigParser()
+    Config.read('OSGTools.ini')
+    host = Config.get('OIMData', 'host')
+    requrl = Config.get('OIMData', 'returl')
+    appurl = Config.get('OIMData', 'appurl')
+    issurl = Config.get('OIMData', 'issurl')
+    content_type = Config.get('OIMData', 'content_type')
+    global filetype, fileext, filename
+    filetype = 'host-cert'
+    fileext = 'pkcs7'
+    filename = '%s.%s.%s' % (filetype, id, fileext)
+    return
 
 # Build the connection to the web server - the request header, the parameters
 # needed and then pass them into the server
@@ -245,6 +239,7 @@ def connect_retrieve():
 
 if __name__ == '__main__':
     try:
+        parse_args()
         connect_retrieve()
     except Exception, e:
         print e
@@ -252,4 +247,7 @@ if __name__ == '__main__':
 Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
 '''
                  )
+    except KeyboardInterrupt, k:
+        print k
+        sys.exit('''Interrupted by user\n''')
     sys.exit(0)

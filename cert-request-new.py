@@ -20,157 +20,157 @@ import os
 
 # Set up Option Parser
 #
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-c',
+        '--csr',
+        action='store',
+        dest='csr',
+        default='gennew.csr',
+        required=False,
+        help='Specify CSR name (default = gennew.csr)',
+        metavar='CSR',
+        )
+    parser.add_argument(
+        '-k',
+        '--key',
+        action='store',
+        dest='prikey',
+        default='genprivate.key',
+        required=False,
+        help='Specify Private Key Name (default=genprivate.key)',
+        metavar='PRIKEY',
+        )
+    parser.add_argument(
+        '-o',
+        '--outkeyfile',
+        action='store',
+        dest='keyfile',
+        required=False,
+        help='Specify the output filename for the retrieved user certificate. Default is ./host-key.pem'
+            ,
+        metavar='Output Keyfile',
+        default='./host-key.pem',
+        )
+    parser.add_argument(
+        '-t',
+        '--hostname',
+        action='store',
+        dest='hostname',
+        required=True,
+        help='Specify hostname for CSR (FQDN)',
+        metavar='CN',
+        )
+    parser.add_argument(
+        '-e',
+        '--email',
+        action='store',
+        dest='email',
+        required=True,
+        help='Email address to receive certificate',
+        metavar='EMAIL',
+        )
+    parser.add_argument(
+        '-n',
+        '--name',
+        action='store',
+        dest='name',
+        required=True,
+        help='Name of user receiving certificate',
+        metavar='NAME',
+        )
+    parser.add_argument(
+        '-p',
+        '--phone',
+        action='store',
+        dest='phone',
+        required=True,
+        help='Phone number of user receiving certificate',
+        metavar='PHONE',
+        )
+    parser.add_argument(
+        '-q',
+        '--quiet',
+        action='store_false',
+        dest='verbose',
+        default=True,
+        help="don't print status messages to stdout",
+        )
+    args = parser.parse_args()
+    
+    # print "Parsing variables..."
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    '-c',
-    '--csr',
-    action='store',
-    dest='csr',
-    default='gennew.csr',
-    required=False,
-    help='Specify CSR name (default = gennew.csr)',
-    metavar='CSR',
-    )
-parser.add_argument(
-    '-k',
-    '--key',
-    action='store',
-    dest='prikey',
-    default='genprivate.key',
-    required=False,
-    help='Specify Private Key Name (default=genprivate.key)',
-    metavar='PRIKEY',
-    )
-parser.add_argument(
-    '-o',
-    '--outkeyfile',
-    action='store',
-    dest='keyfile',
-    required=False,
-    help='Specify the output filename for the retrieved user certificate. Default is ./host-key.pem'
-        ,
-    metavar='Output Keyfile',
-    default='./host-key.pem',
-    )
-parser.add_argument(
-    '-t',
-    '--hostname',
-    action='store',
-    dest='hostname',
-    required=True,
-    help='Specify hostname for CSR (FQDN)',
-    metavar='CN',
-    )
-parser.add_argument(
-    '-e',
-    '--email',
-    action='store',
-    dest='email',
-    required=True,
-    help='Email address to receive certificate',
-    metavar='EMAIL',
-    )
-parser.add_argument(
-    '-n',
-    '--name',
-    action='store',
-    dest='name',
-    required=True,
-    help='Name of user receiving certificate',
-    metavar='NAME',
-    )
-parser.add_argument(
-    '-p',
-    '--phone',
-    action='store',
-    dest='phone',
-    required=True,
-    help='Phone number of user receiving certificate',
-    metavar='PHONE',
-    )
-parser.add_argument(
-    '-q',
-    '--quiet',
-    action='store_false',
-    dest='verbose',
-    default=True,
-    help="don't print status messages to stdout",
-    )
-args = parser.parse_args()
-
-# print "Parsing variables..."
-
-global csr, prikey, hostname, email, name, phone
+    global csr, prikey, hostname, email, name, phone, pem_filename
 
                         # , config_items
 
-if os.path.exists(args.keyfile):
-    opt = \
-        raw_input('%s already exists. Do you want to overwrite it? Y/N : \n'
-                   % args.keyfile)
-    if opt == 'y' or opt == 'Y':
-        pem_filename = args.keyfile
-    elif opt == 'n' or opt == 'N':
-        pem_filename = raw_input('Please enter a different file name\n')
+    if os.path.exists(args.keyfile):
+        opt = \
+            raw_input('%s already exists. Do you want to overwrite it? Y/N : \n'
+                       % args.keyfile)
+        if opt == 'y' or opt == 'Y':
+            pem_filename = args.keyfile
+        elif opt == 'n' or opt == 'N':
+            pem_filename = raw_input('Please enter a different file name\n')
+        else:
+            sys.exit('Invalid option')
     else:
-        sys.exit('Invalid option')
-else:
-    pem_filename = args.keyfile
+        pem_filename = args.keyfile
 
-hostname = args.hostname
-email = args.email
-name = args.name
-phone = args.phone
-csr = args.csr
-prikey = args.prikey
+    hostname = args.hostname
+    email = args.email
+    name = args.name
+    phone = args.phone
+    csr = args.csr
+    prikey = args.prikey
 
-name_no_space = name.replace(' ', '')
-if not name_no_space.isalpha():
-    sys.exit('Name should contain only alphabets\n')
+    name_no_space = name.replace(' ', '')
+    if not name_no_space.isalpha():
+        sys.exit('Name should contain only alphabets\n')
 
-phone_num = phone.replace('-', '')
-if not phone_num.isdigit():
-    sys.exit("Phone number should contain only numbers and/or '-'\n")
+    phone_num = phone.replace('-', '')
+    if not phone_num.isdigit():
+        sys.exit("Phone number should contain only numbers and/or '-'\n")
 
-if args.prikey == 'genprivate.key':
-    pass
-elif not os.path.exists(args.prikey):
-    sys.exit('The file %s does not exist' % args.prikey)
+    if args.prikey == 'genprivate.key':
+        pass
+    elif not os.path.exists(args.prikey):
+        sys.exit('The file %s does not exist' % args.prikey)
 
-if args.csr == 'gennew.csr':
-    pass
-elif not os.path.exists(args.csr):
-    sys.exit('The file %s does not exist' % args.csr)
+    if args.csr == 'gennew.csr':
+        pass
+    elif not os.path.exists(args.csr):
+        sys.exit('The file %s does not exist' % args.csr)
+    
+    #
+    # Read from the ini file
+    #
+    global host, requrl, content_type, Config
+    Config = ConfigParser.ConfigParser()
+    Config.read('OSGTools.ini')
+    host = Config.get('OIMData', 'host')
+    requrl = Config.get('OIMData', 'requrl')
+    content_type = Config.get('OIMData', 'content_type')
+    return
 
-#
-# Read from the ini file
-#
-
-Config = ConfigParser.ConfigParser()
-Config.read('OSGTools.ini')
-host = Config.get('OIMData', 'host')
-requrl = Config.get('OIMData', 'requrl')
-content_type = Config.get('OIMData', 'content_type')
-
-
-# Build the connection to the web server - the request header, the parameters
-# needed and then pass them into the server
-#
-# The data returned is in JSON format so to make it a little more human
-# readable we pass it through the json module to pretty print it
-#
+    # Build the connection to the web server - the request header, the parameters
+    # needed and then pass them into the server
+    #
+    # The data returned is in JSON format so to make it a little more human
+    # readable we pass it through the json module to pretty print it
+    #
 
 def connect():
     print '\nConnecting to server...'
     params = urllib.urlencode({
-        'name': name,
-        'email': email,
-        'phone': phone,
-        'csrs': csr,
-        })
+    'name': name,
+    'email': email,
+    'phone': phone,
+    'csrs': csr,
+            })
     headers = {'Content-type': content_type,
-               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+                   'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = httplib.HTTPConnection(host)
     try:
         conn.request('POST', requrl, params, headers)
@@ -192,6 +192,7 @@ def connect():
 
 if __name__ == '__main__':
     try:
+        parse_args()
         config_items = {'CN': hostname, 'emailAddress': email}
 
         #
@@ -213,6 +214,7 @@ if __name__ == '__main__':
                     genprivate)
             try:
                 privkey.write(key)
+                print 'Wrting private key to: %s' % pem_filename
             except OSError, e:
                 sys.exit('Cannot write to %s' % pem_filename)
                 raise e
@@ -255,8 +257,11 @@ if __name__ == '__main__':
             connect()
     except Exception, e:
         print e
-        sys.exit('''Uncaught Exception 
+        sys.exit('''Uncaught Exception %s
 Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
 ''')
+    except KeyboardInterrupt, k:
+        print k
+        sys.exit('''Interrupted by user\n''')
     sys.exit(0)
 
