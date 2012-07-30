@@ -1,29 +1,27 @@
-Cert-Scripts package is a set of scripts created by OSG GOC to help with various 
-functions related to the DigiCERT PKI. 
+The osg-cert-scripts-v3 package is a set of scripts created by OSG GOC
+to perform host certificate requesting for the OSG PKI.
 
 For questions, comments, info contact goc@opensciencegrid.org.
 
 Contents:
 osg-cert-scripts-v3/
  README -                   This file
- Host-Cert-Request-Guest.py This script is for guest (non-authenticated) 
-                            requests for host certificates
- Host-Cert-Request.py       This script is for authenticated (via OSG issued 
-                            peraonal certificate) requests for host certificates
- ManageCertRequests.py      This script allows a Grid Admin to approve, reject, 
-                            or cancel a certificate request via the ID number 
-                            that they receive via email and/or GOC ticket.
- RetrieveCert.py            This script retrieves the PKCS7 certificate from the 
-                            server once it has been approved and issued. No 
-                            authentication is required.
- certgen.py                 Python calls to create certificates (only used as
-                            an include, not an actively invoked script.
- OSGTools.ini               Configuration file that holds the Hosts/Ports and
-                            URLS for each function
+
+ cert-request-new.py: Request a single host certificate. Does not
+    require you to authenticate with a user certificate to do so.
+
+ cert-retrieve-new.py: Retrieve a single host certificate. Does not
+    require you to authentication with a user certificate to do so.
+
+ multi-cert-gridadmin-new.py: Request and retrieve multiple (up to 50)
+    host certificates given a list of hostnames in a file. Requires you to
+    be a Grid Admin and authenticate with your user certificate.
 
 Installation instructions:
-    Untar where you want them installed. No other dependencies other than
-    Python 2.7.x are required.
 
-Release notes:
-Version:    V3.0Beta    18  June    2012
+ 1) Currently requires python 2.7 (final version will support 2.4 and 2.6)
+
+ 2) Current installation is done via svn checkout. A RPM is coming.
+
+svn checkout https://vdt.cs.wisc.edu/svn/software/osg-cert-scripts-v3/trunk/
+
