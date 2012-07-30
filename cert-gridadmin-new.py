@@ -16,7 +16,7 @@ import urllib
 import httplib
 import sys
 import ConfigParser
-import argparse
+from optparse import OptionParser
 import json
 import os
 
@@ -26,48 +26,44 @@ from certgen import *  # Lazy, I know
 #
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '-pk',
+    parser = OptionParser()
+    parser.add_option(
+        '-k',
         '--pkey',
         action='store',
         dest='userprivkey',
-        required=False,
         help="Specify Requestor's private key (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
             ,
         metavar='PKEY',
         default='',
         )
-    parser.add_argument(
-        '-ce',
+    parser.add_option(
+        '-c',
         '--cert',
         action='store',
         dest='usercert',
-        required=False,
         help="Specify Requestor's certificate (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
             ,
         metavar='CERT',
         default='',
         )
-    parser.add_argument(
+    parser.add_option(
         '-a',
         '--action',
         action='store',
         dest='action',
-        required=True,
         help='Action to take (reject, cancel, approve)',
         metavar='ACTION',
         )
-    parser.add_argument(
+    parser.add_option(
         '-i',
         '--id',
         action='store',
         dest='id',
-        required=True,
         help='Specify ID# of certificate request to act on',
         metavar='ID',
         )
-    parser.add_argument(
+    parser.add_option(
         '-q',
         '--quiet',
         action='store_false',
@@ -75,7 +71,13 @@ def parse_args():
         default=True,
         help="don't print status messages to stdout",
         )
-    args = parser.parse_args()
+    
+    (args, values) = parser.parse_args()
+    if not args.action:
+        parser.error("-a/--action argument required")
+    if not args.id:
+        parser.error("-i/--id argument required")
+    
     global userprivkey, usercert
     # print "Parsing variables..."
 

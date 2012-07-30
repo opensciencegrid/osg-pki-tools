@@ -20,7 +20,7 @@ import urllib
 import httplib
 import sys
 import ConfigParser
-import argparse
+from optparse import OptionParser
 import json
 import time
 import re
@@ -30,41 +30,40 @@ import os
 #
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
+    parser = OptionParser()
+    parser.add_option(
         '-i',
         '--id',
         action='store',
         dest='id',
-        required=True,
         help='Specify ID# of certificate to retrieve',
         metavar='ID',
         )
-    parser.add_argument(
+    parser.add_option(
         '-o',
         '--certfile',
         action='store',
         dest='certfile',
-        required=False,
         help='Specify the output filename for the retrieved user certificate. Default is ./hostcert.pem'
             ,
         metavar='ID',
         default='./hostcert.pem',
         )
 
-    parser.add_argument(
+    parser.add_option(
         '-q',
         '--quiet',
         action='store_false',
         dest='verbose',
         default=True,
-        required=False,
         help="don't print status messages to stdout",
         )
-    args = parser.parse_args()
     
-    # print "Parsing variables..."
+    (args, values) = parser.parse_args()
 
+    if not args.id:
+        parser.error("-i/--id argument required")
+    
     global id, pem_filename
     id = args.id
 

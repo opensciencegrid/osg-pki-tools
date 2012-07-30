@@ -10,86 +10,79 @@ import urllib
 import httplib
 import sys
 import ConfigParser
-import argparse
 import json
 import OpenSSL
 from OpenSSL import crypto
 from certgen import *  # Lazy, I know
 from pprint import pprint
 import os
+from optparse import OptionParser
 
 # Set up Option Parser
 #
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
+    parser = OptionParser()
+    parser.add_option(
         '-c',
         '--csr',
         action='store',
         dest='csr',
         default='gennew.csr',
-        required=False,
         help='Specify CSR name (default = gennew.csr)',
         metavar='CSR',
         )
-    parser.add_argument(
+    parser.add_option(
         '-k',
         '--key',
         action='store',
         dest='prikey',
         default='genprivate.key',
-        required=False,
         help='Specify Private Key Name (default=genprivate.key)',
         metavar='PRIKEY',
         )
-    parser.add_argument(
+    parser.add_option(
         '-o',
         '--outkeyfile',
         action='store',
         dest='keyfile',
-        required=False,
         help='Specify the output filename for the retrieved user certificate. Default is ./host-key.pem'
             ,
         metavar='Output Keyfile',
         default='./host-key.pem',
         )
-    parser.add_argument(
+    parser.add_option(
         '-t',
         '--hostname',
         action='store',
         dest='hostname',
-        required=True,
         help='Specify hostname for CSR (FQDN)',
         metavar='CN',
         )
-    parser.add_argument(
+    parser.add_option(
         '-e',
         '--email',
         action='store',
         dest='email',
-        required=True,
         help='Email address to receive certificate',
         metavar='EMAIL',
         )
-    parser.add_argument(
+    parser.add_option(
         '-n',
         '--name',
         action='store',
         dest='name',
-        required=True,
         help='Name of user receiving certificate',
         metavar='NAME',
         )
-    parser.add_argument(
+    parser.add_option(
         '-p',
         '--phone',
         action='store',
         dest='phone',
-        required=True,
         help='Phone number of user receiving certificate',
         metavar='PHONE',
         )
-    parser.add_argument(
+    parser.add_option(
         '-q',
         '--quiet',
         action='store_false',
@@ -97,9 +90,16 @@ def parse_args():
         default=True,
         help="don't print status messages to stdout",
         )
-    args = parser.parse_args()
-    
-    # print "Parsing variables..."
+    (args, values) = parser.parse_args()
+
+    if not args.phone:
+        parser.error("-p/--phone argument required")
+    if not args.name:
+        parser.error("-n/--name argument required")
+    if not args.email:
+        parser.error("-e/--email argument required")
+    if not args.hostname:
+        parser.error("-t/--hostname argument required")
 
     global csr, prikey, hostname, email, name, phone, pem_filename
 

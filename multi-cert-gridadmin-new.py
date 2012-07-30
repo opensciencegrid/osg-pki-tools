@@ -10,7 +10,6 @@ import urllib
 import httplib
 import sys
 import ConfigParser
-import argparse
 import json
 import time
 import re
@@ -20,6 +19,8 @@ import getpass
 import StringIO
 import OpenSSL
 import M2Crypto
+from optparse import OptionParser
+
 
 from OpenSSL import crypto
 from certgen import *
@@ -28,68 +29,61 @@ from certgen import *
 #
 
 def parse_args():
-    
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '-pk',
+    parser = OptionParser()
+    parser.add_option(
+        '-k',
         '--pkey',
         action='store',
         dest='userprivkey',
-        required=False,
         help="Specify Requestor's private key (PEM Format). If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
             ,
         metavar='PKEY',
         default='',
         )
-    parser.add_argument(
-        '-ce',
+    parser.add_option(
+        '-c',
         '--cert',
         action='store',
         dest='usercert',
-        required=False,
         help="Specify Requestor's certificate (PEM Format). If not specified will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
             ,
-        metavar='CERT',
         default='',
+        metavar='CERT',
         )
-    parser.add_argument(
+    parser.add_option(
         '-f',
         '--hostfile',
         action='store',
         dest='hostfile',
-        required=True,
         help='Filename with one hostname per line',
         metavar='HOSTFILE',
         default='hosts.txt',
         )
-    parser.add_argument(
+    parser.add_option(
         '-e',
         '--email',
         action='store',
         dest='email',
-        required=True,
         help='Email address to receive certificate',
         metavar='EMAIL',
         )
-    parser.add_argument(
+    parser.add_option(
         '-n',
         '--name',
         action='store',
         dest='name',
-        required=True,
         help='Name of user receiving certificate',
         metavar='NAME',
         )
-    parser.add_argument(
+    parser.add_option(
         '-p',
         '--phone',
         action='store',
         dest='phone',
-        required=True,
         help='Phone number of user receiving certificate',
         metavar='PHONE',
         )
-    parser.add_argument(
+    parser.add_option(
         '-q',
         '--quiet',
         action='store_false',
@@ -97,7 +91,16 @@ def parse_args():
         default=True,
         help="don't print status messages to stdout",
         )
-    args = parser.parse_args()
+    (args, values) = parser.parse_args()
+
+    if not args.phone:
+        parser.error("-p/--phone argument required")
+    if not args.name:
+        parser.error("-n/--name argument required")
+    if not args.email:
+        parser.error("-e/--email argument required")
+    if not args.hostfile:
+        parser.error("-f/--hostfile argument required")
 
     global hostname, domain, email, name, phone, outkeyfile, num_requests, usercert, userprivkey, certdir, hostfile
     certdir = 'certificates'
