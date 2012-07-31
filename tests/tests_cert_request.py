@@ -4,8 +4,7 @@ import PKIClientTestCase
 
 class CertRequestTests(PKIClientTestCase.PKIClientTestCase):
 
-    # TODO: Should be named cert-request-new to make DOE Grids scripts
-    command = "HostCertRequest.py"
+    command = "cert-request-new.py"
 
     def test_help(self):
         """Test running with -h to get help"""
