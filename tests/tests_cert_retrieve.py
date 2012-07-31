@@ -8,6 +8,5 @@ class CertRetrieveTests(PKIClientTestCase.PKIClientTestCase):
 
     def test_help(self):
         """Test running with -h to get help"""
-        env = self.get_TestFileEnvironment()
-        result = env.run("python", self.command, "-h")
+        result = self.run_script(self.command, "-h")
         self.assertTrue("Usage:" in result.stdout)

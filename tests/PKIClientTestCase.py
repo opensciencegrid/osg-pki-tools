@@ -29,6 +29,24 @@ class PKIClientTestCase(unittest.TestCase):
         return scripttest.TestFileEnvironment("./test-output", **kwargs)
 
     @classmethod
+    def run_script(cls, script, *args):
+        """Run script with given arguments.
+
+        Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
+        env = cls.get_TestFileEnvironment()
+        result = env.run("python",  # In case script is not executable
+                         script, *args,
+                         # Don't raise exception on error
+                         expect_error=True, expect_stderr=True, quiet=True)
+        return result
+
+    @classmethod
+    def run_error_msg(cls, result):
+        """Return an error message from a result"""
+        return "Return code: %d\n" % result.returncode \
+            + result.stdout + result.stderr
+
+    @classmethod
     def set_user_cert_path(cls, path):
         """Set path to use for user certificate"""
         cls.user_cert_path = path
