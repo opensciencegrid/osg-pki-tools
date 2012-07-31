@@ -10,4 +10,4 @@ class CertRetrieveTests(PKIClientTestCase.PKIClientTestCase):
         """Test running with -h to get help"""
         env = self.get_TestFileEnvironment()
         result = env.run("python", self.command, "-h")
-        self.assertIn("Usage:", result.stdout)
+        self.assertTrue("Usage:" in result.stdout)

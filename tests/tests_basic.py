@@ -11,21 +11,21 @@ class BasicTests(PKIClientTestCase.PKIClientTestCase):
         """Test test framework"""
         env = self.get_TestFileEnvironment()
         result = env.run("echo", "Hello world")
-        self.assertIn("Hello world", result.stdout)
+        self.assertTrue("Hello world" in result.stdout)
 
     def test_user_cert(self):
         """Test that we can access the user's certificate for authentication"""
         user_cert_path = self.get_user_cert_path()
         self.assertTrue(os.path.exists(user_cert_path),
                         "User cert does not exist: " + user_cert_path)
-        self.assertIsNotNone(self._get_cert_modulus())
+        self.assertNotEqual(self._get_cert_modulus(), None)
 
     def test_user_key(self):
         """Test that we can access the user's key for authentication"""
         user_cert_path = self.get_user_cert_path()
         self.assertTrue(os.path.exists(user_cert_path),
                         "User cert does not exist: " + user_cert_path)
-        self.assertIsNotNone(self._get_key_modulus())
+        self.assertNotEqual(self._get_key_modulus(), None)
 
     def test_cert_and_key_match(self):
         """Test that user cert and key modulus match"""
