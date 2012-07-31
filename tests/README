@@ -3,9 +3,13 @@ Test scripts for OSG Command Line Clients.
 Prerequisits
 ============
 
-Requires python > 2.7 and the scripttest module. To install the latter, use:
+Requires scripttest module. To install use:
 
     pip install scripttest
+
+For python 2.4 and 2.6, it also requires the unittest2 module:
+
+    pip install unittest2
 
 You need a OSG certificate (and private key) that is registered with
 OIM and has Grid Admin permissions.
