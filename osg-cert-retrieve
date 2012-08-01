@@ -245,13 +245,14 @@ if __name__ == '__main__':
     try:
         parse_args()
         connect_retrieve()
-    except Exception, e:
-        print e
-        sys.exit('''Uncaught Exception : 
-Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
-'''
-                 )
+    except EOFError, e:
+        sys.exit("End of File Error: Check if the standard input is enabled\nError %s" % e)
     except KeyboardInterrupt, k:
         print k
         sys.exit('''Interrupted by user\n''')
+    except Exception, e:
+        sys.exit('''Uncaught Exception : %s
+Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+''' % e
+                 )
     sys.exit(0)

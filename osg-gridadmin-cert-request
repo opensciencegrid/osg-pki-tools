@@ -480,14 +480,16 @@ if __name__ == '__main__':
             connect_approve(ssl_context)
             connect_retrieve()
             hosts.close()
+    except EOFError, e:
+        sys.exit("End of File Error: Check if the standard input is enabled\nError %s" % e)
+    except KeyboardInterrupt, k:
+        print k
+        sys.exit('''Interrupted by user\n''')
     except Exception, e:
         print e
         sys.exit('''Uncaught Exception 
 Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
 '''
                  )
-    except KeyboardInterrupt, k:
-        print k
-        sys.exit('''Interrupted by user\n''')
     sys.exit(0)
 
