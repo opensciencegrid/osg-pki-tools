@@ -1,15 +1,12 @@
 """PKIClientTestCase: OSG PKI Command line client test case base class"""
 
 import os
+import os.path
 import scripttest  # pip install scripttest
 import unittest
 
 class PKIClientTestCase(unittest.TestCase):
     """OSG PKI CLI TestCase bass class"""
-
-    # TODO: Set this smartly.
-    #       I tried to set from do-test.py, but doesn't seem to stick.
-    cwd = ".."  # Should be path to scripts
 
     # Path to user certificate and private key to use for authentication
     user_cert_path = None
@@ -21,12 +18,25 @@ class PKIClientTestCase(unittest.TestCase):
     # Openssl binary
     openssl = "openssl"
 
+    # Where the source files are relative to the tests/ directory
+    source_path = os.path.join("..")
+
     @classmethod
     def get_TestFileEnvironment(cls):
         """Return a scripttest.TestFileEnvironment instance"""
-        kwargs = {}
-        kwargs["cwd"] = cls.cwd
-        return scripttest.TestFileEnvironment("./test-output", **kwargs)
+        # Make sure our source path is in PYTHONPATH so we can
+        # find imports
+        env = dict(os.environ)
+        if env.has_key("PYTHONPATH"):
+            env["PYTHONPATH"] += ":" + cls.source_path
+        else:
+            env["PYTHONPATH"] = cls.source_path
+        env = scripttest.TestFileEnvironment("./test-output",
+                                             environ=env,
+                                             template_path=cls.source_path)
+        # Copy in configuration file
+        env.writefile("OSGPKIClients.ini", frompath="OSGPKIClients.ini")
+        return env
 
     @classmethod
     def run_script(cls, script, *args):
@@ -35,7 +45,9 @@ class PKIClientTestCase(unittest.TestCase):
         Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
         env = cls.get_TestFileEnvironment()
         result = env.run("python",  # In case script is not executable
-                         script, *args,
+
+                         os.path.join("..", "..", script),
+                         *args,
                          # Don't raise exception on error
                          expect_error=True, expect_stderr=True, quiet=True)
         return result
