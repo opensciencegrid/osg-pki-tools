@@ -44,12 +44,17 @@ class PKIClientTestCase(unittest.TestCase):
 
         Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
         env = cls.get_TestFileEnvironment()
+        # Python 2.4 requires kwargs to be defined in variable and then
+        # expanded in call to env.run instead of being supplied as keywords
+        kwargs = {
+            # Don't raise exception on error
+            "expect_error" : True,
+            "expect_stderr" : True,
+            "quiet" : True,
+            }
         result = env.run("python",  # In case script is not executable
-
                          os.path.join("..", "..", script),
-                         *args,
-                         # Don't raise exception on error
-                         expect_error=True, expect_stderr=True, quiet=True)
+                         *args, **kwargs)
         return result
 
     @classmethod
