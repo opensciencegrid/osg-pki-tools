@@ -192,7 +192,7 @@ def connect():
         print 'The request failed because : %s' % reason
         sys.exit(1)
     conn.close()
-    if '"detail": "Nothing to report"' in data and '"status": "OK"' in data:
+    if json.loads(data)['detail'] == "Nothing to report" and json.loads(data)['status'] == "OK" in data:
         ticket = json.loads(data)['host_request_id']
         print "Succesfully submitted"
         print "Request Id#: %s" % ticket
