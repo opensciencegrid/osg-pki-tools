@@ -2,8 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-This script is used to submit multiple certifcate requests and the intended user for the script is the GridAdmin.
-This script requests certificates and then approves as well as issues them in bulk (limit of 50 at a time).
+This script is used to submit multiple certifcate requests and the
+intended user for the script is the GridAdmin.  This script requests
+certificates and then approves as well as issues them in bulk (limit
+of 50 at a time).
+
 This script works in two modes:
 1) Requesting single host certificate with -H option
 2) Request multple host certificates with hostnames stored in a file
