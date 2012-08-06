@@ -2,11 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-This script is used to submit multiple certifcate requests and the
-intended user for the script is the GridAdmin.  This script requests
-certificates and then approves as well as issues them in bulk (limit
-of 50 at a time).
-
+This script is used to submit multiple certifcate requests and the intended user for the script is the GridAdmin.
+This script requests certificates and then approves as well as issues them in bulk (limit of 50 at a time).
 This script works in two modes:
 1) Requesting single host certificate with -H option
 2) Request multple host certificates with hostnames stored in a file
@@ -16,7 +13,10 @@ import urllib
 import httplib
 import sys
 import ConfigParser
-import json
+try:
+    import json
+except ImportError:
+    import simplejson as json
 import time
 import re
 import os
@@ -26,7 +26,8 @@ import StringIO
 import OpenSSL
 import M2Crypto
 from optparse import OptionParser
-
+from optparse import OptionGroup
+import optparse
 
 from OpenSSL import crypto
 from OSGPKICertKeygenUtil import *
@@ -35,7 +36,11 @@ from OSGPKICertKeygenUtil import *
 #
 
 def parse_args():
-    parser = OptionParser()
+    usage = "usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]"
+    parser = OptionParser(usage)
+    group = OptionGroup(parser, "Hostname Options",
+                    "Use either of these options.\nSpecify hostname as a single hostname using -H/--hostname\nor specify from a file using -f/--hostfile."
+                    )
     parser.add_option(
         '-k',
         '--pkey',
@@ -56,46 +61,22 @@ def parse_args():
         default='',
         metavar='CERT',
         )
-    parser.add_option(
+    group.add_option(
         '-H',
         '--hostname',
         action='store',
         dest='hostname',
-        help='Specify the hostname for which you want to request the certificate for. If specified -f/--hostfile will be ignored',
+        help='Specify the hostname or service/hostname for which you want to request the certificate for. If specified -f/--hostfile will be ignored',
         metavar='HOSTNAME',
         )
-    parser.add_option(
+    group.add_option(
         '-f',
         '--hostfile',
         action='store',
         dest='hostfile',
-        help='Filename with one hostname per line',
+        help='Filename with one hostname or service/hostname per line',
         metavar='HOSTFILE',
         default='hosts.txt',
-        )
-    parser.add_option(
-        '-e',
-        '--email',
-        action='store',
-        dest='email',
-        help='Email address to receive certificate',
-        metavar='EMAIL',
-        )
-    parser.add_option(
-        '-n',
-        '--name',
-        action='store',
-        dest='name',
-        help='Name of user receiving certificate',
-        metavar='NAME',
-        )
-    parser.add_option(
-        '-p',
-        '--phone',
-        action='store',
-        dest='phone',
-        help='Phone number of user receiving certificate',
-        metavar='PHONE',
         )
     parser.add_option(
         '-q',
@@ -105,25 +86,19 @@ def parse_args():
         default=True,
         help="don't print status messages to stdout",
         )
+    parser.add_option_group(group)
+
     global args, values
     (args, values) = parser.parse_args()
-    global hostname, domain, email, name, phone, outkeyfile, num_requests, usercert, userprivkey, certdir, hostfile
+    global hostname, domain, outkeyfile, num_requests, usercert, userprivkey, certdir, hostfile
 
-    if not args.phone:
-        parser.error("-p/--phone argument required")
-    if not args.name:
-        parser.error("-n/--name argument required")
-    if not args.email:
-        parser.error("-e/--email argument required")
     if not args.hostname:
         hostfile = args.hostfile
     else:
         hostname = args.hostname
 
     certdir = 'certificates'
-    email = args.email
-    name = args.name
-    phone = args.phone
+
 
     if args.userprivkey == '':
         try:
@@ -156,20 +131,12 @@ def parse_args():
         else:
             sys.exit('Unable to locate the hostfile:' + hostfile)
 
-    name_no_space = name.replace(' ', '')
-    if not name_no_space.isalpha():
-        sys.exit('Name should contain only alphabets\n')
-    
-    phone_num = phone.replace('-', '')
-    if not phone_num.isdigit():
-        sys.exit("Phone number should contain only numbers and/or '-'\n")
-
     global host, requrl, appurl, issurl, returl, content_type, Config
     Config = ConfigParser.ConfigParser()
     if os.path.exists('OSGPKIClients.ini'):
         Config.read('OSGPKIClients.ini')
-    elif os.path.exists('etc/OSGPKIClients.ini'):
-        Config.read('etc/OSGPKIClients.ini')
+    elif os.path.exists('/etc/OSGPKIClients.ini'):
+        Config.read('/etc/OSGPKIClients.ini')
     else:
         sys.exit("Missing config file: OSGPKIClients.ini\n")
     host = Config.get('OIMData', 'hostsec')
@@ -192,9 +159,6 @@ def connect_request(ssl_context, bulk_csr):
     print 'Connecting to server to request certificate...'
     global id
     params = urllib.urlencode({
-        'name': name,
-        'email': email,
-        'phone': phone,
         'csrs': bulk_csr,
         }, doseq=True)
     headers = {'Content-type': content_type,
@@ -443,9 +407,7 @@ if __name__ == '__main__':
                 pass
             else:
                 raise
-
-        config_items = {'emailAddress': email}
-
+        config_items = {}
     # ############################# Pipelining the bulk Certificate request process to send them at once##################################
 
         bulk_csr = list()
@@ -474,25 +436,26 @@ if __name__ == '__main__':
                 connect_request(ssl_context, bulk_csr)
                 connect_approve(ssl_context)
                 connect_retrieve()
+            hosts.close()
         else:
             hostname = hostname.rstrip('\n')
             config_items.update({'CN': hostname})  # ### New Config item list for every host#######
+            num_requests = 1
             print 'Beginning request process for', hostname        
             csr = create_certificate(hostname, count)
             connect_request(ssl_context, csr)
             connect_approve(ssl_context)
             connect_retrieve()
-            hosts.close()
     except EOFError, e:
         sys.exit("End of File Error: Check if the standard input is enabled\nError %s" % e)
     except KeyboardInterrupt, k:
         print k
         sys.exit('''Interrupted by user\n''')
     except Exception, e:
-        print e
-        sys.exit('''Uncaught Exception 
+        if str(e) != '0':
+            sys.exit('''Uncaught Exception : %s\n
 Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
-'''
+''' % e
                  )
     sys.exit(0)
 

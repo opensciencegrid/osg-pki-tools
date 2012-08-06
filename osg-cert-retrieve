@@ -21,7 +21,10 @@ import httplib
 import sys
 import ConfigParser
 from optparse import OptionParser
-import json
+try:
+    import json
+except ImportError:
+    import simplejson as json
 import time
 import re
 import os
@@ -30,13 +33,14 @@ import os
 #
 
 def parse_args():
-    parser = OptionParser()
+    usage = "usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]"
+    parser = OptionParser(usage)
     parser.add_option(
         '-i',
         '--id',
         action='store',
         dest='id',
-        help='Specify ID# of certificate to retrieve',
+        help='Specify ID# of certificate to retrieve[Required]',
         metavar='ID',
         )
     parser.add_option(
@@ -83,8 +87,8 @@ def parse_args():
     Config = ConfigParser.ConfigParser()
     if os.path.exists('OSGPKIClients.ini'):
         Config.read('OSGPKIClients.ini')
-    elif os.path.exists('etc/OSGPKIClients.ini'):
-        Config.read('etc/OSGPKIClients.ini')
+    elif os.path.exists('/etc/OSGPKIClients.ini'):
+        Config.read('/etc/OSGPKIClients.ini')
     else:
         sys.exit("Missing config file: OSGPKIClients.ini\n")
     host = Config.get('OIMData', 'host')
@@ -128,7 +132,6 @@ def connect_issue():
         raise e
     data = response.read()
     conn.close()
-
     if not 'OK' in data:
         print json.dumps(json.loads(data), sort_keys=True, indent=2)
         print '''Fatal error while issuing: Certificate request has failed. Goc staff has been
@@ -199,7 +202,6 @@ def connect_retrieve():
                 sys.exit(1)
         else:
             pass
-
     pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
     if 'FAILED' in data:
         print 'Fatal error: Certificate request has failed. Goc staff has been\nnotified of this issue.'
@@ -251,7 +253,8 @@ if __name__ == '__main__':
         print k
         sys.exit('''Interrupted by user\n''')
     except Exception, e:
-        sys.exit('''Uncaught Exception : %s
+        if str(e) != '0':
+                sys.exit('''Uncaught Exception : %s
 Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
 ''' % e
                  )

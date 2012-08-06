@@ -17,7 +17,10 @@ import httplib
 import sys
 import ConfigParser
 from optparse import OptionParser
-import json
+try:
+    import json
+except ImportError:
+    import simplejson as json
 import os
 
 from OSGPKICertKeygenUtil import * 
@@ -26,7 +29,8 @@ from OSGPKICertKeygenUtil import *
 #
 
 def parse_args():
-    parser = OptionParser()
+    usage = "usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]"
+    parser = OptionParser(usage)
     parser.add_option(
         '-k',
         '--pkey',
@@ -52,7 +56,7 @@ def parse_args():
         '--action',
         action='store',
         dest='action',
-        help='Action to take (reject, cancel, approve)',
+        help='Action to take (reject, cancel, approve)[Required]',
         metavar='ACTION',
         )
     parser.add_option(
@@ -60,7 +64,7 @@ def parse_args():
         '--id',
         action='store',
         dest='id',
-        help='Specify ID# of certificate request to act on',
+        help='Specify ID# of certificate request to act on[Required]',
         metavar='ID',
         )
     parser.add_option(
@@ -117,8 +121,8 @@ def parse_args():
     Config = ConfigParser.ConfigParser()
     if os.path.exists('OSGPKIClients.ini'):
         Config.read('OSGPKIClients.ini')
-    elif os.path.exists('etc/OSGPKIClients.ini'):
-        Config.read('etc/OSGPKIClients.ini')
+    elif os.path.exists('/etc/OSGPKIClients.ini'):
+        Config.read('/etc/OSGPKIClients.ini')
     else:
         sys.exit("Missing config file: OSGPKIClients.ini\n")
     host = Config.get('OIMData', 'hostsec')
@@ -155,6 +159,8 @@ def connect():
         print response.status, response.reason
         sys.exit(1)
     conn.close()
+    if json.loads(data)['detail'] == "Nothing to report":
+        print "Request approved.\n"
     print json.dumps(json.loads(data), sort_keys=True, indent=2)
 
     if action == 'approve' and 'OK' in data:
@@ -171,7 +177,8 @@ Contacting Server to initiate certificate issuance.
             sys.exit(1)
         data = response.read()
         conn.close()
-        print json.dumps(json.loads(data), sort_keys=True, indent=2)
+        if json.loads(data)['detail'] == "Nothing to report":
+            print "Certificate Issued.\n"
     else:
         sys.exit(0)
 
@@ -186,7 +193,8 @@ if __name__ == '__main__':
         print k
         sys.exit('''Interrupted by user\n''')
     except Exception, e:
-        sys.exit('''Uncaught Exception. %s
+        if str(e) != '0':
+            sys.exit('''Uncaught Exception. %s
 Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
 ''' % e
                  )

@@ -10,7 +10,10 @@ import urllib
 import httplib
 import sys
 import ConfigParser
-import json
+try:
+    import json
+except ImportError:
+    import simplejson as json
 import OpenSSL
 from OpenSSL import crypto
 from OSGPKICertKeygenUtil import *  
@@ -21,7 +24,8 @@ from optparse import OptionParser
 # Set up Option Parser
 #
 def parse_args():
-    parser = OptionParser()
+    usage = "usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]"
+    parser = OptionParser(usage)
     parser.add_option(
         '-c',
         '--csr',
@@ -55,7 +59,7 @@ def parse_args():
         '--hostname',
         action='store',
         dest='hostname',
-        help='Specify hostname for CSR (FQDN)',
+        help='Specify hostname for CSR (FQDN). It can be hostname or service/hostname',
         metavar='CN',
         )
     parser.add_option(
@@ -150,8 +154,8 @@ def parse_args():
     Config = ConfigParser.ConfigParser()
     if os.path.exists('OSGPKIClients.ini'):
         Config.read('OSGPKIClients.ini')
-    elif os.path.exists('etc/OSGPKIClients.ini'):
-        Config.read('etc/OSGPKIClients.ini')
+    elif os.path.exists('/etc/OSGPKIClients.ini'):
+        Config.read('/etc/OSGPKIClients.ini')
     else:
         sys.exit("Missing config file: OSGPKIClients.ini\n")    
     host = Config.get('OIMData', 'host')
@@ -196,6 +200,7 @@ def connect():
         ticket = json.loads(data)['host_request_id']
         print "Succesfully submitted"
         print "Request Id#: %s" % ticket
+        print "GOC ticket URL: %s " % json.loads(data)["gocticket_url"]
     return
 
 if __name__ == '__main__':
@@ -269,7 +274,8 @@ if __name__ == '__main__':
         print k
         sys.exit('''Interrupted by user\n''')
     except Exception, e:
-        sys.exit('''Uncaught Exception %s
+        if str(e) != '0':
+            sys.exit('''Uncaught Exception %s
 Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
 ''' % e)
     sys.exit(0)
