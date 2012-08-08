@@ -244,6 +244,7 @@ if __name__ == '__main__':
                               ''
                               ).replace('-----END CERTIFICATE REQUEST-----\n'
                     , '')
+            print csr
             connect()
         elif prikey != 'genprivate.key':
             private_key = crypto.load_privatekey(crypto.FILETYPE_PEM,

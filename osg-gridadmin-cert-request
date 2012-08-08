@@ -175,15 +175,18 @@ def connect_request(ssl_context, bulk_csr):
         raise e
     data = response.read()
     if not 'OK' in response.reason:
-        print response.status, response.reason
-        print json.dumps(json.loads(data), sort_keys=True, indent=2)
-
+        print "The request has failed for the following reason:\n%s" % json.loads(data)['detail'].split('--')[1].lstrip()
+        print "Status : %s " % json.loads(data)['status']
+        print 'Fatal error: Certificate request has failed. Goc staff has been notified of this issue.'
+        print '''You can open a GOC ticket to track this issue by going to https://ticket.grid.iu.edu
+'''
+        sys.exit()
     conn.close()
     if 'FAILED' in data:
-        print json.dumps(json.loads(data), sort_keys=True, indent=2)
-        print 'Fatal error: Certificate request has failed. Goc staff has been\nnotified of this issue.'
-        print '''You can open a GOC ticket to track this issue by going to
- https://ticket.grid.iu.edu
+        print "The request has failed for the following reason:\n%s" % json.loads(data)['detail'].split('--')[1].lstrip()
+        print "Status : %s " % json.loads(data)['status']
+        print 'Fatal error: Certificate request has failed. Goc staff has been notified of this issue.'
+        print '''You can open a GOC ticket to track this issue by going to https://ticket.grid.iu.edu
 '''
         sys.exit(1)
     return_data = json.loads(data)
@@ -233,13 +236,14 @@ def connect_approve(ssl_context):
         data = response.read()
         conn.close()
         if 'FAILED' in data:
-            print json.dumps(data)['detail']
-            print '''Fatal error: Certificate request has failed. Goc staff has been
-notified of this issue.
+            print "The request has failed for the following reason:\n%s" % json.loads(data)['detail'].split('--')[1].lstrip()
+            print "Status : %s " % json.loads(data)['status']
+            print 'Fatal error: Certificate request has failed. Goc staff has been notified of this issue.'
+            print '''You can open a GOC ticket to track this issue by going to https://ticket.grid.iu.edu
 '''
-            print 'You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
             sys.exit(1)
     else:
+        print "Process completed succesfully. Exiting now.\n"
         sys.exit(0)
 
 
@@ -266,7 +270,6 @@ def write_certs(pkcs7raw, i):
 .Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
  %s''',
                  certdir, e)
-    print 'Writing to:', certdir
     try:
         certfile = open(filename, 'w+')
         certfile.write(pkcs7raw)
@@ -280,7 +283,7 @@ def write_certs(pkcs7raw, i):
  %s''',
                  certdir, e)
     os.chdir(cwd)
-    print 'Certificate written to %s \n' % pem_filename
+    print '\nCertificate written to %s/%s \n' % (certdir, pem_filename)
     return
 
 
@@ -299,10 +302,16 @@ def connect_retrieve():
         raise httplib.HTTPException
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
-            print response.status, response.reason
+            print "The request has failed for the following reason:\n%s" % json.loads(data)['detail'].split('--')[1].lstrip()
+            print "Status : %s " % json.loads(data)['status']
+            print 'Fatal error: Certificate request has failed. Goc staff has been notified of this issue.'
+            print '''You can open a GOC ticket to track this issue by going to
+ https://ticket.grid.iu.edu
+'''
             sys.exit(1)
     data = response.read()
     conn.close()
+    print 'Waiting for response from Certificate Authority. Please wait.'
     while 'PENDING' in data:
         conn.request('POST', returl, params, headers)
         try:
@@ -316,19 +325,21 @@ def connect_retrieve():
             time.sleep(5)
             iterations = iterations + 1
             if iterations % 6 == 0:
-                print 'Waiting for response from Certificate Authority. Please wait.'
-                print ' Delay: ', float(iterations / 12), \
-                ' minutes.'
+                print '.',
             if iterations > 60:
-                print "Maximum number of attempts reached. This script will now exit.\n Goc staff has been\nnotified of this issue."
+                print "Maximum number of attempts reached. This script will now exit.\n Goc staff has been notified of this issue."
                 print  " You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n"
                 sys.exit(1)
         else:
             pass
     pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
     if 'FAILED' in data:
-        print 'Fatal error: Certificate request has failed. Goc staff has been\nnotified of this issue.'
-        print 'You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
+        print "The request has failed for the following reason:\n%s" % json.loads(data)['detail'].split('--')[1].lstrip()
+        print "Status : %s " % json.loads(data)['status']
+        print 'Fatal error: Certificate request has failed. Goc staff has been notified of this issue.'
+        print '''You can open a GOC ticket to track this issue by going to
+ https://ticket.grid.iu.edu
+'''
         sys.exit(1)
 
     # The slice and dice on the JSON output to get the certificate out
@@ -354,9 +365,9 @@ def connect_retrieve():
             write_certs(certstring, cert_num)
             cert_num = cert_num + 1
         i = i + 1
-    print 'The number of requests made was ', num_requests
-    print 'The number of certificates received is ', cert_num
     if cert_num != num_requests:
+        print 'The number of requests made was ', num_requests
+        print 'The number of certificates received is ', cert_num
         sys.exit('Request and certifucate received mismatch')
     return
 
