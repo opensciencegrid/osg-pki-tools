@@ -17,6 +17,9 @@ class PKIClientTestCase(unittest.TestCase):
     name = "OSG PKI CLI Test Suite"
     phone = "555-555-5555"
 
+    # Domain to use with host certificate requests
+    domain = "bw.iu.edu"  # XXX: This is specific to Von
+
     # Private key pass phrase
     pass_phrase = None
 

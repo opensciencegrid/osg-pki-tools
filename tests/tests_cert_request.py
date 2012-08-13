@@ -17,9 +17,10 @@ class CertRequestTests(PKIClientTestCase.PKIClientTestCase):
 
     def test_request(self):
         """Test making a request"""
+        fqdn = "test." + self.domain
         result = self.run_script(self.command,
                                  # TODO: Good hostname for testing?
-                                 "--hostname", "test.bw.iu.edu",
+                                 "--hostname", fqdn,
                                  "-e", self.email,
                                  "-n", self.name,
                                  "-p", self.phone)
