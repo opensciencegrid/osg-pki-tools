@@ -35,4 +35,10 @@ class CertRequestTests(PKIClientTestCase.PKIClientTestCase):
         self.assertNotEqual(match, None,
                             "Could not find request Id: " + err_msg)
         self.assertTrue(result.files_created.has_key("host-key.pem"))
+        # Check resulting key for looks
+        result = env.run("openssl", "rsa",
+                         "-in", "host-key.pem",
+                         "-noout")
+        err_msg = self.run_error_msg(result)
+        self.assertEqual(result.returncode, 0, err_msg)
 
