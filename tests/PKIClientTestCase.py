@@ -32,10 +32,12 @@ class PKIClientTestCase(unittest.TestCase):
         # Make sure our source path is in PYTHONPATH so we can
         # find imports
         env = dict(os.environ)
+        python_path = os.path.join("..",  # testenv dir to this one
+                                   cls.source_path)
         if env.has_key("PYTHONPATH"):
-            env["PYTHONPATH"] += ":" + cls.source_path
+            env["PYTHONPATH"] += ":" + python_path
         else:
-            env["PYTHONPATH"] = cls.source_path
+            env["PYTHONPATH"] = python_path
         env = scripttest.TestFileEnvironment("./test-output",
                                              environ=env,
                                              template_path=cls.source_path)
@@ -60,6 +62,23 @@ class PKIClientTestCase(unittest.TestCase):
         result = env.run("python",  # In case script is not executable
                          os.path.join("..", "..", script),
                          *args, **kwargs)
+        return result
+
+    def run_python(cls, code, *args):
+        """Run given python code
+
+        Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
+        env = cls.get_TestFileEnvironment()
+        # Python 2.4 requires kwargs to be defined in variable and then
+        # expanded in call to env.run instead of being supplied as keywords
+        kwargs = {
+            # Don't raise exception on error
+            "expect_error" : True,
+            "expect_stderr" : True,
+            "quiet" : True,
+            }
+        result = env.run("env")
+        result = env.run("python", "-c", code, *args, **kwargs)
         return result
 
     @classmethod
