@@ -64,12 +64,15 @@ class BasicTests(PKIClientTestCase.PKIClientTestCase):
         """Return modulus of private key as string"""
         user_key_path = self.get_user_key_path()
         pass_phrase = self.get_user_key_pass_phrase()
+        args = [self.openssl, "rsa", "-noout", "-modulus", "-in", user_key_path]
+        if pass_phrase:
+            args.extend(["-passin", "stdin"])
         pipe = subprocess.Popen(
-            [self.openssl, "rsa", "-noout", "-modulus",
-             "-passin", "stdin", "-in", user_key_path],
+            args,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
+        # If we have no pass_phrase, this does no harm
         (key_modulus, error_text) = pipe.communicate(input=pass_phrase)
         self.assertEqual(pipe.returncode, 0,
                          "Obtaining key modulus failed: " + error_text)
