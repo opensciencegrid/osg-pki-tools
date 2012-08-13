@@ -17,8 +17,8 @@ class CertRequestTests(PKIClientTestCase.PKIClientTestCase):
         result = self.run_script(self.command,
                                  # TODO: Good hostname for testing?
                                  "--hostname", "test.bw.iu.edu",
-                                 "-e", "test-script@example.com",
-                                 "-n", "OSG PKI Test Script",
-                                 "-p", "555-555-5555")
+                                 "-e", self.email,
+                                 "-n", self.name,
+                                 "-p", self.phone)
         self.assertEqual(result.returncode, 0,
                          self.run_error_msg(result))

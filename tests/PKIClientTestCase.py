@@ -12,6 +12,11 @@ class PKIClientTestCase(unittest.TestCase):
     user_cert_path = None
     user_key_path = None
 
+    # Information to provide with requests
+    email = "osg-pki-cli-test@example.com"
+    name = "OSG PKI CLI Test Suite"
+    phone = "555-555-5555"
+
     # Private key pass phrase
     pass_phrase = None
 
