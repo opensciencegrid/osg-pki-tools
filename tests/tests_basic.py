@@ -1,4 +1,4 @@
-"""Basic tests to make sure test framework is working"""
+"""Basic tests for test framework, credentials and python"""
 
 import os
 import os.path
@@ -35,6 +35,13 @@ class BasicTests(PKIClientTestCase.PKIClientTestCase):
     def test_pyOpenSSL(self):
         """Test that pyOpenSSL seems to work"""
         import OpenSSL
+
+    def test_json(self):
+        """Test we can import json or simplejson"""
+        try:
+            import json
+        except ImportError:
+            import simplejson as json
 
     #
     # Utility methods
