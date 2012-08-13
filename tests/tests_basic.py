@@ -9,7 +9,7 @@ import PKIClientTestCase
 class BasicTests(PKIClientTestCase.PKIClientTestCase):
     def test_basic(self):
         """Test test framework"""
-        env = self.get_TestFileEnvironment()
+        env = self.get_test_env()
         result = env.run("echo", "Hello world")
         self.assertTrue("Hello world" in result.stdout)
 

@@ -30,7 +30,7 @@ class PKIClientTestCase(unittest.TestCase):
     source_path = os.path.join("..")
 
     @classmethod
-    def get_TestFileEnvironment(cls):
+    def get_test_env(cls):
         """Return a scripttest.TestFileEnvironment instance"""
         # Make sure our source path is in PYTHONPATH so we can
         # find imports
@@ -49,11 +49,10 @@ class PKIClientTestCase(unittest.TestCase):
         return env
 
     @classmethod
-    def run_script(cls, script, *args):
+    def run_script(cls, env, script, *args):
         """Run script with given arguments.
 
         Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
-        env = cls.get_TestFileEnvironment()
         # Python 2.4 requires kwargs to be defined in variable and then
         # expanded in call to env.run instead of being supplied as keywords
         kwargs = {
@@ -71,7 +70,7 @@ class PKIClientTestCase(unittest.TestCase):
         """Run given python code
 
         Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
-        env = cls.get_TestFileEnvironment()
+        env = cls.get_test_env()
         # Python 2.4 requires kwargs to be defined in variable and then
         # expanded in call to env.run instead of being supplied as keywords
         kwargs = {

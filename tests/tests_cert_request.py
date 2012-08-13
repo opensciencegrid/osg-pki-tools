@@ -10,15 +10,18 @@ class CertRequestTests(PKIClientTestCase.PKIClientTestCase):
 
     def test_help(self):
         """Test running with -h to get help"""
-        result = self.run_script(self.command, "-h")
+        env = self.get_test_env()
+        result = self.run_script(env, self.command, "-h")
         err_msg = self.run_error_msg(result)
         self.assertEqual(result.returncode, 0, err_msg)
         self.assertTrue("Usage:" in result.stdout, err_msg)
 
     def test_request(self):
         """Test making a request"""
+        env = self.get_test_env()
         fqdn = "test." + self.domain
-        result = self.run_script(self.command,
+        result = self.run_script(env,
+                                 self.command,
                                  # TODO: Good hostname for testing?
                                  "--hostname", fqdn,
                                  "-e", self.email,
@@ -31,4 +34,5 @@ class CertRequestTests(PKIClientTestCase.PKIClientTestCase):
                           re.MULTILINE)
         self.assertNotEqual(match, None,
                             "Could not find request Id: " + err_msg)
+        self.assertTrue(result.files_created.has_key("host-key.pem"))
 
