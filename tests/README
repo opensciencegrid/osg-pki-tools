@@ -11,8 +11,15 @@ For python 2.4 and 2.6, it also requires the unittest2 module:
 
     pip install unittest2
 
-You need a OSG certificate (and private key) that is registered with
-OIM and has Grid Admin permissions.
+You will need a set of test credentials. The certificate is in
+tests/test-cert.pem and the private key may be obtained from Von Welch
+(vwelch@indiana.edu). The private key must be in tests/test-key.pem
+
+The test credentials are registered in OIM-ITB and have Grid Admin
+rights in the OIM-ITB instance for pki-test.opensciencegrid.org
+
+Test credentials registration in OIM-UTB:
+https://oim-itb.grid.iu.edu/oim/contactedit?id=895
 
 To Run
 ======
@@ -20,13 +27,7 @@ To Run
 So that the scripts can be found, the tests must be run from the
 tests/ subdirectory (the directory in which this README sits):
 
-    cd test/
+    cd tests/
     ./do-tests.py
 
-If your user cert and user key aren't in ~/.globus or pointed to by
-X509_USER_CERT and X509_USER_KEY, you'll need to use -c and -p to
-direct the script at them.
 
-The script will prompt you for the passphrase for your X.509
-certificate, which will be used by the tested scripts for
-authentication to the OSG PKI server.
