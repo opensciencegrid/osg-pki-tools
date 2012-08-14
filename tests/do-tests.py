@@ -24,17 +24,13 @@ def main(argv=None):
     # Argument parsing
     parser = optparse.OptionParser()
     parser.add_option("-c", "--certificate",
-                      default=PKIClientTestCase.get_user_cert_path(),
+                      default=PKIClientTestCase.get_cert_path(),
                       help="Specific certificate for authentication",
                       metavar="PATH")
     parser.add_option("-p", "--privatekey",
-                      default=PKIClientTestCase.get_user_key_path(),
+                      default=PKIClientTestCase.get_key_path(),
                       help="Specific private key for authentication",
                       metavar="PATH")
-    parser.add_option("-P", "--nopassphrase",
-                      default=False,
-                      action="store_const", const=True,
-                      help="Do not prompt for pass phrase")
     parser.add_option("-T", "--tests",
                       default="tests_*.py",
                       help="Specify tests to run",
@@ -47,17 +43,10 @@ def main(argv=None):
     (options, args) = parser.parse_args()
 
     # Store parameters so test cases can access them...
-    PKIClientTestCase.set_user_cert_path(options.certificate)
-    print "User certificate: " + PKIClientTestCase.get_user_cert_path()
-    PKIClientTestCase.set_user_key_path(options.privatekey)
-    print "User private key: " + PKIClientTestCase.get_user_key_path()
-
-    if options.nopassphrase:
-        pass_phrase = None
-    else:
-        pass_phrase = getpass.getpass(
-            "Please enter pass phrase for private key (will not be echoed): ")
-    PKIClientTestCase.set_user_key_pass_phrase(pass_phrase)
+    PKIClientTestCase.set_cert_path(options.certificate)
+    print "User certificate: " + PKIClientTestCase.get_cert_path()
+    PKIClientTestCase.set_key_path(options.privatekey)
+    print "User private key: " + PKIClientTestCase.get_key_path()
 
     loader = unittest.TestLoader()
     print "Running tests in " + options.tests

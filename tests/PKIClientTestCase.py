@@ -90,49 +90,33 @@ class PKIClientTestCase(unittest.TestCase):
             + result.stdout + result.stderr
 
     @classmethod
-    def set_user_cert_path(cls, path):
+    def set_cert_path(cls, path):
         """Set path to use for user certificate"""
         cls.user_cert_path = path
 
     @classmethod
-    def get_user_cert_path(cls):
+    def get_cert_path(cls):
         """Return path to user certificate to use for authentication
 
         Search order is:
            Path specified by user on commandline
-           X509_USER_CERT environment variable
-           ~/.globus/usercert.pem"""
+           ./test-cert.pem"""
         if cls.user_cert_path:
             return cls.user_cert_path
-        if os.environ.has_key("X509_USER_CERT"):
-            return os.environ["X509_USER_CERT"]
-        return os.path.expanduser("~/.globus/usercert.pem")
+        return os.path.expanduser("./test-cert.pem")
 
     @classmethod
-    def set_user_key_path(cls, path):
+    def set_key_path(cls, path):
         """Set path to use for user private key"""
         cls.user_key_path = path
 
     @classmethod
-    def get_user_key_path(cls):
+    def get_key_path(cls):
         """Return path to user private key to use for authentication
 
         Search order is:
            Path specified by user on commandline
-           X509_USER_KEY environment variable
-           ~/.globus/userkey.pem"""
+           ./test-key.pem"""
         if cls.user_key_path:
             return cls.user_key_path
-        if os.environ.has_key("X509_USER_KEY"):
-            return os.environ["X509_USER_KEY"]
-        return os.path.expanduser("~/.globus/userkey.pem")
-
-    @classmethod
-    def set_user_key_pass_phrase(cls, phrase):
-        """Set user's private key pass phrase"""
-        cls.pass_phrase = phrase
-
-    @classmethod
-    def get_user_key_pass_phrase(cls):
-        """Get user's private key pass phrase"""
-        return cls.pass_phrase
+        return os.path.expanduser("./test-key.pem")
