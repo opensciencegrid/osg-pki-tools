@@ -48,10 +48,10 @@ def parse_args():
         '--certfile',
         action='store',
         dest='certfile',
-        help='Specify the output filename for the retrieved user certificate. Default is ./hostcert.pem'
+        help='Specify the output filename for the retrieved user certificate. Default is ./host-cert.pem'
             ,
         metavar='ID',
-        default='./hostcert.pem',
+        default='./host-cert.pem',
         )
 
     parser.add_option(
@@ -133,7 +133,7 @@ def connect_issue():
     data = response.read()
     conn.close()
     if not 'OK' in data:
-        print json.dumps(json.loads(data), sort_keys=True, indent=2)
+        print "The request failed for the following reason\n %s\n\n" % json.loads(data)['detail']
         print '''Fatal error while issuing: Certificate request has failed. Goc staff has been
 notified of this issue.
 '''
@@ -166,12 +166,13 @@ def connect_retrieve():
         print 'Connection to %s failed: %s' % (newurl, e)
         raise httplib.HTTPException
     data = response.read()
-    if '"request_status":"REQUESTED"' in data:
-        sys.exit('Certificate request in Requested state. Needs to be Approved first. Please contact RA to approve this certificate\n'
-                 )
-    elif '"request_status":"APPROVED"' in data:
-        print 'Certificate request in Approved state. Needs to be issued first\n'
-        connect_issue()
+    if json.loads(data).has_key('request_status'):
+        if json.loads(data)['request_status'] == "REQUESTED":
+            sys.exit('Certificate request in Requested state. Needs to be Approved first. Please contact RA to approve this certificate\n'
+                     )
+        else :
+            print 'Certificate request in Approved state. Needs to be issued first\n'
+            connect_issue()
     try:
         conn.request('POST', requrl, params, headers)
         response = conn.getresponse()
@@ -204,6 +205,7 @@ def connect_retrieve():
             pass
     pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
     if 'FAILED' in data:
+        print "The request failed for the following reason\n %s\n\n" % json.loads(data)['detail']
         print 'Fatal error: Certificate request has failed. Goc staff has been\nnotified of this issue.'
         print 'You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
         sys.exit(1)
@@ -218,13 +220,8 @@ def connect_retrieve():
 
     pkcs7raw = str(pkcs7raw)
     pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
-    pkcs7raw = pkcs7raw.partition('[')
-    pkcs7raw = pkcs7raw[2]
-    pkcs7raw = pkcs7raw.partition('"')
-    pkcs7raw = pkcs7raw[2]
-    pkcs7raw = pkcs7raw.partition('"')
-    pkcs7raw = pkcs7raw[0]
-
+    pkcs7raw = pkcs7raw.split('[')[1]
+    pkcs7raw = pkcs7raw.split('"')[1]
     temp_filename = '%s.%s.%s' % (filetype, id, fileext)
 
     # pem_filename = '%s.%s.%s' % ('host-certs', id, 'pem')
@@ -237,7 +234,7 @@ def connect_retrieve():
                   + ' -out ' + pem_filename)
         os.remove(temp_filename)
     except OSError, e:
-        sys.exit('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.'
+        sys.exit('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org.'
                  )
     print 'Certificate written to %s \n' % pem_filename
     return
@@ -255,7 +252,7 @@ if __name__ == '__main__':
     except Exception, e:
         if str(e) != '0':
                 sys.exit('''Uncaught Exception : %s
-Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+Please report the bug to goc@opensciencegrid.org.
 ''' % e
                  )
     sys.exit(0)

@@ -184,7 +184,7 @@ def connect():
         print 'Connection to %s failed: %s' % (requrl, repr(e))
         raise e
     except Exception, e:
-        print 'Error during request to %s' % (requrl, repr(e))
+        print 'Error during request to %s. Reason %s' % (requrl, repr(e))
     data = response.read()
     if 'FAILED' in json.dumps(data):
         reason = json.loads(data)['detail']
@@ -192,7 +192,7 @@ def connect():
         print 'The request failed because : %s' % reason
         sys.exit(1)
     conn.close()
-    if '"detail": "Nothing to report"' in data and '"status": "OK"' in data:
+    if json.loads(data)['detail'] == "Nothing to report" and json.loads(data)['status'] == "OK" in data:
         ticket = json.loads(data)['host_request_id']
         print "Succesfully submitted"
         print "Request Id#: %s" % ticket
@@ -245,8 +245,8 @@ if __name__ == '__main__':
         print k
         sys.exit('''Interrupted by user\n''')
     except Exception, e:
-        sys.exit('''Uncaught Exception %s
-Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+        sys.exit('''Uncaught Exception %s.
+Please report the bug to goc@opensciencegrid.org.
 ''' % e)
     sys.exit(0)
 
