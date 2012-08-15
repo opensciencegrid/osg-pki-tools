@@ -31,6 +31,10 @@ def main(argv=None):
                       default=PKIClientTestCase.get_key_path(),
                       help="Specific private key for authentication",
                       metavar="PATH")
+    parser.add_option("-s", "--scripts-path",
+                      default="..",
+                      help="Specify path to scripts",
+                      metavar="PATH")
     parser.add_option("-T", "--tests",
                       default="tests_*.py",
                       help="Specify tests to run",
@@ -47,6 +51,8 @@ def main(argv=None):
     print "User certificate: " + PKIClientTestCase.get_cert_path()
     PKIClientTestCase.set_key_path(options.privatekey)
     print "User private key: " + PKIClientTestCase.get_key_path()
+    PKIClientTestCase.set_scripts_path(options.scripts_path)
+    print "Path to scripts: " + PKIClientTestCase.get_scripts_path()
 
     loader = unittest.TestLoader()
     print "Running tests in " + options.tests

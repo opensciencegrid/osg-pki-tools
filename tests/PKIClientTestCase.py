@@ -26,8 +26,8 @@ class PKIClientTestCase(unittest.TestCase):
     # Openssl binary
     openssl = "openssl"
 
-    # Where the source files are relative to the tests/ directory
-    source_path = os.path.join("..")
+    # Where the scripts are relative to the tests/ directory
+    scripts_path = os.path.abspath("..")
 
     @classmethod
     def get_test_env(cls):
@@ -35,15 +35,13 @@ class PKIClientTestCase(unittest.TestCase):
         # Make sure our source path is in PYTHONPATH so we can
         # find imports
         env = dict(os.environ)
-        python_path = os.path.join("..",  # testenv dir to this one
-                                   cls.source_path)
         if env.has_key("PYTHONPATH"):
-            env["PYTHONPATH"] += ":" + python_path
+            env["PYTHONPATH"] += ":" + cls.scripts_path
         else:
-            env["PYTHONPATH"] = python_path
+            env["PYTHONPATH"] = cls.scripts_path
         env = scripttest.TestFileEnvironment("./test-output",
                                              environ=env,
-                                             template_path=cls.source_path)
+                                             template_path=cls.scripts_path)
         # Copy in configuration file
         env.writefile("OSGPKIClients.ini", frompath="OSGPKIClients.ini")
         return env
@@ -62,7 +60,7 @@ class PKIClientTestCase(unittest.TestCase):
             "quiet" : True,
             }
         result = env.run("python",  # In case script is not executable
-                         os.path.join("..", "..", script),
+                         os.path.join(cls.scripts_path, script),
                          *args, **kwargs)
         return result
 
@@ -120,3 +118,13 @@ class PKIClientTestCase(unittest.TestCase):
         if cls.user_key_path:
             return cls.user_key_path
         return os.path.expanduser("./test-key.pem")
+
+    @classmethod
+    def set_scripts_path(cls, path):
+        """Set the path to where the scripts are"""
+        cls.scripts_path = os.path.abspath(path)
+
+    @classmethod
+    def get_scripts_path(cls):
+        """Get the path to where the scripts are"""
+        return cls.scripts_path
