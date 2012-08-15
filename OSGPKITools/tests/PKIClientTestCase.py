@@ -8,9 +8,10 @@ import unittest
 class PKIClientTestCase(unittest.TestCase):
     """OSG PKI CLI TestCase bass class"""
 
-    # Path to user certificate and private key to use for authentication
-    user_cert_path = None
-    user_key_path = None
+    # Path to certificate and private key to use for authentication
+    # See README for details
+    cert_path = os.path.abspath("./test-cert.pem")
+    key_path = os.path.abspath("./test-key.pem")
 
     # Information to provide with requests
     email = "osg-pki-cli-test@example.com"
@@ -109,7 +110,7 @@ class PKIClientTestCase(unittest.TestCase):
     @classmethod
     def set_cert_path(cls, path):
         """Set path to use for user certificate"""
-        cls.user_cert_path = path
+        cls.cert_path = os.path.abspath(path)
 
     @classmethod
     def get_cert_path(cls):
@@ -118,14 +119,12 @@ class PKIClientTestCase(unittest.TestCase):
         Search order is:
            Path specified by user on commandline
            ./test-cert.pem"""
-        if cls.user_cert_path:
-            return cls.user_cert_path
-        return os.path.expanduser("./test-cert.pem")
+        return cls.cert_path
 
     @classmethod
     def set_key_path(cls, path):
         """Set path to use for user private key"""
-        cls.user_key_path = path
+        cls.key_path = os.path.abspath(path)
 
     @classmethod
     def get_key_path(cls):
@@ -134,9 +133,7 @@ class PKIClientTestCase(unittest.TestCase):
         Search order is:
            Path specified by user on commandline
            ./test-key.pem"""
-        if cls.user_key_path:
-            return cls.user_key_path
-        return os.path.expanduser("./test-key.pem")
+        return cls.key_path
 
     @classmethod
     def set_scripts_path(cls, path):
