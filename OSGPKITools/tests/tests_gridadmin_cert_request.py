@@ -41,20 +41,21 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
                             "Could not find output certificate: " + err_msg)
         cert_file = match.group(1)
         # Check output certificate
+        cert_result = self.check_certificate(env, cert_file)
+        err_msg = self.run_error_msg(result)
+        self.assertEqual(result.returncode, 0,
+                         "Failed checking certificate %s: %s" % (cert_file,
+                                                                 err_msg))
         # Check output key
         # XXX This will change: https://jira.opensciencegrid.org/browse/OSGPKI-131
         key_file = fqdn + "-0-key.pem"
         self.assertTrue(result.files_created.has_key(key_file))
-        result = self.run_cmd(env,
-                              "openssl", "rsa",
-                              "-in", key_file,
-                              "-noout",
-                              # This will cause us not to block on input if
-                              # the key is encrypted. It will be ignored if the
-                              # key isn't encrypted.
-                              "-passin", "pass:null")
-        err_msg = self.run_error_msg(result)
-        self.assertEqual(result.returncode, 0, err_msg)
+        key_result = self.check_private_key(env, key_file)
+        err_msg = self.run_error_msg(key_result)
+        self.assertEqual(result.returncode, 0,
+                         "Check of private key %s failed: %s" % (key_file,
+                                                                 err_msg))
+
 
     def test_multi_host_request(self):
         """Test making a request for multiple host certificates (-f)"""
@@ -87,20 +88,18 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
                 "Could not find output of certificate %d:" % cert_num + err_msg)
             self.assertTrue(result.files_created.has_key(cert_file),
                             "Did not find certificate file %s" % cert_file)
-            # XXX TODO: actually test certificate with openssl
+            cert_result = self.check_certificate(env, cert_file)
+            err_msg = self.run_error_msg(result)
+            self.assertEqual(result.returncode, 0,
+                             "Failed checking certificate %s: %s" % (cert_file,
+                                                                     err_msg))
             # Check output key
             # XXX This will change: https://jira.opensciencegrid.org/browse/OSGPKI-131
             key_file = host_template % cert_num + "-%d-key.pem" % (cert_num+1)
             self.assertTrue(result.files_created.has_key(key_file),
                             "Did not find key file %s" % key_file)
-            openssl_result = \
-                self.run_cmd(env,
-                             "openssl", "rsa",
-                             "-in", key_file,
-                             "-noout",
-                             # This will cause us not to block on input if
-                             # the key is encrypted. It will be ignored if the
-                             # key isn't encrypted.
-                             "-passin", "pass:null")
-            err_msg = self.run_error_msg(openssl_result)
-            self.assertEqual(result.returncode, 0, err_msg)
+            key_result = self.check_private_key(env, key_file)
+            err_msg = self.run_error_msg(key_result)
+            self.assertEqual(result.returncode, 0,
+                             "Check of private key %s failed: %s" % (key_file,
+                                                                     err_msg))

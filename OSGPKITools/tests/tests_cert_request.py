@@ -35,14 +35,10 @@ class CertRequestTests(PKIClientTestCase.PKIClientTestCase):
                             "Could not find request Id: " + err_msg)
         self.assertTrue(result.files_created.has_key("host-key.pem"))
         # Check resulting key for looks
-        result = self.run_cmd(env,
-                              "openssl", "rsa",
-                              "-in", "host-key.pem",
-                              "-noout",
-                              # This will cause us not to block on input if
-                              # the key is encrypted. It will be ignored if the
-                              # key isn't encrypted.
-                              "-passin", "pass:null")
-        err_msg = self.run_error_msg(result)
-        self.assertEqual(result.returncode, 0, err_msg)
+        key_file = "host-key.pem"
+        key_result = self.check_private_key(env, key_file)
+        err_msg = self.run_error_msg(key_result)
+        self.assertEqual(result.returncode, 0,
+                         "Check of private key %s failed: %s" % (key_file,
+                                                                 err_msg))
 
