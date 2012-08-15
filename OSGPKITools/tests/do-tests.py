@@ -61,7 +61,7 @@ def main(argv=None):
     #
     # Do it...
     runner = unittest.runner.TextTestRunner(verbosity=options.verbose)
-    print "Running tests:"
+    print "Running tests, this may take a while:"
     runner.run(suite)
 
     return(0)
