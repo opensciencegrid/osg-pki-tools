@@ -32,7 +32,7 @@ def main(argv=None):
                       help="Specify private key for authentication",
                       metavar="PATH")
     parser.add_option("-s", "--scripts-path",
-                      default="../osgpkitools",
+                      default="..",
                       help="Specify path to scripts",
                       metavar="PATH")
     parser.add_option("-T", "--tests",
