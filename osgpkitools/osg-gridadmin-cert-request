@@ -266,7 +266,7 @@ def write_certs(pkcs7raw, i):
         os.chdir(certdir)
     except OSError, e:
         sys.exit('''The directory %s does not exist or you cannot access the directory
-.Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+.Please report the bug to goc@opensciencegrid.org.
  %s''',
                  certdir, e)
     try:
@@ -278,7 +278,7 @@ def write_certs(pkcs7raw, i):
         os.remove(filename)
     except OSError, e:
         sys.exit('''You may not have write permission to the directory %s
-.Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+.Please report the bug to goc@opensciencegrid.org.
  %s''',
                  certdir, e)
     os.chdir(cwd)
@@ -349,18 +349,14 @@ def connect_retrieve():
     # extra data. There's probably a more efficient way to do this, but this
     # was the quick and dirty solution.
     #
-
     pkcs7raw = str(pkcs7raw)
     pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
-    pkcs7raw = pkcs7raw.partition('[')
-    pkcs7raw = pkcs7raw[2]
-    pkcs7raw = pkcs7raw.partition('"')
-    pkcs7raw = pkcs7raw[2]
-    pkcs7raw = pkcs7raw.split('"')
+    pkcs7raw = pkcs7raw.split('[')[1]
+    pkcs7raw = pkcs7raw.split(']')[0].split(',')
     i = 0
     cert_num = 0
     while cert_num < num_requests and i < len(pkcs7raw):
-        certstring = str(pkcs7raw[i])
+        certstring = str(pkcs7raw[i]).split('"')[1]
         if 'PKCS7' in certstring:
             write_certs(certstring, cert_num)
             cert_num = cert_num + 1
@@ -368,7 +364,7 @@ def connect_retrieve():
     if cert_num != num_requests:
         print 'The number of requests made was ', num_requests
         print 'The number of certificates received is ', cert_num
-        sys.exit('Request and certifucate received mismatch')
+        sys.exit('Request and certificate received mismatch')
     return
 
 
@@ -456,8 +452,7 @@ if __name__ == '__main__':
     except Exception, e:
         if str(e) != '0':
             sys.exit('''Uncaught Exception : %s\n
-Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+Please report the bug to goc@opensciencegrid.org.
 ''' % e
                  )
     sys.exit(0)
-
