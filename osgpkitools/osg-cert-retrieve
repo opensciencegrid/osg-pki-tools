@@ -67,9 +67,8 @@ def parse_args():
 
     if not args.id:
         parser.error("-i/--id argument required")
-    
-    global id, pem_filename
-    id = args.id
+
+    reqid = args.id
 
     if os.path.exists(args.certfile):
         opt = \
@@ -83,7 +82,7 @@ def parse_args():
             sys.exit('Invalid option')
     else:
         pem_filename = args.certfile
-    global Config, host, requrl, appurl, issurl, content_type
+    #global Config, host, requrl, appurl, issurl, content_type
     Config = ConfigParser.ConfigParser()
     if os.path.exists('OSGPKIClients.ini'):
         Config.read('OSGPKIClients.ini')
@@ -96,11 +95,30 @@ def parse_args():
     appurl = Config.get('OIMData', 'appurl')
     issurl = Config.get('OIMData', 'issurl')
     content_type = Config.get('OIMData', 'content_type')
-    global filetype, fileext, filename
     filetype = 'host-cert'
     fileext = 'pkcs7'
-    filename = '%s.%s.%s' % (filetype, id, fileext)
-    return
+    filename = '%s.%s.%s' % (filetype, reqid, fileext)
+
+    arguments = dict()
+    if vars().has_key('args'):
+        arguments.update({'args' : args})
+    if vars().has_key('values'):
+        arguments.update({'values' : values})
+
+    if vars().has_key('pem_filename'):
+        arguments.update({'pem_filename' : pem_filename})
+    arguments.update({'id' : reqid})
+    arguments.update({'filetype' : filetype})
+    arguments.update({'fileext' : fileext})
+    arguments.update({'filename' : filename})
+    arguments.update({'host' : host})
+    arguments.update({'requrl' : requrl})
+    arguments.update({'appurl' : appurl})
+    arguments.update({'content_type' : content_type})
+    arguments.update({'Config' : Config})
+    arguments.update({'issurl' : issurl})
+    return arguments
+
 
 # Build the connection to the web server - the request header, the parameters
 # needed and then pass them into the server
@@ -117,12 +135,12 @@ def parse_args():
 #
 
 def connect_issue():
-    params = urllib.urlencode({'host_request_id': id})
-    headers = {'Content-type': content_type,
+    params = urllib.urlencode({'host_request_id': arguments['id']})
+    headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     print 'Contacting Server to initiate certificate issuance. Please wait\n'
-    newrequrl = Config.get('OIMData', 'issurl')
-    conn = httplib.HTTPConnection(host)
+    newrequrl = arguments['Config'].get('OIMData', 'issurl')
+    conn = httplib.HTTPConnection(arguments['host'])
     try:
         conn.request('POST', newrequrl, params, headers)
         time.sleep(10)
@@ -155,12 +173,12 @@ notified of this issue.
 def connect_retrieve():
     iterations = 1
     print 'Connecting server to retrieve certificate...'
-    params = urllib.urlencode({'host_request_id': id})
-    headers = {'Content-type': content_type,
+    params = urllib.urlencode({'host_request_id': arguments['id']})
+    headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = httplib.HTTPConnection(host)
+    conn = httplib.HTTPConnection(arguments['host'])
     try:
-        conn.request('POST', requrl, params, headers)
+        conn.request('POST', arguments['requrl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
         print 'Connection to %s failed: %s' % (newurl, e)
@@ -174,7 +192,7 @@ def connect_retrieve():
             print 'Certificate request in Approved state. Needs to be issued first\n'
             connect_issue()
     try:
-        conn.request('POST', requrl, params, headers)
+        conn.request('POST', arguments['requrl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
         print 'Connection to %s failed: %s' % (newurl, e)
@@ -182,7 +200,7 @@ def connect_retrieve():
     data = response.read()
 
     while 'PENDING' in data:
-        conn.request('POST', requrl, params, headers)
+        conn.request('POST', arguments['requrl'], params, headers)
         try:
             response = conn.getresponse()
         except httplib.HTTPException, e:
@@ -222,7 +240,7 @@ def connect_retrieve():
     pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
     pkcs7raw = pkcs7raw.split('[')[1]
     pkcs7raw = pkcs7raw.split('"')[1]
-    temp_filename = '%s.%s.%s' % (filetype, id, fileext)
+    temp_filename = '%s.%s.%s' % (arguments['filetype'], arguments['id'], arguments['fileext'])
 
     # pem_filename = '%s.%s.%s' % ('host-certs', id, 'pem')
 
@@ -231,18 +249,18 @@ def connect_retrieve():
         certfile.write(pkcs7raw)
         certfile.close()
         os.system('openssl pkcs7 -print_certs -in ' + temp_filename
-                  + ' -out ' + pem_filename)
+                  + ' -out ' + arguments['pem_filename'])
         os.remove(temp_filename)
     except OSError, e:
         sys.exit('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org.'
                  )
-    print 'Certificate written to %s \n' % pem_filename
+    print 'Certificate written to %s \n' % arguments['pem_filename']
     return
 
 
 if __name__ == '__main__':
     try:
-        parse_args()
+        arguments = parse_args()
         connect_retrieve()
     except EOFError, e:
         sys.exit("End of File Error: Check if the standard input is enabled\nError %s" % e)
