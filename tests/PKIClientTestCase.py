@@ -19,7 +19,9 @@ class PKIClientTestCase(unittest.TestCase):
     phone = "555-555-5555"
 
     # Domain to use with host certificate requests
-    domain = "bw.iu.edu"  # XXX: This is specific to Von
+    # The test credentials are registered in OIM-ITB for this domain,
+    # it is not arbitrary.
+    domain = "pki-test.opensciencegrid.org"
 
     # Private key pass phrase
     pass_phrase = None
@@ -105,7 +107,8 @@ class PKIClientTestCase(unittest.TestCase):
     def run_error_msg(cls, result):
         """Return an error message from a result"""
         return "Return code: %d\n" % result.returncode \
-            + result.stdout + result.stderr
+            + "STDOUT:\n" + result.stdout \
+            + "STDERR:\n" + result.stderr
 
     @classmethod
     def set_cert_path(cls, path):
