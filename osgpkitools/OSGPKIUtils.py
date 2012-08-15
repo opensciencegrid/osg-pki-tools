@@ -25,14 +25,14 @@ class Cert:
 		self.X509Certificate = None
 
 	def callback ( self, *args ):
-		return 'p'
+		return None
 
 
 
 	def CreatePKey ( self , filename ):
 		self.KeyPair = M2Crypto.RSA.gen_key( self.RsaKey['KeyLength'], self.RsaKey['PubExponent'], self.RsaKey['keygen_callback'] )
 		PubKey = M2Crypto.RSA.new_pub_key( self.KeyPair.pub () )
-		self.KeyPair.save_key( filename, cipher='des_ede3_cbc', callback=self.callback )
+		self.KeyPair.save_key( filename, cipher=None)
 		self.PKey = M2Crypto.EVP.PKey ( md='sha1')
 		self.PKey.assign_rsa ( self.KeyPair )
 
