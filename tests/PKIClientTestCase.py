@@ -147,3 +147,28 @@ class PKIClientTestCase(unittest.TestCase):
     def get_scripts_path(cls):
         """Get the path to where the scripts are"""
         return cls.scripts_path
+
+    @classmethod
+    def check_private_key(cls, env, path):
+	"""Check the given private key in the given test environment using openssl
+
+	Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
+	result = cls.run_cmd(env,
+                             "openssl", "rsa",
+                             "-in", path,
+                             "-noout", "-check",
+                             # This will cause us not to block on input if
+                             # the key is encrypted. It will be ignored if the
+                             # key isn't encrypted.
+                             "-passin", "pass:null")
+        return result
+
+    @classmethod
+    def check_certificate(cls, env, path):
+        """Check the given certificate in the given test environment using openssl
+
+	Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
+        result = cls.run_cmd(env,
+                             "openssl", "x509",
+                             "-in", path)
+        return result
