@@ -25,11 +25,11 @@ def main(argv=None):
     parser = optparse.OptionParser()
     parser.add_option("-c", "--certificate",
                       default=PKIClientTestCase.get_cert_path(),
-                      help="Specific certificate for authentication",
+                      help="Specify certificate for authentication",
                       metavar="PATH")
     parser.add_option("-p", "--privatekey",
                       default=PKIClientTestCase.get_key_path(),
-                      help="Specific private key for authentication",
+                      help="Specify private key for authentication",
                       metavar="PATH")
     parser.add_option("-s", "--scripts-path",
                       default="..",
@@ -48,9 +48,9 @@ def main(argv=None):
 
     # Store parameters so test cases can access them...
     PKIClientTestCase.set_cert_path(options.certificate)
-    print "User certificate: " + PKIClientTestCase.get_cert_path()
+    print "Test certificate: " + PKIClientTestCase.get_cert_path()
     PKIClientTestCase.set_key_path(options.privatekey)
-    print "User private key: " + PKIClientTestCase.get_key_path()
+    print "Test private key: " + PKIClientTestCase.get_key_path()
     PKIClientTestCase.set_scripts_path(options.scripts_path)
     print "Path to scripts: " + PKIClientTestCase.get_scripts_path()
 
