@@ -133,7 +133,7 @@ def parse_args():
 # JSON formatting and write the certificate file out
 #
 
-def connect_issue():
+def connect_issue(arguments):
     params = urllib.urlencode({'host_request_id': arguments['id']})
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
@@ -168,7 +168,7 @@ def connect_issue():
 # certificate
 #
 
-def connect_retrieve():
+def connect_retrieve(arguments):
     iterations = 1
     print 'Connecting server to retrieve certificate...'
     params = urllib.urlencode({'host_request_id': arguments['id']})
@@ -188,7 +188,7 @@ def connect_retrieve():
                      )
         else :
             print 'Certificate request in Approved state. Needs to be issued first\n'
-            connect_issue()
+            connect_issue(arguments)
     try:
         conn.request('POST', arguments['requrl'], params, headers)
         response = conn.getresponse()
@@ -258,7 +258,7 @@ def connect_retrieve():
 if __name__ == '__main__':
     try:
         arguments = parse_args()
-        connect_retrieve()
+        connect_retrieve(arguments)
     except EOFError, e:
         sys.exit("End of File Error: Check if the standard input is enabled\nError %s" % e)
     except KeyboardInterrupt, k:
