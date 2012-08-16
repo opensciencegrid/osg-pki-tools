@@ -82,7 +82,6 @@ def parse_args():
             sys.exit('Invalid option')
     else:
         pem_filename = args.certfile
-    #global Config, host, requrl, appurl, issurl, content_type
     Config = ConfigParser.ConfigParser()
     if os.path.exists('OSGPKIClients.ini'):
         Config.read('OSGPKIClients.ini')
@@ -152,8 +151,7 @@ def connect_issue():
     conn.close()
     if not 'OK' in data:
         print "The request failed for the following reason\n %s\n\n" % json.loads(data)['detail']
-        print '''Fatal error while issuing: Certificate request has failed. Goc staff has been
-notified of this issue.
+        print '''Fatal error while issuing: Certificate request has failed.
 '''
         print 'You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
         sys.exit(1)
@@ -216,7 +214,7 @@ def connect_retrieve():
                 print ' Delay: ', float(iterations / 12), \
                 ' minutes.'
             if iterations > 60:
-                print "Maximum number of attempts reached. This script will now exit.\n Goc staff has been\nnotified of this issue."
+                print "Maximum number of attempts reached. This script will now exit."
                 print  " You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n"
                 sys.exit(1)
         else:
@@ -224,7 +222,7 @@ def connect_retrieve():
     pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
     if 'FAILED' in data:
         print "The request failed for the following reason\n %s\n\n" % json.loads(data)['detail']
-        print 'Fatal error: Certificate request has failed. Goc staff has been\nnotified of this issue.'
+        print 'Fatal error: Certificate request has failed.'
         print 'You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
         sys.exit(1)
 
@@ -242,7 +240,6 @@ def connect_retrieve():
     pkcs7raw = pkcs7raw.split('"')[1]
     temp_filename = '%s.%s.%s' % (arguments['filetype'], arguments['id'], arguments['fileext'])
 
-    # pem_filename = '%s.%s.%s' % ('host-certs', id, 'pem')
 
     try:
         certfile = open(temp_filename, 'w+')
