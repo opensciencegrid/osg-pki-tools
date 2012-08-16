@@ -29,11 +29,13 @@ import time
 import re
 import os
 
+
 # Set up Option Parser
 #
 
 def parse_args():
-    usage = "usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]"
+    usage = \
+        'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
     parser = OptionParser(usage)
     parser.add_option(
         '-i',
@@ -48,7 +50,7 @@ def parse_args():
         '--certfile',
         action='store',
         dest='certfile',
-        help='Specify the output filename for the retrieved user certificate. Default is ./host-cert.pem'
+        help='Specify the output filename for the retrieved user certificate\n. Default is ./host-cert.pem'
             ,
         metavar='ID',
         default='./host-cert.pem',
@@ -62,11 +64,11 @@ def parse_args():
         default=True,
         help="don't print status messages to stdout",
         )
-    
+
     (args, values) = parser.parse_args()
 
     if not args.id:
-        parser.error("-i/--id argument required")
+        parser.error('-i/--id argument required')
 
     reqid = args.id
 
@@ -77,7 +79,8 @@ def parse_args():
         if opt == 'y' or opt == 'Y':
             pem_filename = args.certfile
         elif opt == 'n' or opt == 'N':
-            pem_filename = raw_input('Please enter a different file name\n')
+            pem_filename = \
+                raw_input('Please enter a different file name\n')
         else:
             sys.exit('Invalid option')
     else:
@@ -88,7 +91,7 @@ def parse_args():
     elif os.path.exists('/etc/OSGPKIClients.ini'):
         Config.read('/etc/OSGPKIClients.ini')
     else:
-        sys.exit("Missing config file: OSGPKIClients.ini\n")
+        sys.exit('Missing config file: OSGPKIClients.ini\n')
     host = Config.get('OIMData', 'host')
     requrl = Config.get('OIMData', 'returl')
     appurl = Config.get('OIMData', 'appurl')
@@ -100,22 +103,22 @@ def parse_args():
 
     arguments = dict()
     if vars().has_key('args'):
-        arguments.update({'args' : args})
+        arguments.update({'args': args})
     if vars().has_key('values'):
-        arguments.update({'values' : values})
+        arguments.update({'values': values})
 
     if vars().has_key('pem_filename'):
-        arguments.update({'pem_filename' : pem_filename})
-    arguments.update({'id' : reqid})
-    arguments.update({'filetype' : filetype})
-    arguments.update({'fileext' : fileext})
-    arguments.update({'filename' : filename})
-    arguments.update({'host' : host})
-    arguments.update({'requrl' : requrl})
-    arguments.update({'appurl' : appurl})
-    arguments.update({'content_type' : content_type})
-    arguments.update({'Config' : Config})
-    arguments.update({'issurl' : issurl})
+        arguments.update({'pem_filename': pem_filename})
+    arguments.update({'id': reqid})
+    arguments.update({'filetype': filetype})
+    arguments.update({'fileext': fileext})
+    arguments.update({'filename': filename})
+    arguments.update({'host': host})
+    arguments.update({'requrl': requrl})
+    arguments.update({'appurl': appurl})
+    arguments.update({'content_type': content_type})
+    arguments.update({'Config': Config})
+    arguments.update({'issurl': issurl})
     return arguments
 
 
@@ -150,10 +153,14 @@ def connect_issue(arguments):
     data = response.read()
     conn.close()
     if not 'OK' in data:
-        print "The request failed for the following reason\n %s\n\n" % json.loads(data)['detail']
+        print '''The request failed for the following reason
+ %s
+
+''' \
+            % json.loads(data)['detail']
         print '''Fatal error while issuing: Certificate request has failed.
 '''
-        print 'You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
+        print 'You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n'
         sys.exit(1)
 
     return
@@ -183,10 +190,10 @@ def connect_retrieve(arguments):
         raise httplib.HTTPException
     data = response.read()
     if json.loads(data).has_key('request_status'):
-        if json.loads(data)['request_status'] == "REQUESTED":
-            sys.exit('Certificate request in Requested state. Needs to be Approved first. Please contact RA to approve this certificate\n'
+        if json.loads(data)['request_status'] == 'REQUESTED':
+            sys.exit('Certificate request in Requested state. Needs to be Approved first\n. Please contact RA to approve this certificate\n'
                      )
-        else :
+        else:
             print 'Certificate request in Approved state. Needs to be issued first\n'
             connect_issue(arguments)
     try:
@@ -211,19 +218,22 @@ def connect_retrieve(arguments):
             iterations = iterations + 1
             if iterations % 6 == 0:
                 print 'Waiting for response from Certificate Authority. Please wait.'
-                print ' Delay: ', float(iterations / 12), \
-                ' minutes.'
+                print ' Delay: ', float(iterations / 12), ' minutes.'
             if iterations > 60:
-                print "Maximum number of attempts reached. This script will now exit."
-                print  " You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n"
+                print 'Maximum number of attempts reached. This script will now exit.'
+                print ' You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n'
                 sys.exit(1)
         else:
             pass
     pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
     if 'FAILED' in data:
-        print "The request failed for the following reason\n %s\n\n" % json.loads(data)['detail']
+        print '''The request failed for the following reason
+ %s
+
+''' \
+            % json.loads(data)['detail']
         print 'Fatal error: Certificate request has failed.'
-        print 'You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
+        print 'You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n'
         sys.exit(1)
 
     # The slice and dice on the JSON output to get the certificate out
@@ -238,8 +248,8 @@ def connect_retrieve(arguments):
     pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
     pkcs7raw = pkcs7raw.split('[')[1]
     pkcs7raw = pkcs7raw.split('"')[1]
-    temp_filename = '%s.%s.%s' % (arguments['filetype'], arguments['id'], arguments['fileext'])
-
+    temp_filename = '%s.%s.%s' % (arguments['filetype'], arguments['id'
+                                  ], arguments['fileext'])
 
     try:
         certfile = open(temp_filename, 'w+')
@@ -260,14 +270,15 @@ if __name__ == '__main__':
         arguments = parse_args()
         connect_retrieve(arguments)
     except EOFError, e:
-        sys.exit("End of File Error: Check if the standard input is enabled\nError %s" % e)
+        sys.exit('End of File Error: Check if the standard input is enabled\nError %s'
+                  % e)
     except KeyboardInterrupt, k:
         print k
         sys.exit('''Interrupted by user\n''')
     except Exception, e:
         if str(e) != '0':
-                sys.exit('''Uncaught Exception : %s
+            sys.exit('''Uncaught Exception : %s
 Please report the bug to goc@opensciencegrid.org.
-''' % e
-                 )
+'''
+                     % e)
     sys.exit(0)
