@@ -148,7 +148,6 @@ def parse_args():
     #
     # Read from the ini file
     #
-    #global host, requrl, content_type, Config
     Config = ConfigParser.ConfigParser()
     if os.path.exists('OSGPKIClients.ini'):
         Config.read('OSGPKIClients.ini')

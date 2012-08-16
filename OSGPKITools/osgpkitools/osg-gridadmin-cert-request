@@ -88,14 +88,13 @@ def parse_args():
     parser.add_option_group(group)
     (args, values) = parser.parse_args()
 
-    #global args, values
 
     if not args.hostname:
         hostfile = args.hostfile
     else:
         hostname = args.hostname
 
-    certdir = 'certificates'
+    certdir = './'
 
 
     if args.userprivkey == '':
@@ -201,7 +200,7 @@ def connect_request(ssl_context, bulk_csr, arguments):
     if not 'OK' in response.reason:
         print "The request has failed for the following reason:\n%s" % json.loads(data)['detail'].split('--')[1].lstrip()
         print "Status : %s " % json.loads(data)['status']
-        print 'Fatal error: Certificate request has failed. Goc staff has been notified of this issue.'
+        print 'Fatal error: Certificate request has failed.'
         print '''You can open a GOC ticket to track this issue by going to https://ticket.grid.iu.edu
 '''
         sys.exit()
@@ -209,7 +208,7 @@ def connect_request(ssl_context, bulk_csr, arguments):
     if 'FAILED' in data:
         print "The request has failed for the following reason:\n%s" % json.loads(data)['detail'].split('--')[1].lstrip()
         print "Status : %s " % json.loads(data)['status']
-        print 'Fatal error: Certificate request has failed. Goc staff has been notified of this issue.'
+        print 'Fatal error: Certificate request has failed.'
         print '''You can open a GOC ticket to track this issue by going to https://ticket.grid.iu.edu
 '''
         sys.exit(1)
@@ -265,12 +264,15 @@ def connect_approve(ssl_context, arguments):
         if 'FAILED' in data:
             print "The request has failed for the following reason:\n%s" % json.loads(data)['detail'].split('--')[1].lstrip()
             print "Status : %s " % json.loads(data)['status']
-            print 'Fatal error: Certificate request has failed. Goc staff has been notified of this issue.'
+            print 'Fatal error: Certificate request has failed.'
             print '''You can open a GOC ticket to track this issue by going to https://ticket.grid.iu.edu
 '''
             sys.exit(1)
-    else:
-        print "Process completed succesfully. Exiting now.\n"
+    elif not 'OK' in data:
+        print "The request has failed for the reason: %s" % json.loads(data)['detail']
+        sys.exit(1)
+    elif action != 'approve':
+        print "Request not approved by the Grid Admin. Exiting now.\n"
         sys.exit(0)
 
 
@@ -283,18 +285,18 @@ def connect_approve(ssl_context, arguments):
 # certificate
 #
 
-def write_certs(pkcs7raw, i, arguments):
+def write_certs(host, pkcs7raw, i, arguments):
     pkcs7raw = str(pkcs7raw)
     filetype = 'pkcs7-cert'
     fileext = 'pem'
     filename = '%s.%s.%s' % (filetype, arguments['id'], fileext)
-    pem_filename = '%s.%s-%s.%s' % ('host-certs', arguments['id'], i, 'pem')
+    pem_filename = '%s-%s.%s' % (host, i, 'pem')
     cwd = os.getcwd()
     try:
         os.chdir(arguments['certdir'])
     except OSError, e:
         sys.exit('''The directory %s does not exist or you cannot access the directory
-.Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+.Please report the bug to goc@opensciencegrid.org.a
  %s''',
                  arguments['certdir'], e)
     try:
@@ -306,11 +308,11 @@ def write_certs(pkcs7raw, i, arguments):
         os.remove(filename)
     except OSError, e:
         sys.exit('''You may not have write permission to the directory %s
-.Please report the bug to goc@opensciencegrid.org. We would address your issue at the earliest.
+.Please report the bug to goc@opensciencegrid.org.
  %s''',
                  arguments['certdir'], e)
     os.chdir(cwd)
-    print '\nCertificate written to %s/%s \n' % (arguments['certdir'], pem_filename)
+    print '\nCertificate written to %s%s \n' % (arguments['certdir'], pem_filename)
     return
 
 
@@ -332,7 +334,7 @@ def connect_retrieve(arguments):
         if not 'OK' in response.reason:
             print "The request has failed for the following reason:\n%s" % json.loads(data)['detail'].lstrip()
             print "Status : %s " % json.loads(data)['status']
-            print 'Fatal error: Certificate request has failed. Goc staff has been notified of this issue.'
+            print 'Fatal error: Certificate request has failed.'
             print '''You can open a GOC ticket to track this issue by going to
  https://ticket.grid.iu.edu
 '''
@@ -355,7 +357,7 @@ def connect_retrieve(arguments):
                 print '.',
                 sys.stdout.flush()
             if iterations > 60:
-                print "Maximum number of attempts reached. This script will now exit.\n Goc staff has been notified of this issue."
+                print "Maximum number of attempts reached. This script will now exit."
                 print  " You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n"
                 sys.exit(1)
         else:
@@ -364,7 +366,7 @@ def connect_retrieve(arguments):
     if 'FAILED' in data:
         print "The request has failed for the following reason:\n%s" % json.loads(data)['detail'].split('--')[1].lstrip()
         print "Status : %s " % json.loads(data)['status']
-        print 'Fatal error: Certificate request has failed. Goc staff has been notified of this issue.'
+        print 'Fatal error: Certificate request has failed.'
         print '''You can open a GOC ticket to track this issue by going to
  https://ticket.grid.iu.edu
 '''
@@ -383,10 +385,16 @@ def connect_retrieve(arguments):
     pkcs7raw = pkcs7raw.split(']')[0].split(',')
     i = 0
     cert_num = 0
+    if arguments.has_key('hostfile'):
+        hostfile = open(arguments['hostfile'])
     while cert_num < num_requests and i < len(pkcs7raw):
         certstring = str(pkcs7raw[i]).split('"')[1]
         if 'PKCS7' in certstring:
-            write_certs(certstring, cert_num, arguments)
+            if arguments.has_key('hostfile'):
+                host = hostfile.readline().rstrip('\n')
+            else:
+                host = arguments['hostname']
+            write_certs(host, certstring, cert_num, arguments)
             cert_num = cert_num + 1
         i = i + 1
     if cert_num != num_requests:
@@ -424,14 +432,6 @@ if __name__ == '__main__':
         ssl_context.load_cert_chain(arguments['usercert'], arguments['userprivkey'],
                                     callback=prompt_for_password)
 
-        print 'Creating Certificate Directory (if necessary):', arguments['certdir']
-        try:
-            os.makedirs(arguments['certdir'])
-        except OSError, exc:
-            if exc.errno == errno.EEXIST:
-                pass
-            else:
-                raise
         config_items = {}
     # ############################# Pipelining the bulk Certificate request process to send them at once##################################
 
