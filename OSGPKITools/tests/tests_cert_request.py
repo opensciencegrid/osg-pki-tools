@@ -22,7 +22,6 @@ class CertRequestTests(PKIClientTestCase.PKIClientTestCase):
         fqdn = "test." + self.domain
         result = self.run_script(env,
                                  self.command,
-                                 # TODO: Good hostname for testing?
                                  "--hostname", fqdn,
                                  "-e", self.email,
                                  "-n", self.name,
@@ -36,9 +35,10 @@ class CertRequestTests(PKIClientTestCase.PKIClientTestCase):
                             "Could not find request Id: " + err_msg)
         self.assertTrue(result.files_created.has_key("host-key.pem"))
         # Check resulting key for looks
-        result = env.run("openssl", "rsa",
-                         "-in", "host-key.pem",
-                         "-noout")
-        err_msg = self.run_error_msg(result)
-        self.assertEqual(result.returncode, 0, err_msg)
+        key_file = "host-key.pem"
+        key_result = self.check_private_key(env, key_file)
+        err_msg = self.run_error_msg(key_result)
+        self.assertEqual(result.returncode, 0,
+                         "Check of private key %s failed: %s" % (key_file,
+                                                                 err_msg))
 

@@ -22,7 +22,11 @@ class CertRetrieveTests(PKIClientTestCase.PKIClientTestCase):
         err_msg = self.run_error_msg(result)
         self.assertEqual(result.returncode, 0, err_msg)
         # Make sure certificate looks OK
-        result = env.run("openssl", "x509",
-                         "-in", "hostcert.pem")
+        self.assertTrue(result.files_created.has_key("host-cert.pem"),
+                        "Cannot find retrieve certificate\n" + err_msg)
+        cert_file = "host-cert.pem"
+        cert_result = self.check_certificate(env, cert_file)
         err_msg = self.run_error_msg(result)
-        self.assertEqual(result.returncode, 0, err_msg)
+        self.assertEqual(result.returncode, 0,
+                         "Failed checking certificate %s: %s" % (cert_file,
+                                                                 err_msg))

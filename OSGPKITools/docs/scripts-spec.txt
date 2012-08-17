@@ -1,4 +1,4 @@
-host-cert-request:  Request a host certificate
+osg-cert-request:  Request a host certificate
 
 This script:
   * Generates a new host private key and CSR

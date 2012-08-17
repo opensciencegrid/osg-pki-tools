@@ -3,14 +3,16 @@
 import os
 import os.path
 import scripttest  # pip install scripttest
+import sys
 import unittest
 
 class PKIClientTestCase(unittest.TestCase):
     """OSG PKI CLI TestCase bass class"""
 
-    # Path to user certificate and private key to use for authentication
-    user_cert_path = None
-    user_key_path = None
+    # Path to certificate and private key to use for authentication
+    # See README for details
+    cert_path = os.path.abspath("./test-cert.pem")
+    key_path = os.path.abspath("./test-key.pem")
 
     # Information to provide with requests
     email = "osg-pki-cli-test@example.com"
@@ -18,7 +20,9 @@ class PKIClientTestCase(unittest.TestCase):
     phone = "555-555-5555"
 
     # Domain to use with host certificate requests
-    domain = "bw.iu.edu"  # XXX: This is specific to Von
+    # The test credentials are registered in OIM-ITB for this domain,
+    # it is not arbitrary.
+    domain = "pki-test.opensciencegrid.org"
 
     # Private key pass phrase
     pass_phrase = None
@@ -47,6 +51,25 @@ class PKIClientTestCase(unittest.TestCase):
         return env
 
     @classmethod
+    def run_cmd(cls, env, *args):
+        """Run given command.
+
+        This is a wrapper around env.run() that won't throw an exception
+        on error so we can handle errors in the test framework.
+
+        Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
+        # Python 2.4 requires kwargs to be defined in variable and then
+        # expanded in call to env.run instead of being supplied as keywords
+        kwargs = {
+            # Don't raise exception on error
+            "expect_error" : True,
+            "expect_stderr" : True,
+            "quiet" : True,
+            }
+        result = env.run(*args, **kwargs)
+        return result
+
+    @classmethod
     def run_script(cls, env, script, *args):
         """Run script with given arguments.
 
@@ -59,7 +82,7 @@ class PKIClientTestCase(unittest.TestCase):
             "expect_stderr" : True,
             "quiet" : True,
             }
-        result = env.run("python",  # In case script is not executable
+        result = env.run(sys.executable,  # In case script is not executable
                          os.path.join(cls.scripts_path, script),
                          *args, **kwargs)
         return result
@@ -78,19 +101,20 @@ class PKIClientTestCase(unittest.TestCase):
             "quiet" : True,
             }
         result = env.run("env")
-        result = env.run("python", "-c", code, *args, **kwargs)
+        result = env.run(sys.executable, "-c", code, *args, **kwargs)
         return result
 
     @classmethod
     def run_error_msg(cls, result):
         """Return an error message from a result"""
         return "Return code: %d\n" % result.returncode \
-            + result.stdout + result.stderr
+            + "STDOUT:\n" + result.stdout \
+            + "STDERR:\n" + result.stderr
 
     @classmethod
     def set_cert_path(cls, path):
         """Set path to use for user certificate"""
-        cls.user_cert_path = path
+        cls.cert_path = os.path.abspath(path)
 
     @classmethod
     def get_cert_path(cls):
@@ -99,14 +123,12 @@ class PKIClientTestCase(unittest.TestCase):
         Search order is:
            Path specified by user on commandline
            ./test-cert.pem"""
-        if cls.user_cert_path:
-            return cls.user_cert_path
-        return os.path.expanduser("./test-cert.pem")
+        return cls.cert_path
 
     @classmethod
     def set_key_path(cls, path):
         """Set path to use for user private key"""
-        cls.user_key_path = path
+        cls.key_path = os.path.abspath(path)
 
     @classmethod
     def get_key_path(cls):
@@ -115,9 +137,7 @@ class PKIClientTestCase(unittest.TestCase):
         Search order is:
            Path specified by user on commandline
            ./test-key.pem"""
-        if cls.user_key_path:
-            return cls.user_key_path
-        return os.path.expanduser("./test-key.pem")
+        return cls.key_path
 
     @classmethod
     def set_scripts_path(cls, path):
@@ -128,3 +148,28 @@ class PKIClientTestCase(unittest.TestCase):
     def get_scripts_path(cls):
         """Get the path to where the scripts are"""
         return cls.scripts_path
+
+    @classmethod
+    def check_private_key(cls, env, path):
+	"""Check the given private key in the given test environment using openssl
+
+	Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
+	result = cls.run_cmd(env,
+                             "openssl", "rsa",
+                             "-in", path,
+                             "-noout", "-check",
+                             # This will cause us not to block on input if
+                             # the key is encrypted. It will be ignored if the
+                             # key isn't encrypted.
+                             "-passin", "pass:null")
+        return result
+
+    @classmethod
+    def check_certificate(cls, env, path):
+        """Check the given certificate in the given test environment using openssl
+
+	Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
+        result = cls.run_cmd(env,
+                             "openssl", "x509",
+                             "-in", path)
+        return result

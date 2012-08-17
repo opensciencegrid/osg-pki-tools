@@ -32,7 +32,7 @@ def main(argv=None):
                       help="Specify private key for authentication",
                       metavar="PATH")
     parser.add_option("-s", "--scripts-path",
-                      default="..",
+                      default="../osgpkitools",
                       help="Specify path to scripts",
                       metavar="PATH")
     parser.add_option("-T", "--tests",
@@ -61,7 +61,7 @@ def main(argv=None):
     #
     # Do it...
     runner = unittest.runner.TextTestRunner(verbosity=options.verbose)
-    print "Running tests:"
+    print "Running tests, this may take a while:"
     runner.run(suite)
 
     return(0)
