@@ -82,12 +82,15 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
         id = int(match.group(1))
         for cert_num in xrange(num_requests):
             # Check output certificate
-            cert_file = "certificates/host-certs.%d-%d.pem" % (id, cert_num)
+            cert_file = host_template % cert_num + "-%d.pem" % cert_num
             self.assertTrue(
-                "Certificate written to %s" % cert_file in result.stdout,
-                "Could not find output of certificate %d:" % cert_num + err_msg)
+                "Certificate written to ./%s" % cert_file in result.stdout,
+                "Could not find output of certificate %d (%s): %s" % (cert_num,
+                                                                      cert_file,
+                                                                      err_msg))
             self.assertTrue(result.files_created.has_key(cert_file),
-                            "Did not find certificate file %s" % cert_file)
+                            "Did not find certificate file %s: %s" % (cert_file,
+                                                                      err_msg))
             cert_result = self.check_certificate(env, cert_file)
             err_msg = self.run_error_msg(result)
             self.assertEqual(result.returncode, 0,
