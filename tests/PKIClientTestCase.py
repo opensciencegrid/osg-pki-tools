@@ -3,6 +3,7 @@
 import os
 import os.path
 import scripttest  # pip install scripttest
+import sys
 import unittest
 
 class PKIClientTestCase(unittest.TestCase):
@@ -81,7 +82,7 @@ class PKIClientTestCase(unittest.TestCase):
             "expect_stderr" : True,
             "quiet" : True,
             }
-        result = env.run("python",  # In case script is not executable
+        result = env.run(sys.executable,  # In case script is not executable
                          os.path.join(cls.scripts_path, script),
                          *args, **kwargs)
         return result
@@ -100,7 +101,7 @@ class PKIClientTestCase(unittest.TestCase):
             "quiet" : True,
             }
         result = env.run("env")
-        result = env.run("python", "-c", code, *args, **kwargs)
+        result = env.run(sys.executable, "-c", code, *args, **kwargs)
         return result
 
     @classmethod
