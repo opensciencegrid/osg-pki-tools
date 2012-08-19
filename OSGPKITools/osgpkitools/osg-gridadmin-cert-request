@@ -30,12 +30,20 @@ from optparse import OptionGroup
 import optparse
 import OSGPKIUtils
 import sys
+import textwrap
 
 
 # Set up Option Parser
 #
+def charlimit_textwrap(string):
+    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
+    list_string = textwrap.wrap(string)
+    for line in list_string:
+        print line
+    return
 
 def parse_args():
+    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
     usage = \
         'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
     parser = OptionParser(usage)
@@ -111,7 +119,8 @@ or specify from a file using -f/--hostfile.''')
     if os.path.exists(userprivkey):
         pass
     else:
-        sys.exit('Unable to locate the private key file:' + userprivkey)
+        charlimit_textwrap('Unable to locate the private key file:' + userprivkey)
+        sys.exit(1)
 
     if args.usercert == '':
         try:
@@ -124,13 +133,15 @@ or specify from a file using -f/--hostfile.''')
     if os.path.exists(usercert):
         pass
     else:
-        sys.exit('Unable to locate the user certificate file:'
+        charlimit_textwrap('Unable to locate the user certificate file:'
                  + usercert)
+        sys.exit(1)
     if not args.hostname:
         if os.path.exists(hostfile):
             pass
         else:
-            sys.exit('Unable to locate the hostfile:' + hostfile)
+            charlimit_textwrap('Unable to locate the hostfile:' + hostfile)
+            sys.exit(1)
 
     Config = ConfigParser.ConfigParser()
     if os.path.exists('OSGPKIClients.ini'):
@@ -185,6 +196,11 @@ or specify from a file using -f/--hostfile.''')
 #
 
 def connect_request(ssl_context, bulk_csr, arguments):
+    """This function accepts a an ssl_context instance which contains information about the established ssl connection,
+    the csr string(base64 encoded) and adictionary consisting of all parameters and their values,
+    It submites the request to the OIM server and returns the request details.
+    """
+
     print 'Connecting to server to request certificate...'
     params = urllib.urlencode({'csrs': bulk_csr}, doseq=True)
     headers = {'Content-type': arguments['content_type'],
@@ -196,32 +212,32 @@ def connect_request(ssl_context, bulk_csr, arguments):
         conn.request('POST', arguments['requrl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        print 'Connection to %s failed : %s' % (requrl, e)
+        charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
         raise e
     data = response.read()
     if not 'OK' in response.reason:
-        print 'The request has failed for the following reason:\n%s' \
-            % json.loads(data)['detail'].split('--')[1].lstrip()
-        print 'Status : %s ' % json.loads(data)['status']
-        print 'Fatal error: Certificate request has failed.'
-        print '''You can open a GOC ticket to track this issue by going to\n https://ticket.grid.iu.edu
-'''
-        sys.exit()
+        charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % json.loads(data)['detail'].split('--')[1].lstrip())
+        charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+        charlimit_textwrap('Fatal error: Certificate request has failed.')
+        charlimit_textwrap('''You can open a GOC ticket to track this issue by going to\n https://ticket.grid.iu.edu
+''')
+        sys.exit(1)
     conn.close()
     if 'FAILED' in data:
-        print 'The request has failed for the following reason:\n%s' \
-            % json.loads(data)['detail'].split('--')[1].lstrip()
-        print 'Status : %s ' % json.loads(data)['status']
-        print 'Fatal error: Certificate request has failed.'
-        print '''You can open a GOC ticket to track this issue by going to \nhttps://ticket.grid.iu.edu
-'''
+        charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % json.loads(data)['detail'].split('--')[1].lstrip())
+        charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+        charlimit_textwrap('Fatal error: Certificate request has failed.')
+        charlimit_textwrap('''You can open a GOC ticket to track this issue by going to \nhttps://ticket.grid.iu.edu
+''')
         sys.exit(1)
     return_data = json.loads(data)
     for (key, value) in return_data.iteritems():
         if 'host_request_id' in key:
             reqid = value
             print 'Id is:', reqid
-    arguments.update({'id': reqid})
+    arguments.update({'reqid': reqid})
     return arguments
 
 
@@ -232,9 +248,13 @@ def connect_request(ssl_context, bulk_csr, arguments):
 #
 
 def connect_approve(ssl_context, arguments):
+    """This function accepts a an ssl_context instance which contains information about the established ssl connection
+    and a dictionary consisting of all parameters and their values,
+    It approves the request that is submitted to the OIM by connect_request.
+    """
     print 'Connecting to server to approve certificate...'
     action = 'approve'
-    params = urllib.urlencode({'host_request_id': arguments['id']})
+    params = urllib.urlencode({'host_request_id': arguments['reqid']})
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
@@ -243,12 +263,13 @@ def connect_approve(ssl_context, arguments):
         conn.request('POST', arguments['appurl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        print 'Connection to %s failed: %s' % (arguments['appurl'],
-                repr(e))
+        charlimit_textwrap('Connection to %s failed: %s' % (arguments['appurl'],
+                repr(e)))
         raise e
 
     if not 'OK' in response.reason:
-        print response.status, response.reason
+        charlimit_textwrap("Request Failed. Status %s" %response.status)
+        charlimit_textwrap("Reason for failure %s" %response.reason)
         sys.exit(1)
     data = response.read()
     conn.close()
@@ -262,24 +283,24 @@ def connect_approve(ssl_context, arguments):
             conn.request('POST', newrequrl, params, headers)
             response = conn.getresponse()
         except httplib.HTTPException, e:
-            print 'Connection to %s failed: %s' % (newrequrl, e)
+            charlimit_textwrap('Connection to %s failed: %s' % (newrequrl, e))
             raise e
         data = response.read()
         conn.close()
         if 'FAILED' in data:
-            print 'The request has failed for the following reason:\n%s' \
-                % json.loads(data)['detail'].split('--')[1].lstrip()
-            print 'Status : %s ' % json.loads(data)['status']
-            print 'Fatal error: Certificate request has failed.'
-            print '''You can open a GOC ticket to track this issue by going to\n https://ticket.grid.iu.edu
-'''
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+                % json.loads(data)['detail'].split('--')[1].lstrip())
+            charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+            charlimit_textwrap('Fatal error: Certificate request has failed.')
+            charlimit_textwrap('''You can open a GOC ticket to track this issue by going to\n https://ticket.grid.iu.edu
+''')
             sys.exit(1)
     elif not 'OK' in data:
-        print 'The request has failed for the reason: %s' \
-            % json.loads(data)['detail']
+        charlimit_textwrap('The request has failed for the reason: %s' \
+            % json.loads(data)['detail'])
         sys.exit(1)
     elif action != 'approve':
-        print 'Request not approved by the Grid Admin. Exiting now.\n'
+        charlimit_textwrap('Request not approved by the Grid Admin. Exiting now.\n')
         sys.exit(0)
 
 
@@ -295,22 +316,27 @@ def connect_approve(ssl_context, arguments):
 def write_certs(
     host,
     pkcs7raw,
-    i,
     arguments,
     ):
+    """This function accepts the hostname, pkcs7raw dump of the certificate and a dictionary that consists variables and the value against them.
+    It write the certificates to file system."""
     pkcs7raw = str(pkcs7raw)
     filetype = 'pkcs7-cert'
     fileext = 'pem'
-    filename = '%s.%s.%s' % (filetype, arguments['id'], fileext)
-    pem_filename = '%s-%s.%s' % (host, i, 'pem')
+    filename = '%s.%s.%s' % (filetype, arguments['reqid'], fileext)
+    pem_filename = '%s.%s' % (host, 'pem')
+    if os.path.exists(pem_filename):
+        charlimit_textwrap("The file %s already exists." % pem_filename)
+        pem_filename = '%s-%s.%s' % (host, arguments['reqid'], 'pem')
     cwd = os.getcwd()
     try:
         os.chdir(arguments['certdir'])
     except OSError, e:
-        sys.exit('''The directory %s does not exist or you cannot access the directory
+        charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
 .Please report the bug to goc@opensciencegrid.org.a
  %s''',
                  arguments['certdir'], e)
+        sys.exit(1)
     try:
         certfile = open(filename, 'w+')
         certfile.write(pkcs7raw)
@@ -319,22 +345,25 @@ def write_certs(
                   + ' -out ' + pem_filename)
         os.remove(filename)
     except OSError, e:
-        sys.exit('''You may not have write permission to the directory %s
+        charlimit_textwrap('''You may not have write permission to the directory %s
 .Please report the bug to goc@opensciencegrid.org.
  %s''',
                  arguments['certdir'], e)
+        sys.exit(1)
     os.chdir(cwd)
-    print '''
+    charlimit_textwrap('''
 Certificate written to %s%s 
 ''' % (arguments['certdir'],
-            pem_filename)
+            pem_filename))
     return
 
 
 def connect_retrieve(arguments):
+    """This fucntion accepts a dictionary consisting of variables and their values against it.
+    It retrieves the certificate from the OIM."""
     iterations = 1
     print 'Issuing certificate...'
-    params = urllib.urlencode({'host_request_id': arguments['id']})
+    params = urllib.urlencode({'host_request_id': arguments['reqid']})
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = httplib.HTTPSConnection(arguments['host'])
@@ -342,27 +371,27 @@ def connect_retrieve(arguments):
         conn.request('POST', arguments['returl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        print 'Connection to %s failed: %s' % (newurl, e)
+        charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
         raise httplib.HTTPException
     data = response.read()
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
-            print 'The request has failed for the following reason:\n%s' \
-                % json.loads(data)['detail'].lstrip()
-            print 'Status : %s ' % json.loads(data)['status']
-            print 'Fatal error: Certificate request has failed.'
-            print '''You can open a GOC ticket to track this issue by going to
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+                % json.loads(data)['detail'].lstrip())
+            charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+            charlimit_textwrap('Fatal error: Certificate request has failed.')
+            charlimit_textwrap('''You can open a GOC ticket to track this issue by going to
  https://ticket.grid.iu.edu
-'''
+''')
             sys.exit(1)
     conn.close()
-    print 'Waiting for response from Certificate Authority. Please wait.'
+    charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
     while 'PENDING' in data:
         conn.request('POST', arguments['returl'], params, headers)
         try:
             response = conn.getresponse()
         except httplib.HTTPException, e:
-            print 'Connection to %s failed: %s' % (newurl, e)
+            charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
             raise httplib.HTTPException
         data = response.read()
         conn.close()
@@ -373,20 +402,20 @@ def connect_retrieve(arguments):
                 print '.',
                 sys.stdout.flush()
             if iterations > 60:
-                print 'Maximum number of attempts reached. This script will now exit.'
-                print ' You can open goc ticket to track this issue by going to\n https://ticket.grid.iu.edu\n'
+                charlimit_textwrap('Maximum number of attempts reached. This script will now exit.')
+                charlimit_textwrap(' You can open goc ticket to track this issue by going to\n https://ticket.grid.iu.edu\n')
                 sys.exit(1)
         else:
             pass
     pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
     if 'FAILED' in data:
-        print 'The request has failed for the following reason:\n%s' \
-            % json.loads(data)['detail'].split('--')[1].lstrip()
-        print 'Status : %s ' % json.loads(data)['status']
-        print 'Fatal error: Certificate request has failed.'
-        print '''You can open a GOC ticket to track this issue by going to
+        charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % json.loads(data)['detail'].split('--')[1].lstrip())
+        charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+        charlimit_textwrap('Fatal error: Certificate request has failed.')
+        charlimit_textwrap('''You can open a GOC ticket to track this issue by going to
  https://ticket.grid.iu.edu
-'''
+''')
         sys.exit(1)
 
     # The slice and dice on the JSON output to get the certificate out
@@ -412,7 +441,7 @@ def connect_retrieve(arguments):
                 host = hostfile.readline().rstrip('\n')
             else:
                 host = arguments['hostname']
-            write_certs(host, certstring, cert_num, arguments)
+            write_certs(host, certstring, arguments)
             cert_num = cert_num + 1
         i = i + 1
     if cert_num != num_requests:
@@ -422,9 +451,14 @@ def connect_retrieve(arguments):
     return
 
 
-def create_certificate(line, count, config_items):
+def create_certificate(line, reqid, config_items):
+    """This fucntion accepts hostname, request id and a dictionary of config_items for the CSR.
+    It writes the key and creates the CSR."""
     print 'Generating certificate...'
-    keyname = line + '-' + str(count) + '-key.pem'
+    keyname = line + '-key.pem'
+    if os.path.exists(keyname):
+        charlimit_textwrap("The key file %s already exists" % keyname)
+        keyname = line + '-' + str(reqid) + '-key.pem'
     cert_obj = OSGPKIUtils.Cert()
     cert_obj.CreatePKey(keyname)
     new_csr = cert_obj.CreateX509Request(**config_items)
@@ -462,23 +496,27 @@ if __name__ == '__main__':
         bulk_csr = list()
         count = 0
         num_requests = 0
+        host_set = set()
         if not arguments.has_key('hostname'):
             hosts = open(arguments['hostfile'], 'rb')
             for line in hosts:
-                count += 1
-                line = line.rstrip('\n')
-                config_items.update({'CN': line})  # ### New Config item list for every host#######
-                print 'Beginning request process for', line
-                csr = create_certificate(line, count, config_items)
-                bulk_csr.append(csr)
-                num_requests = num_requests + 1
-                if count == 50:
-                    connect_request(ssl_context, bulk_csr, arguments)
-                    connect_approve(ssl_context, arguments)
-                    connect_retrieve(arguments)
-                    bulk_csr = ''
-                    count = 0
-
+                if not line in host_set:
+                    host_set.add(line)
+                    count += 1
+                    line = line.rstrip('\n')
+                    config_items.update({'CN': line})  # ### New Config item list for every host#######
+                    charlimit_textwrap('Beginning request process for %s' % line)
+                    csr = create_certificate(line, count, config_items)
+                    bulk_csr.append(csr)
+                    num_requests = num_requests + 1
+                    if count == 50:
+                        connect_request(ssl_context, bulk_csr, arguments)
+                        connect_approve(ssl_context, arguments)
+                        connect_retrieve(arguments)
+                        bulk_csr = ''
+                        count = 0
+                    else:
+                        charlimit_textwrap("\nDuplicate Hostname entry for %s.\nSkipping process for %s\n" % (line, line))
     # ####################################################################################################################################
 
             if count != 0 and count != 50:
@@ -490,22 +528,25 @@ if __name__ == '__main__':
             hostname = arguments['hostname'].rstrip('\n')
             config_items.update({'CN': hostname})  # ### New Config item list for every host#######
             num_requests = 1
-            print 'Beginning request process for', hostname
+            charlimit_textwrap('Beginning request process for %s' % hostname)
             csr = create_certificate(hostname, count, config_items)
             connect_request(ssl_context, csr, arguments)
             connect_approve(ssl_context, arguments)
             connect_retrieve(arguments)
     except EOFError, e:
-        sys.exit('End of File Error: Check if the standard input is enabled\nError %s'
+        charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
                   % e)
+        sys.exit(1)
     except KeyboardInterrupt, k:
         print k
         sys.exit('''Interrupted by user\n''')
     except Exception, e:
         if str(e) != '0':
-            sys.exit('''Uncaught Exception : %s
+            charlimit_textwrap('''Uncaught Exception : %s
 
 Please report the bug to goc@opensciencegrid.org.
 '''
                      % e)
+            print sys.exc_traceback.tb_lineno
+            sys.exit(1)
     sys.exit(0)

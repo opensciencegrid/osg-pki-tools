@@ -30,6 +30,8 @@ class Cert:
 
 
 	def CreatePKey ( self , filename ):
+		"""This function accepts the filename of the key file to write to.
+		It write the private key to the specified file name without ciphering it."""
 		self.KeyPair = M2Crypto.RSA.gen_key( self.RsaKey['KeyLength'], self.RsaKey['PubExponent'], self.RsaKey['keygen_callback'] )
 		PubKey = M2Crypto.RSA.new_pub_key( self.KeyPair.pub () )
 		self.KeyPair.save_key( filename, cipher=None)
@@ -38,6 +40,8 @@ class Cert:
 
 
 	def CreateX509Request ( self, **config_items ):
+		"""This function accepts a dctionary that contains information regarding the CSR.
+		It creates a CSR and returns it to the calling script."""
 		#
 		# X509 REQUEST
 		#
