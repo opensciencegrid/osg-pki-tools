@@ -25,7 +25,15 @@ import M2Crypto
 # Set up Option Parser
 #
 
+def charlimit_textwrap(string):
+    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
+    list_string = textwrap.wrap(string)
+    for line in list_string:
+        print line
+    return
+
 def parse_args():
+    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
     parser = OptionParser()
     parser.add_option(
         '-c',
@@ -141,12 +149,14 @@ def parse_args():
     if args.prikey == 'genprivate.key':
         pass
     elif not os.path.exists(args.prikey):
-        sys.exit('The file %s does not exist' % args.prikey)
+        charlimit_textwrap('The file %s does not exist' % args.prikey)
+        sys.exit(1)
 
     if args.csr == 'gennew.csr':
         pass
     elif not os.path.exists(args.csr):
-        sys.exit('The file %s does not exist' % args.csr)
+        charlimit_textwrap('The file %s does not exist' % args.csr)
+        sys.exit(1)
 
     #
     # Read from the ini file
@@ -196,6 +206,7 @@ def parse_args():
     #
 
 def connect(arguments):
+    """This function accepts a dictionary consisting of all parameters and their values.\nIt submites the request to the OIM server and returns the request details."""
     print '\nConnecting to server...'
     params = urllib.urlencode({
         'name': arguments['name'],
@@ -210,17 +221,17 @@ def connect(arguments):
         conn.request('POST', arguments['requrl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        print 'Connection to %s failed: %s' % (arguments['requrl'],
-                repr(e))
+        charlimit_textwrap('Connection to %s failed: %s' % (arguments['requrl'],
+                repr(e)))
         raise e
     except Exception, e:
-        print 'Error during request to %s. Reason %s' \
-            % (arguments['requrl'], repr(e))
+        charlimit_textwrap('Error during request to %s. Reason %s' \
+            % (arguments['requrl'], repr(e)))
     data = response.read()
     if 'FAILED' in json.dumps(data):
         reason = json.loads(data)['detail']
         reason = reason.split('--')[1]
-        print 'The request failed because : %s' % reason
+        charlimit_textwrap('The request failed because : %s' % reason)
         sys.exit(1)
     conn.close()
     if json.loads(data)['detail'] == 'Nothing to report' \
@@ -277,14 +288,18 @@ if __name__ == '__main__':
                     , '')
             connect()
     except EOFError, e:
-        sys.exit('End of File Error: Check if the standard input is enabled\nError %s'
+        charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
                   % e)
+        sys.exit(1)
     except KeyboardInterrupt, k:
-        print k
+        charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
     except Exception, e:
-        sys.exit('''Uncaught Exception %s.
+        if str(e) != '0':
+            charlimit_textwrap('''Uncaught Exception : %s
+
 Please report the bug to goc@opensciencegrid.org.
 '''
-                 % e)
+                     % e)
+            sys.exit(1)
     sys.exit(0)

@@ -33,7 +33,15 @@ import os
 # Set up Option Parser
 #
 
+def charlimit_textwrap(string):
+    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
+    list_string = textwrap.wrap(string)
+    for line in list_string:
+        print line
+    return
+
 def parse_args():
+    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
     usage = \
         'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
     parser = OptionParser(usage)
@@ -137,6 +145,7 @@ def parse_args():
 #
 
 def connect_issue(arguments):
+    """This function accepts a dictionary of parameters and issues the request if the requets is in Approved state."""
     params = urllib.urlencode({'host_request_id': arguments['id']})
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
@@ -148,19 +157,19 @@ def connect_issue(arguments):
         time.sleep(10)
         response = conn.getresponse()
     except Exception, e:
-        print 'Connection to %s failed: %s' % (newrequrl, e)
+        charlimit_textwrap('Connection to %s failed: %s' % (newrequrl, e))
         raise e
     data = response.read()
     conn.close()
     if not 'OK' in data:
-        print '''The request failed for the following reason
+        charlimit_textwrap('''The request failed for the following reason
  %s
 
 ''' \
-            % json.loads(data)['detail']
-        print '''Fatal error while issuing: Certificate request has failed.
-'''
-        print 'You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n'
+            % json.loads(data)['detail'])
+        charlimit_textwrap('''Fatal error while issuing: Certificate request has failed.
+''')
+        charlimit_textwrap('You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n')
         sys.exit(1)
 
     return
@@ -176,6 +185,7 @@ def connect_issue(arguments):
 #
 
 def connect_retrieve(arguments):
+    """This function checks if the request is in Issues state.\nIf its is in the issued state, it then retrieves the certificate.\nIt accepts a dictionary that consist of all the parameters and tehir value."""
     iterations = 1
     print 'Connecting server to retrieve certificate...'
     params = urllib.urlencode({'host_request_id': arguments['id']})
@@ -186,21 +196,22 @@ def connect_retrieve(arguments):
         conn.request('POST', arguments['requrl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        print 'Connection to %s failed: %s' % (newurl, e)
+        charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
         raise httplib.HTTPException
     data = response.read()
     if json.loads(data).has_key('request_status'):
         if json.loads(data)['request_status'] == 'REQUESTED':
-            sys.exit('Certificate request in Requested state. Needs to be Approved first\n. Please contact RA to approve this certificate\n'
+            charlimit_textwrap('Certificate request in Requested state.Needs to be Approved first. Please contact RA to approve this certificate\n'
                      )
+            sys.exit(1)
         else:
-            print 'Certificate request in Approved state. Needs to be issued first\n'
+            charlimit_textwrap('Certificate request in Approved state. Needs to be issued first\n')
             connect_issue(arguments)
     try:
         conn.request('POST', arguments['requrl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        print 'Connection to %s failed: %s' % (newurl, e)
+        charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
         raise httplib.HTTPException
     data = response.read()
 
@@ -209,7 +220,7 @@ def connect_retrieve(arguments):
         try:
             response = conn.getresponse()
         except httplib.HTTPException, e:
-            print 'Connection to %s failed: %s' % (newurl, e)
+            charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
             raise httplib.HTTPException
         data = response.read()
         conn.close()
@@ -217,23 +228,23 @@ def connect_retrieve(arguments):
             time.sleep(5)
             iterations = iterations + 1
             if iterations % 6 == 0:
-                print 'Waiting for response from Certificate Authority. Please wait.'
-                print ' Delay: ', float(iterations / 12), ' minutes.'
+                charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
+                charlimit_textwrap(' Delay: ', float(iterations / 12), ' minutes.')
             if iterations > 60:
-                print 'Maximum number of attempts reached. This script will now exit.'
-                print ' You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n'
+                charlimit_textwrap('Maximum number of attempts reached. This script will now exit.')
+                charlimit_textwrap(' You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n')
                 sys.exit(1)
         else:
             pass
     pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
     if 'FAILED' in data:
-        print '''The request failed for the following reason
+        charlimit_textwrap('''The request failed for the following reason
  %s
 
 ''' \
-            % json.loads(data)['detail']
-        print 'Fatal error: Certificate request has failed.'
-        print 'You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n'
+            % json.loads(data)['detail'])
+        charlimit_textwrap('Fatal error: Certificate request has failed.')
+        charlimit_textwrap('You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n')
         sys.exit(1)
 
     # The slice and dice on the JSON output to get the certificate out
@@ -259,9 +270,10 @@ def connect_retrieve(arguments):
                   + ' -out ' + arguments['pem_filename'])
         os.remove(temp_filename)
     except OSError, e:
-        sys.exit('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org.'
+        charlimit_textwrap('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org.'
                  )
-    print 'Certificate written to %s \n' % arguments['pem_filename']
+        sys.exit(1)
+    charlimit_textwrap('Certificate written to %s \n' % arguments['pem_filename'])
     return
 
 
@@ -270,15 +282,17 @@ if __name__ == '__main__':
         arguments = parse_args()
         connect_retrieve(arguments)
     except EOFError, e:
-        sys.exit('End of File Error: Check if the standard input is enabled\nError %s'
+        charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
                   % e)
+        sys.exit(1)
     except KeyboardInterrupt, k:
-        print k
+        charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
     except Exception, e:
         if str(e) != '0':
-            sys.exit('''Uncaught Exception : %s
+            charlimit_textwrap('''Uncaught Exception : %s
 Please report the bug to goc@opensciencegrid.org.
 '''
                      % e)
+            sys.exit(1)
     sys.exit(0)
