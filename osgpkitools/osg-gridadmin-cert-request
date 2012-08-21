@@ -90,6 +90,14 @@ or specify from a file using -f/--hostfile.''')
         default='hosts.txt',
         )
     parser.add_option(
+        '-T',
+        '--test',
+        action='store_true',
+        dest='test',
+        help='Run in test mode',
+        default=False,
+        )
+    parser.add_option(
         '-q',
         '--quiet',
         action='store_false',
@@ -150,12 +158,18 @@ or specify from a file using -f/--hostfile.''')
         Config.read('/etc/OSGPKIClients.ini')
     else:
         sys.exit('Missing config file: OSGPKIClients.ini\n')
-    host = Config.get('OIMData', 'hostsec')
-    requrl = Config.get('OIMData', 'requrl')
-    appurl = Config.get('OIMData', 'appurl')
-    issurl = Config.get('OIMData', 'issurl')
-    returl = Config.get('OIMData', 'returl')
-    content_type = Config.get('OIMData', 'content_type')
+
+    if args.test:
+        print "Running in test mode"
+        OIM='OIMData_ITB'
+    else:
+        OIM='OIMData'
+    host = Config.get(OIM, 'hostsec')
+    requrl = Config.get(OIM, 'requrl')
+    appurl = Config.get(OIM, 'appurl')
+    issurl = Config.get(OIM, 'issurl')
+    returl = Config.get(OIM, 'returl')
+    content_type = Config.get(OIM, 'content_type')
 
     arguments = dict()
     if vars().has_key('args'):
@@ -216,8 +230,13 @@ def connect_request(ssl_context, bulk_csr, arguments):
         raise e
     data = response.read()
     if not 'OK' in response.reason:
-        charlimit_textwrap('The request has failed for the following reason:\n%s' \
+        print json.loads(data)
+        try:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
             % json.loads(data)['detail'].split('--')[1].lstrip())
+        except IndexError, e:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % json.loads(data)['detail'].lstrip())
         charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
         charlimit_textwrap('Fatal error: Certificate request has failed.')
         charlimit_textwrap('''You can open a GOC ticket to track this issue by going to\n https://ticket.grid.iu.edu
@@ -225,8 +244,12 @@ def connect_request(ssl_context, bulk_csr, arguments):
         sys.exit(1)
     conn.close()
     if 'FAILED' in data:
-        charlimit_textwrap('The request has failed for the following reason:\n%s' \
+        try:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
             % json.loads(data)['detail'].split('--')[1].lstrip())
+        except IndexError, e:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % json.loads(data)['detail'].lstrip())
         charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
         charlimit_textwrap('Fatal error: Certificate request has failed.')
         charlimit_textwrap('''You can open a GOC ticket to track this issue by going to \nhttps://ticket.grid.iu.edu
@@ -288,8 +311,12 @@ def connect_approve(ssl_context, arguments):
         data = response.read()
         conn.close()
         if 'FAILED' in data:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
-                % json.loads(data)['detail'].split('--')[1].lstrip())
+            try:
+                charlimit_textwrap('The request has failed for the following reason:\n%s' \
+                    % json.loads(data)['detail'].split('--')[1].lstrip())
+            except IndexError, e:
+                charlimit_textwrap('The request has failed for the following reason:\n%s' \
+                    % json.loads(data)['detail'].lstrip())
             charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
             charlimit_textwrap('Fatal error: Certificate request has failed.')
             charlimit_textwrap('''You can open a GOC ticket to track this issue by going to\n https://ticket.grid.iu.edu
@@ -409,8 +436,12 @@ def connect_retrieve(arguments):
             pass
     pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
     if 'FAILED' in data:
-        charlimit_textwrap('The request has failed for the following reason:\n%s' \
+        try:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
             % json.loads(data)['detail'].split('--')[1].lstrip())
+        except IndexError, e:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % json.loads(data)['detail'].lstrip())
         charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
         charlimit_textwrap('Fatal error: Certificate request has failed.')
         charlimit_textwrap('''You can open a GOC ticket to track this issue by going to
@@ -547,6 +578,5 @@ if __name__ == '__main__':
 Please report the bug to goc@opensciencegrid.org.
 '''
                      % e)
-            print sys.exc_traceback.tb_lineno
             sys.exit(1)
     sys.exit(0)

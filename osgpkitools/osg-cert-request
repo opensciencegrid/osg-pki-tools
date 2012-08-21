@@ -20,7 +20,7 @@ from pprint import pprint
 import os
 from optparse import OptionParser
 import M2Crypto
-
+import textwrap
 
 # Set up Option Parser
 #
@@ -96,6 +96,14 @@ def parse_args():
         metavar='PHONE',
         )
     parser.add_option(
+        '-T',
+        '--test',
+        action='store_true',
+        dest='test',
+        help='Run in test mode',
+        default=False,
+        )
+    parser.add_option(
         '-q',
         '--quiet',
         action='store_false',
@@ -169,9 +177,14 @@ def parse_args():
         Config.read('etc/OSGPKIClients.ini')
     else:
         sys.exit('Missing config file: OSGPKIClients.ini\n')
-    host = Config.get('OIMData', 'host')
-    requrl = Config.get('OIMData', 'requrl')
-    content_type = Config.get('OIMData', 'content_type')
+    if args.test:
+        print "Running in test mode"
+        OIM = 'OIMData_ITB'
+    else:
+        OIM = 'OIMData'
+    host = Config.get(OIM, 'host')
+    requrl = Config.get(OIM, 'requrl')
+    content_type = Config.get(OIM, 'content_type')
 
     arguments = dict()
     if vars().has_key('args'):
@@ -230,7 +243,10 @@ def connect(arguments):
     data = response.read()
     if 'FAILED' in json.dumps(data):
         reason = json.loads(data)['detail']
-        reason = reason.split('--')[1]
+        try:
+            reason = reason.split('--')[1]
+        except IndexError, e:
+            reason = reason
         charlimit_textwrap('The request failed because : %s' % reason)
         sys.exit(1)
     conn.close()
