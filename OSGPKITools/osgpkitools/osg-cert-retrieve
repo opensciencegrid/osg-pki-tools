@@ -28,7 +28,7 @@ except ImportError:
 import time
 import re
 import os
-
+import textwrap
 
 # Set up Option Parser
 #
@@ -63,7 +63,14 @@ def parse_args():
         metavar='ID',
         default='./host-cert.pem',
         )
-
+    parser.add_option(
+        '-T',
+        '--test',
+        action='store_true',
+        dest='test',
+        help='Run in test mode',
+        default=False,
+        )
     parser.add_option(
         '-q',
         '--quiet',
@@ -100,11 +107,16 @@ def parse_args():
         Config.read('/etc/OSGPKIClients.ini')
     else:
         sys.exit('Missing config file: OSGPKIClients.ini\n')
-    host = Config.get('OIMData', 'host')
-    requrl = Config.get('OIMData', 'returl')
-    appurl = Config.get('OIMData', 'appurl')
-    issurl = Config.get('OIMData', 'issurl')
-    content_type = Config.get('OIMData', 'content_type')
+    if args.test:
+        print "Running in test mode"
+        OIM='OIMData_ITB'
+    else:
+        OIM='OIMData'
+    host = Config.get(OIM, 'host')
+    requrl = Config.get(OIM, 'returl')
+    appurl = Config.get(OIM, 'appurl')
+    issurl = Config.get(OIM, 'issurl')
+    content_type = Config.get(OIM, 'content_type')
     filetype = 'host-cert'
     fileext = 'pkcs7'
     filename = '%s.%s.%s' % (filetype, reqid, fileext)
@@ -229,7 +241,7 @@ def connect_retrieve(arguments):
             iterations = iterations + 1
             if iterations % 6 == 0:
                 charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
-                charlimit_textwrap(' Delay: ', float(iterations / 12), ' minutes.')
+                charlimit_textwrap(' Delay: %s minutes'% float(iterations / 12))
             if iterations > 60:
                 charlimit_textwrap('Maximum number of attempts reached. This script will now exit.')
                 charlimit_textwrap(' You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n')
