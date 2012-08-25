@@ -48,7 +48,7 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
                                                                  err_msg))
         # Check output key
         # XXX This will change: https://jira.opensciencegrid.org/browse/OSGPKI-131
-        key_file = fqdn + "-0-key.pem"
+        key_file = fqdn + "-key.pem"
         self.assertTrue(result.files_created.has_key(key_file))
         key_result = self.check_private_key(env, key_file)
         err_msg = self.run_error_msg(key_result)
@@ -82,7 +82,7 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
         id = int(match.group(1))
         for cert_num in xrange(num_requests):
             # Check output certificate
-            cert_file = host_template % cert_num + "-%d.pem" % cert_num
+            cert_file = host_template % cert_num + ".pem"
             self.assertTrue(
                 "Certificate written to ./%s" % cert_file in result.stdout,
                 "Could not find output of certificate %d (%s): %s" % (cert_num,
@@ -98,7 +98,7 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
                                                                      err_msg))
             # Check output key
             # XXX This will change: https://jira.opensciencegrid.org/browse/OSGPKI-131
-            key_file = host_template % cert_num + "-%d-key.pem" % (cert_num+1)
+            key_file = host_template % cert_num + "-key.pem"
             self.assertTrue(result.files_created.has_key(key_file),
                             "Did not find key file %s" % key_file)
             key_result = self.check_private_key(env, key_file)

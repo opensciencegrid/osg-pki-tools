@@ -65,6 +65,7 @@ class PKIClientTestCase(unittest.TestCase):
             "expect_error" : True,
             "expect_stderr" : True,
             "quiet" : True,
+	    #"test" : True,
             }
         result = env.run(*args, **kwargs)
         return result
@@ -81,9 +82,10 @@ class PKIClientTestCase(unittest.TestCase):
             "expect_error" : True,
             "expect_stderr" : True,
             "quiet" : True,
+	    #"test" : True,
             }
         result = env.run(sys.executable,  # In case script is not executable
-                         os.path.join(cls.scripts_path, script),
+                         os.path.join(cls.scripts_path, script), "-T",
                          *args, **kwargs)
         return result
 
@@ -99,9 +101,10 @@ class PKIClientTestCase(unittest.TestCase):
             "expect_error" : True,
             "expect_stderr" : True,
             "quiet" : True,
+	    #"test" : True,
             }
         result = env.run("env")
-        result = env.run(sys.executable, "-c", code, *args, **kwargs)
+        result = env.run(sys.executable, "-c", code, "-T" ,*args, **kwargs)
         return result
 
     @classmethod
