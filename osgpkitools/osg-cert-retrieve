@@ -179,9 +179,6 @@ def connect_issue(arguments):
 
 ''' \
             % json.loads(data)['detail'])
-        charlimit_textwrap('''Fatal error while issuing: Certificate request has failed.
-''')
-        charlimit_textwrap('You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n')
         sys.exit(1)
 
     return
@@ -244,7 +241,6 @@ def connect_retrieve(arguments):
                 charlimit_textwrap(' Delay: %s minutes'% float(iterations / 12))
             if iterations > 60:
                 charlimit_textwrap('Maximum number of attempts reached. This script will now exit.')
-                charlimit_textwrap(' You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n')
                 sys.exit(1)
         else:
             pass
@@ -255,8 +251,6 @@ def connect_retrieve(arguments):
 
 ''' \
             % json.loads(data)['detail'])
-        charlimit_textwrap('Fatal error: Certificate request has failed.')
-        charlimit_textwrap('You can open goc ticket to track this issue by going to \nhttps://ticket.grid.iu.edu\n')
         sys.exit(1)
 
     # The slice and dice on the JSON output to get the certificate out

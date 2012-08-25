@@ -230,7 +230,6 @@ def connect_request(ssl_context, bulk_csr, arguments):
         raise e
     data = response.read()
     if not 'OK' in response.reason:
-        print json.loads(data)
         try:
             charlimit_textwrap('The request has failed for the following reason:\n%s' \
             % json.loads(data)['detail'].split('--')[1].lstrip())
@@ -238,9 +237,7 @@ def connect_request(ssl_context, bulk_csr, arguments):
             charlimit_textwrap('The request has failed for the following reason:\n%s' \
             % json.loads(data)['detail'].lstrip())
         charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
-        charlimit_textwrap('Fatal error: Certificate request has failed.')
-        charlimit_textwrap('''You can open a GOC ticket to track this issue by going to\n https://ticket.grid.iu.edu
-''')
+        
         sys.exit(1)
     conn.close()
     if 'FAILED' in data:
@@ -251,9 +248,7 @@ def connect_request(ssl_context, bulk_csr, arguments):
             charlimit_textwrap('The request has failed for the following reason:\n%s' \
             % json.loads(data)['detail'].lstrip())
         charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
-        charlimit_textwrap('Fatal error: Certificate request has failed.')
-        charlimit_textwrap('''You can open a GOC ticket to track this issue by going to \nhttps://ticket.grid.iu.edu
-''')
+        
         sys.exit(1)
     return_data = json.loads(data)
     for (key, value) in return_data.iteritems():
@@ -318,9 +313,6 @@ def connect_approve(ssl_context, arguments):
                 charlimit_textwrap('The request has failed for the following reason:\n%s' \
                     % json.loads(data)['detail'].lstrip())
             charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
-            charlimit_textwrap('Fatal error: Certificate request has failed.')
-            charlimit_textwrap('''You can open a GOC ticket to track this issue by going to\n https://ticket.grid.iu.edu
-''')
             sys.exit(1)
     elif not 'OK' in data:
         charlimit_textwrap('The request has failed for the reason: %s' \
@@ -406,10 +398,6 @@ def connect_retrieve(arguments):
             charlimit_textwrap('The request has failed for the following reason:\n%s' \
                 % json.loads(data)['detail'].lstrip())
             charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
-            charlimit_textwrap('Fatal error: Certificate request has failed.')
-            charlimit_textwrap('''You can open a GOC ticket to track this issue by going to
- https://ticket.grid.iu.edu
-''')
             sys.exit(1)
     conn.close()
     charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
@@ -443,10 +431,6 @@ def connect_retrieve(arguments):
             charlimit_textwrap('The request has failed for the following reason:\n%s' \
             % json.loads(data)['detail'].lstrip())
         charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
-        charlimit_textwrap('Fatal error: Certificate request has failed.')
-        charlimit_textwrap('''You can open a GOC ticket to track this issue by going to
- https://ticket.grid.iu.edu
-''')
         sys.exit(1)
 
     # The slice and dice on the JSON output to get the certificate out
@@ -490,6 +474,7 @@ def create_certificate(line, reqid, config_items):
     if os.path.exists(keyname):
         charlimit_textwrap("The key file %s already exists" % keyname)
         keyname = line + '-' + str(reqid) + '-key.pem'
+        charlimit_textwrap("Writing key to %s" % keyname)
     cert_obj = OSGPKIUtils.Cert()
     cert_obj.CreatePKey(keyname)
     new_csr = cert_obj.CreateX509Request(**config_items)
