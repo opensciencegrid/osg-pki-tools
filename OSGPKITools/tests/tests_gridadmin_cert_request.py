@@ -104,3 +104,37 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
             self.assertEqual(result.returncode, 0,
                              "Check of private key %s failed: %s" % (key_file,
                                                                      err_msg))
+
+    def test_duplicate_host_request(self):
+        """Test making sure we ignore duplicate hosts in request.
+
+        https://jira.opensciencegrid.org/browse/OSGPKI-138"""
+        num_requests = 2  # Number of expected certificate requested
+        hosts_filename = "hosts.txt"
+        env = self.get_test_env()
+        # Build contents of request file
+        hosts_content = "\n".join([
+                "host-1." + self.domain,
+                "host-2." + self.domain,
+                "host-1." + self.domain,  # Should be ignored
+                ])
+        env.writefile(hosts_filename, content=hosts_content)
+        result = self.run_script(env,
+                                 self.command,
+                                 "-f", hosts_filename,
+                                 "-k", self.get_key_path(),
+                                 "-c", self.get_cert_path())
+        err_msg = self.run_error_msg(result)
+        self.assertEqual(result.returncode, 0, err_msg)
+        # Make sure duplicate was detected
+        match = re.search("Duplicate Hostname entry for host-1." + self.domain,
+                          result.stdout,
+                          re.MULTILINE)
+        self.assertNotEqual(match, None,
+                            "Duplicate host entry not detected")
+        # Now make sure non-duplicate didn't trigger false positive
+        match = re.search("Duplicate Hostname entry for host-2." + self.domain,
+                          result.stdout,
+                          re.MULTILINE)
+        self.assertEqual(match, None,
+                         "Non-duplicate host entry detected as duplicate")
