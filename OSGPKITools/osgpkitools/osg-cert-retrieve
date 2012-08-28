@@ -29,6 +29,7 @@ import time
 import re
 import os
 import textwrap
+import traceback
 
 # Set up Option Parser
 #
@@ -294,11 +295,12 @@ if __name__ == '__main__':
     except KeyboardInterrupt, k:
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
+    except SystemExit, e:
+        sys.exit(0)
     except Exception, e:
-        if str(e) != '0':
-            charlimit_textwrap('''Uncaught Exception : %s
+        charlimit_textwrap('''Uncaught Exception : %s
 Please report the bug to goc@opensciencegrid.org.
 '''
-                     % e)
-            sys.exit(1)
+                     % traceback.format_exc())
+        sys.exit(1)
     sys.exit(0)
