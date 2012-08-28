@@ -31,6 +31,7 @@ import optparse
 import OSGPKIUtils
 import sys
 import textwrap
+import traceback
 
 
 # Set up Option Parser
@@ -345,7 +346,7 @@ def write_certs(
     filename = '%s.%s.%s' % (filetype, arguments['reqid'], fileext)
     pem_filename = '%s.%s' % (host, 'pem')
     if os.path.exists(pem_filename):
-        charlimit_textwrap("The file %s already exists." % pem_filename)
+        charlimit_textwrap("\nThe file %s already exists." % pem_filename)
         pem_filename = '%s-%s.%s' % (host, arguments['reqid'], 'pem')
     cwd = os.getcwd()
     try:
@@ -418,7 +419,7 @@ def connect_retrieve(arguments):
                 sys.stdout.flush()
             if iterations > 60:
                 charlimit_textwrap('Maximum number of attempts reached. This script will now exit.')
-                charlimit_textwrap(' You can open goc ticket to track this issue by going to\n https://ticket.grid.iu.edu\n')
+                charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
                 sys.exit(1)
         else:
             pass
@@ -491,20 +492,42 @@ if __name__ == '__main__':
     try:
         arguments = parse_args()
 
+        try:
+            def prompt_for_password(verify):
 
-        def prompt_for_password(verify):
-
-        # If verify == True, we are supposed to verify password.
-
-            return getpass.getpass("Please enter the pass phrase for '%s':"
+                # If verify == True, we are supposed to verify password.
+                return getpass.getpass("Please enter the pass phrase for '%s':"
                                     % arguments['userprivkey'])
-
-
-        ssl_context = M2Crypto.SSL.Context('sslv3')
-        ssl_context.load_cert_chain(arguments['usercert'],
+        
+            ssl_context = M2Crypto.SSL.Context('sslv3')
+            ssl_context.load_cert_chain(arguments['usercert'],
                                     arguments['userprivkey'],
                                     callback=prompt_for_password)
-
+        except Exception, e:
+            if 'bad decrypt' in e:
+                print "Incorrect passphrase for %s.\nPlease try again" % arguments['userprivkey']
+                    #print "Please enter the passphrase again:"
+                try:
+                    def prompt_for_password(verify):
+                        return getpass.getpass("Please enter the pass phrase for '%s':"
+                                    % arguments['userprivkey'])
+                    ssl_context = M2Crypto.SSL.Context('sslv3')
+                    ssl_context.load_cert_chain(arguments['usercert'],
+                                    arguments['userprivkey'],
+                                    callback=prompt_for_password)
+                except Exception, e:
+                    if 'bad decrypt' in e:
+                        print "Incorrect passphrase. Attempt failed twice. Exiting script"
+                        sys.exit(1)
+                    else:
+                        print "This is e %s" % e
+                        charlimit_textwrap("Uncaught Exception : %s Please report the bug to goc@opensciencegrid.org." % traceback.format_exc())
+                        sys.exit(1)
+                else:
+                    charlimit_textwrap("Uncaught Exception : %s Please report the bug to goc@opensciencegrid.org."
+                     % traceback.format_exc())
+                  
+            
         config_items = {}
 
     # ############################# Pipelining the bulk Certificate request process to send them at once##################################
@@ -531,8 +554,8 @@ if __name__ == '__main__':
                         connect_retrieve(arguments)
                         bulk_csr = ''
                         count = 0
-                    else:
-                        charlimit_textwrap("\nDuplicate Hostname entry for %s.\nSkipping process for %s\n" % (line, line))
+                else:
+                    charlimit_textwrap("\nDuplicate Hostname entry for %s.\nSkipping process for %s\n" % (line, line))
     # ####################################################################################################################################
 
             if count != 0 and count != 50:
@@ -556,12 +579,18 @@ if __name__ == '__main__':
     except KeyboardInterrupt, k:
         print k
         sys.exit('''Interrupted by user\n''')
+    except SystemExit, e:
+        sys.exit(0)
     except Exception, e:
-        if str(e) != '0':
+        if 'handshake failure' in e:
+            charlimit_textwrap('''Failure : %s''' % e)
+            charlimit_textwrap("Please check for valid certificate/key pairs.")
+            sys.exit(1)
+        else:
             charlimit_textwrap('''Uncaught Exception : %s
 
 Please report the bug to goc@opensciencegrid.org.
 '''
-                     % e)
+                     % traceback.format_exc())
             sys.exit(1)
     sys.exit(0)
