@@ -15,7 +15,9 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
         result = self.run_script(env, self.command, "-h")
         err_msg = self.run_error_msg(result)
         self.assertEqual(result.returncode, 0, err_msg)
-        self.assertTrue("Usage:" in result.stdout, err_msg)
+        # Python 2.4 optpase prints "usage" instead of "Usage"
+        self.assertTrue("Usage:" in result.stdout or "usage:" in result.stdout,
+                        err_msg)
 
     def test_single_host_request(self):
         """Test making a request for a single host (-H)"""
