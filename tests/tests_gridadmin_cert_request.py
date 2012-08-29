@@ -131,10 +131,10 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
                           result.stdout,
                           re.MULTILINE)
         self.assertNotEqual(match, None,
-                            "Duplicate host entry not detected")
+                            "Duplicate host entry not detected\n" + result.stdout)
         # Now make sure non-duplicate didn't trigger false positive
         match = re.search("Duplicate Hostname entry for host-2." + self.domain,
                           result.stdout,
                           re.MULTILINE)
         self.assertEqual(match, None,
-                         "Non-duplicate host entry detected as duplicate")
+                         "Non-duplicate host entry detected as duplicate\n" + result.stdout)
