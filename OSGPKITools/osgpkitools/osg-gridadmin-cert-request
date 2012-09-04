@@ -557,8 +557,8 @@ if __name__ == '__main__':
         if not arguments.has_key('hostname'):
             hosts = open(arguments['hostfile'], 'rb')
             for line in hosts:
+                line = line.strip(' \n')
                 if not line in host_set:
-                    line = line.strip()
                     host_set.add(line)
                     count += 1
                     config_items.update({'CN': line})  # ### New Config item list for every host#######
