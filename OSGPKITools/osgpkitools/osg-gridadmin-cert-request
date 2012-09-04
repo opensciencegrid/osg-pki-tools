@@ -558,9 +558,9 @@ if __name__ == '__main__':
             hosts = open(arguments['hostfile'], 'rb')
             for line in hosts:
                 if not line in host_set:
+                    line = line.strip()
                     host_set.add(line)
                     count += 1
-                    line = line.rstrip('\n')
                     config_items.update({'CN': line})  # ### New Config item list for every host#######
                     charlimit_textwrap('Beginning request process for %s' % line)
                     csr = create_certificate(line, count, config_items)
