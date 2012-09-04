@@ -286,21 +286,23 @@ def connect_retrieve(arguments):
 
 if __name__ == '__main__':
     try:
-        arguments = parse_args()
-        connect_retrieve(arguments)
-    except EOFError, e:
-        charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
+        try:
+            arguments = parse_args()
+        except EOFError, e:
+            charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
                   % e)
-        sys.exit(1)
+            sys.exit(1)
+        connect_retrieve(arguments)
+    except SystemExit, e:
+            sys.exit(0)
     except KeyboardInterrupt, k:
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
-    except SystemExit, e:
-        sys.exit(0)
     except Exception, e:
-        charlimit_textwrap('''Uncaught Exception : %s
+        print traceback.format_exc()
+        charlimit_textwrap('''Uncaught Exception : 
 Please report the bug to goc@opensciencegrid.org.
 '''
-                     % traceback.format_exc())
+                     )
         sys.exit(1)
     sys.exit(0)
