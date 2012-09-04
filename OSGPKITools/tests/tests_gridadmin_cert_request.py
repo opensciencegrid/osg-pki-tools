@@ -66,7 +66,7 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
         env = self.get_test_env()
         # Build contents of request file
         hosts_content = "\n".join(
-            [host_template % d for d in xrange(num_requests)])
+            [host_template % d for d in xrange(num_requests)]) + "\n"
         env.writefile(hosts_filename, content=hosts_content)
         result = self.run_script(env,
                                  self.command,
@@ -110,16 +110,18 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
     def test_duplicate_host_request(self):
         """Test making sure we ignore duplicate hosts in request.
 
+        Also tests ability to ignore extra whitespace and missing final
+        carriage return.
+
         https://jira.opensciencegrid.org/browse/OSGPKI-138"""
-        num_requests = 2  # Number of expected certificate requested
         hosts_filename = "hosts.txt"
         env = self.get_test_env()
         # Build contents of request file
-        hosts_content = "\n".join([
-                "host-1." + self.domain,
-                "host-2." + self.domain,
-                "host-1." + self.domain,  # Should be ignored
-                ])
+        # Leave off final carraiage return and add extra whitespace to
+        # test that as well.
+        hosts_content = "host-1." + self.domain + "   \n" + \
+            "  host-2." + self.domain + " \n" + \
+            " host-1." + self.domain + "  "  # Should be ignored
         env.writefile(hosts_filename, content=hosts_content)
         result = self.run_script(env,
                                  self.command,
