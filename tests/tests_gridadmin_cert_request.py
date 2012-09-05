@@ -120,6 +120,7 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
         # Leave off final carraiage return and add extra whitespace to
         # test that as well.
         hosts_content = "host-1." + self.domain + "   \n" + \
+            "host-1." + self.domain + "\n" + \
             "  host-2." + self.domain + " \n" + \
             " host-1." + self.domain + "  "  # Should be ignored
         env.writefile(hosts_filename, content=hosts_content)
@@ -142,3 +143,13 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
                           re.MULTILINE)
         self.assertEqual(match, None,
                          "Non-duplicate host entry detected as duplicate\n" + result.stdout)
+        # Check for output files
+        cert_template = "host-%d." + self.domain + ".pem"
+        key_template = "host-%d." + self.domain + "-key.pem"
+        for host in [1,2]:
+            cert_file = cert_template % host
+            self.assertTrue(result.files_created.has_key(cert_file),
+                            "Did not file certificate file %s\n" % cert_file  + result.stdout)
+            key_file = key_template % host
+            self.assertTrue(result.files_created.has_key(key_file),
+                            "Did not file key file %s\n" % key_file + result.stdout)
