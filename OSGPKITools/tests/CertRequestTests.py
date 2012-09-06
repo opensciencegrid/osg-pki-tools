@@ -44,3 +44,6 @@ class CertRequestTests(PKIClientTestCase.PKIClientTestCase):
                          "Check of private key %s failed: %s" % (key_file,
                                                                  err_msg))
 
+if __name__ == '__main__':
+    import unittest
+    unittest.main()

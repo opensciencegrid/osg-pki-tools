@@ -9,3 +9,7 @@ class  OSGPKIUtilsTests(PKIClientTestCase.PKIClientTestCase):
         result = self.run_python("from OSGPKIUtils import *")
         self.assertEqual(result.returncode, 0,
                          self.run_error_msg(result))
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main()

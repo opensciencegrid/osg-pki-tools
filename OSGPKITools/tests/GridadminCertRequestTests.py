@@ -153,3 +153,7 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
             key_file = key_template % host
             self.assertTrue(result.files_created.has_key(key_file),
                             "Did not file key file %s\n" % key_file + result.stdout)
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main()

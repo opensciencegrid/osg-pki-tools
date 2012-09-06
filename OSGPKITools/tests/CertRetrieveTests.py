@@ -32,3 +32,7 @@ class CertRetrieveTests(PKIClientTestCase.PKIClientTestCase):
         self.assertEqual(result.returncode, 0,
                          "Failed checking certificate %s: %s" % (cert_file,
                                                                  err_msg))
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main()
