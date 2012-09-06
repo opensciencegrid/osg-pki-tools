@@ -36,7 +36,7 @@ def main(argv=None):
                       help="Specify path to scripts",
                       metavar="PATH")
     parser.add_option("-T", "--tests",
-                      default="tests_*.py",
+                      default="*Tests.py",
                       help="Specify tests to run",
                       metavar="GLOB")
     parser.add_option("-v", "--verbose",

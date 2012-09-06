@@ -31,7 +31,7 @@ class PKIClientTestCase(unittest.TestCase):
     openssl = "openssl"
 
     # Where the scripts are relative to the tests/ directory
-    scripts_path = os.path.abspath("..")
+    scripts_path = os.path.abspath("../osgpkitools")
 
     @classmethod
     def get_test_env(cls):

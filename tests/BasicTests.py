@@ -74,3 +74,7 @@ class BasicTests(PKIClientTestCase.PKIClientTestCase):
 			 key_path + "\n" +
 			 pipe.stderr.read())
 	return pipe.stdout.read()
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main()
