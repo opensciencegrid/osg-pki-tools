@@ -365,7 +365,7 @@ def write_certs(
         if os.path.exists(pem_filename):
             charlimit_textwrap("The file %s already exists." % pem_filename)
             pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem')
-        os.system('mv ' + temp_file + ' ' + pem_filename)
+        os.system('mv ' + temp_file + ' ' + pem_filename) ### fix for move the file to desired name ###
         tmp_filename.close()
         cwd = os.getcwd()
         try:
@@ -520,9 +520,9 @@ if __name__ == '__main__':
                                     arguments['userprivkey'],
                                     callback=prompt_for_password)
         except Exception, e:
-            if 'bad decrypt' in e or 'bad password read' in e:
+            if 'bad decrypt' in e or 'bad password read' in e: ### fix for incorrect password or carriage return ###
                 print "Incorrect passphrase for %s.\nPlease try again" % arguments['userprivkey']
-                    #print "Please enter the passphrase again:"
+                print "Please enter the passphrase again:"
                 try:
                     def prompt_for_password(verify):
                         return getpass.getpass("Please enter the pass phrase for '%s':"
@@ -539,7 +539,7 @@ if __name__ == '__main__':
                         print traceback.format_exc()
                         charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org." )
                         sys.exit(1)
-            elif 'handshake failure' in e:
+            elif 'handshake failure' in e: ### fix for wrong key/certificate ###
                 charlimit_textwrap('''Failure : %s''' % e)
                 charlimit_textwrap("Please check for valid certificate/key pairs.")
                 sys.exit(1)
@@ -567,13 +567,13 @@ if __name__ == '__main__':
                 line = line.strip(' \n')
                 if not line in host_set:
                     host_set.add(line)
-                    count += 1
+                    count += 1 ### as a check for number of request and certs retrieved ###
                     config_items.update({'CN': line})  # ### New Config item list for every host#######
                     charlimit_textwrap('Beginning request process for %s' % line)
                     csr = create_certificate(line, count, config_items)
                     bulk_csr.append(csr)
-                    num_requests = num_requests + 1
-                    if count == 50:
+                    num_requests = num_requests + 1 ### as a check for number of request and certs retrieved ###
+                    if count == 50: ### Processing max of 50 requests in bulk ###
                         connect_request(ssl_context, bulk_csr, arguments)
                         connect_approve(ssl_context, arguments)
                         connect_retrieve(arguments)
@@ -590,7 +590,7 @@ if __name__ == '__main__':
             hosts.close()
         else:
             hostname = arguments['hostname'].rstrip('\n')
-            config_items.update({'CN': hostname})  # ### New Config item list for every host#######
+            config_items.update({'CN': hostname})  # ### New CN for every host#######
             num_requests = 1
             charlimit_textwrap('Beginning request process for %s' % hostname)
             csr = create_certificate(hostname, count, config_items)
@@ -608,7 +608,7 @@ if __name__ == '__main__':
                     sys.exit(1)
             connect_approve(ssl_context, arguments)
             connect_retrieve(arguments)
-    except SystemExit, e:
+    except SystemExit, e: ### fix for weird error on help for python2.4 ###
             sys.exit(0)    
     except KeyboardInterrupt, k:
         print k
