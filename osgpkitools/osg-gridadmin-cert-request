@@ -347,27 +347,35 @@ def write_certs(
     filetype = 'pkcs7-cert'
     fileext = 'pem'
     filename = '%s.%s.%s' % (filetype, arguments['reqid'], fileext)
-    pem_filename = '%s.%s' % (host, 'pem')
+    temp_file = "temp-cert.pem"
     print ""
-    if os.path.exists(pem_filename):
-        charlimit_textwrap("The file %s already exists." % pem_filename)
-        pem_filename = '%s-%s.%s' % (host, arguments['reqid'], 'pem')
-    cwd = os.getcwd()
-    try:
-        os.chdir(arguments['certdir'])
-    except OSError, e:
-        charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
-.Please report the bug to goc@opensciencegrid.org.a
- %s''',
-                 arguments['certdir'], e)
-        sys.exit(1)
     try:
         certfile = open(filename, 'w+')
         certfile.write(pkcs7raw)
         certfile.close()
         os.system('openssl pkcs7 -print_certs -in ' + filename
-                  + ' -out ' + pem_filename)
+                  + ' -out ' + temp_file)
         os.remove(filename)
+        """This part of the code extracts the hostname from the certificate"""
+        tmp_filename = open(temp_file)
+        line = tmp_filename.readline()
+        hostname = line.split('CN=')[1]
+        hostname = hostname.strip(' \n')
+        pem_filename = hostname + ".pem"
+        if os.path.exists(pem_filename):
+            charlimit_textwrap("The file %s already exists." % pem_filename)
+            pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem')
+        os.system('mv ' + temp_file + ' ' + pem_filename)
+        tmp_filename.close()
+        cwd = os.getcwd()
+        try:
+            os.chdir(arguments['certdir'])
+        except OSError, e:
+            charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
+.Please report the bug to goc@opensciencegrid.org.a
+ %s''',
+                 arguments['certdir'], e)
+            sys.exit(1)   
     except OSError, e:
         charlimit_textwrap('''You may not have write permission to the directory %s
 .Please report the bug to goc@opensciencegrid.org.
@@ -507,13 +515,12 @@ if __name__ == '__main__':
                 # If verify == True, we are supposed to verify password.
                 return getpass.getpass("Please enter the pass phrase for '%s':"
                                     % arguments['userprivkey'])
-        
             ssl_context = M2Crypto.SSL.Context('sslv3')
             ssl_context.load_cert_chain(arguments['usercert'],
                                     arguments['userprivkey'],
                                     callback=prompt_for_password)
         except Exception, e:
-            if 'bad decrypt' in e:
+            if 'bad decrypt' in e or 'bad password read' in e:
                 print "Incorrect passphrase for %s.\nPlease try again" % arguments['userprivkey']
                     #print "Please enter the passphrase again:"
                 try:
@@ -525,7 +532,7 @@ if __name__ == '__main__':
                                     arguments['userprivkey'],
                                     callback=prompt_for_password)
                 except Exception, e:
-                    if 'bad decrypt' in e:
+                    if 'bad decrypt' in e or 'bad password read' in e:
                         print "Incorrect passphrase. Attempt failed twice. Exiting script"
                         sys.exit(1)
                     else:
