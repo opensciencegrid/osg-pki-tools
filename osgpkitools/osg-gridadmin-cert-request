@@ -337,7 +337,6 @@ def connect_approve(ssl_context, arguments):
 #
 
 def write_certs(
-    host,
     pkcs7raw,
     arguments,
     ):
@@ -347,27 +346,35 @@ def write_certs(
     filetype = 'pkcs7-cert'
     fileext = 'pem'
     filename = '%s.%s.%s' % (filetype, arguments['reqid'], fileext)
-    pem_filename = '%s.%s' % (host, 'pem')
+    temp_file = "temp-cert.pem"
     print ""
-    if os.path.exists(pem_filename):
-        charlimit_textwrap("The file %s already exists." % pem_filename)
-        pem_filename = '%s-%s.%s' % (host, arguments['reqid'], 'pem')
-    cwd = os.getcwd()
-    try:
-        os.chdir(arguments['certdir'])
-    except OSError, e:
-        charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
-.Please report the bug to goc@opensciencegrid.org.a
- %s''',
-                 arguments['certdir'], e)
-        sys.exit(1)
     try:
         certfile = open(filename, 'w+')
         certfile.write(pkcs7raw)
         certfile.close()
         os.system('openssl pkcs7 -print_certs -in ' + filename
-                  + ' -out ' + pem_filename)
+                  + ' -out ' + temp_file)
         os.remove(filename)
+        """This part of the code extracts the hostname from the certificate"""
+        tmp_filename = open(temp_file)
+        line = tmp_filename.readline()
+        hostname = line.split('CN=')[1]
+        hostname = hostname.strip(' \n')
+        pem_filename = hostname + ".pem"
+        if os.path.exists(pem_filename):
+            charlimit_textwrap("The file %s already exists." % pem_filename)
+            pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem')
+        os.system('mv ' + temp_file + ' ' + pem_filename) ### fix for move the file to desired name ###
+        tmp_filename.close()
+        cwd = os.getcwd()
+        try:
+            os.chdir(arguments['certdir'])
+        except OSError, e:
+            charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
+.Please report the bug to goc@opensciencegrid.org.a
+ %s''',
+                 arguments['certdir'], e)
+            sys.exit(1)   
     except OSError, e:
         charlimit_textwrap('''You may not have write permission to the directory %s
 .Please report the bug to goc@opensciencegrid.org.
@@ -451,16 +458,10 @@ def connect_retrieve(arguments):
     pkcs7raw = pkcs7raw.split(']')[0].split(',')
     i = 0
     cert_num = 0
-    if arguments.has_key('hostfile'):
-        hostfile = open(arguments['hostfile'])
     while cert_num < num_requests and i < len(pkcs7raw):
         certstring = str(pkcs7raw[i]).split('"')[1]
         if 'PKCS7' in certstring:
-            if arguments.has_key('hostfile'):
-                host = hostfile.readline().rstrip('\n')
-            else:
-                host = arguments['hostname']
-            write_certs(host, certstring, arguments)
+            write_certs(certstring, arguments)
             cert_num = cert_num + 1
         i = i + 1
     if cert_num != num_requests:
@@ -507,15 +508,14 @@ if __name__ == '__main__':
                 # If verify == True, we are supposed to verify password.
                 return getpass.getpass("Please enter the pass phrase for '%s':"
                                     % arguments['userprivkey'])
-        
             ssl_context = M2Crypto.SSL.Context('sslv3')
             ssl_context.load_cert_chain(arguments['usercert'],
                                     arguments['userprivkey'],
                                     callback=prompt_for_password)
         except Exception, e:
-            if 'bad decrypt' in e:
+            if 'bad decrypt' in e or 'bad password read' in e: ### fix for incorrect password or carriage return ###
                 print "Incorrect passphrase for %s.\nPlease try again" % arguments['userprivkey']
-                    #print "Please enter the passphrase again:"
+                print "Please enter the passphrase again:"
                 try:
                     def prompt_for_password(verify):
                         return getpass.getpass("Please enter the pass phrase for '%s':"
@@ -525,14 +525,14 @@ if __name__ == '__main__':
                                     arguments['userprivkey'],
                                     callback=prompt_for_password)
                 except Exception, e:
-                    if 'bad decrypt' in e:
+                    if 'bad decrypt' in e or 'bad password read' in e:
                         print "Incorrect passphrase. Attempt failed twice. Exiting script"
                         sys.exit(1)
                     else:
                         print traceback.format_exc()
                         charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org." )
                         sys.exit(1)
-            elif 'handshake failure' in e:
+            elif 'handshake failure' in e: ### fix for wrong key/certificate ###
                 charlimit_textwrap('''Failure : %s''' % e)
                 charlimit_textwrap("Please check for valid certificate/key pairs.")
                 sys.exit(1)
@@ -560,13 +560,13 @@ if __name__ == '__main__':
                 line = line.strip(' \n')
                 if not line in host_set:
                     host_set.add(line)
-                    count += 1
+                    count += 1 ### as a check for number of request and certs retrieved ###
                     config_items.update({'CN': line})  # ### New Config item list for every host#######
                     charlimit_textwrap('Beginning request process for %s' % line)
                     csr = create_certificate(line, count, config_items)
                     bulk_csr.append(csr)
-                    num_requests = num_requests + 1
-                    if count == 50:
+                    num_requests = num_requests + 1 ### as a check for number of request and certs retrieved ###
+                    if count == 50: ### Processing max of 50 requests in bulk ###
                         connect_request(ssl_context, bulk_csr, arguments)
                         connect_approve(ssl_context, arguments)
                         connect_retrieve(arguments)
@@ -583,7 +583,7 @@ if __name__ == '__main__':
             hosts.close()
         else:
             hostname = arguments['hostname'].rstrip('\n')
-            config_items.update({'CN': hostname})  # ### New Config item list for every host#######
+            config_items.update({'CN': hostname})  # ### New CN for every host#######
             num_requests = 1
             charlimit_textwrap('Beginning request process for %s' % hostname)
             csr = create_certificate(hostname, count, config_items)
@@ -601,7 +601,7 @@ if __name__ == '__main__':
                     sys.exit(1)
             connect_approve(ssl_context, arguments)
             connect_retrieve(arguments)
-    except SystemExit, e:
+    except SystemExit, e: ### fix for weird error on help for python2.4 ###
             sys.exit(0)    
     except KeyboardInterrupt, k:
         print k
