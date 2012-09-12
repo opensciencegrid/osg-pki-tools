@@ -30,4 +30,6 @@ tests/ subdirectory (the directory in which this README sits):
     cd tests/
     ./do-tests.py
 
+You may also run tests indvidually (which can be significantly faster):
 
+    python GridadminSingleHostRequestTests.py
