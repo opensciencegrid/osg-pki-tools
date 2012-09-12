@@ -337,7 +337,6 @@ def connect_approve(ssl_context, arguments):
 #
 
 def write_certs(
-    host,
     pkcs7raw,
     arguments,
     ):
@@ -459,16 +458,10 @@ def connect_retrieve(arguments):
     pkcs7raw = pkcs7raw.split(']')[0].split(',')
     i = 0
     cert_num = 0
-    if arguments.has_key('hostfile'):
-        hostfile = open(arguments['hostfile'])
     while cert_num < num_requests and i < len(pkcs7raw):
         certstring = str(pkcs7raw[i]).split('"')[1]
         if 'PKCS7' in certstring:
-            if arguments.has_key('hostfile'):
-                host = hostfile.readline().rstrip('\n')
-            else:
-                host = arguments['hostname']
-            write_certs(host, certstring, arguments)
+            write_certs(certstring, arguments)
             cert_num = cert_num + 1
         i = i + 1
     if cert_num != num_requests:
