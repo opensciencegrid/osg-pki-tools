@@ -2,3 +2,5 @@ include *.txt
 recursive-include docs *.txt
 include osgpkitools/*
 recursive-include osgpkitools *
+include tests/*
+recursive-include tests *
