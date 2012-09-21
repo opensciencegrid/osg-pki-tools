@@ -4,3 +4,6 @@ include osgpkitools/*
 recursive-include osgpkitools *
 include tests/*
 recursive-include tests *
+global-exclude *.pyc
+exclude tests/test-key.pem
+prune tests/test-output/
