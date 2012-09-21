@@ -28,7 +28,7 @@ import M2Crypto
 from optparse import OptionParser
 from optparse import OptionGroup
 import optparse
-import OSGPKIUtils
+from osgpkitools import OSGPKIUtils
 import sys
 import textwrap
 import traceback
@@ -602,7 +602,7 @@ if __name__ == '__main__':
             connect_approve(ssl_context, arguments)
             connect_retrieve(arguments)
     except SystemExit, e: ### fix for weird error on help for python2.4 ###
-            sys.exit(0)    
+            raise 
     except KeyboardInterrupt, k:
         print k
         sys.exit('''Interrupted by user\n''')
