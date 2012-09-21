@@ -39,10 +39,12 @@ class PKIClientTestCase(unittest.TestCase):
         # Make sure our source path is in PYTHONPATH so we can
         # find imports
         env = dict(os.environ)
+        # Scripts import from osgpkitools, and it is up a directory
+        pypath = os.path.abspath("..")
         if env.has_key("PYTHONPATH"):
-            env["PYTHONPATH"] += ":" + cls.scripts_path
+            env["PYTHONPATH"] += ":" + pypath
         else:
-            env["PYTHONPATH"] = cls.scripts_path
+            env["PYTHONPATH"] = pypath
         env = scripttest.TestFileEnvironment("./test-output",
                                              environ=env,
                                              template_path=cls.scripts_path)
