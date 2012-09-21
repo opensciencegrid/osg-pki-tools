@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name = "OSGPKITools",
-    version = "0.0.1",
+    version = "1.0",
     author = "Rohan Mathure",
     author_email = "rmathure@indiana.edu",
     description = ("A utility to request and manage certificates."),
