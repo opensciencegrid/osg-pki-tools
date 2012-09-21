@@ -294,7 +294,7 @@ if __name__ == '__main__':
             sys.exit(1)
         connect_retrieve(arguments)
     except SystemExit, e:
-            sys.exit(0)
+            raise
     except KeyboardInterrupt, k:
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
