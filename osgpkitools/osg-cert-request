@@ -15,7 +15,7 @@ try:
 except ImportError:
     import simplejson as json
 import base64
-import OSGPKIUtils
+from osgpkitools import OSGPKIUtils
 from pprint import pprint
 import os
 from optparse import OptionParser
@@ -331,7 +331,7 @@ if __name__ == '__main__':
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
     except SystemExit, e:
-            sys.exit(0)    
+            raise    
     except Exception, e:
         print traceback.format_exc()
         charlimit_textwrap('''Uncaught Exception : 
