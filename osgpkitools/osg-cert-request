@@ -174,8 +174,8 @@ def parse_args():
     Config = ConfigParser.ConfigParser()
     if os.path.exists('OSGPKIClients.ini'):
         Config.read('OSGPKIClients.ini')
-    elif os.path.exists('etc/OSGPKIClients.ini'):
-        Config.read('etc/OSGPKIClients.ini')
+    elif os.path.exists('/etc/OSGPKIClients.ini'):
+        Config.read('/etc/OSGPKIClients.ini')
     else:
         sys.exit('Missing config file: OSGPKIClients.ini\n')
     if args.test:
