@@ -3,6 +3,7 @@
 import os
 import os.path
 import scripttest  # pip install scripttest
+import stat
 import sys
 import unittest
 
@@ -33,6 +34,9 @@ class PKIClientTestCase(unittest.TestCase):
     # Where the scripts are relative to the tests/ directory
     scripts_path = os.path.abspath("../osgpkitools")
 
+    # Our test directory
+    test_path = "./test-output"
+
     @classmethod
     def get_test_env(cls):
         """Return a scripttest.TestFileEnvironment instance"""
@@ -45,7 +49,7 @@ class PKIClientTestCase(unittest.TestCase):
             env["PYTHONPATH"] += ":" + pypath
         else:
             env["PYTHONPATH"] = pypath
-        env = scripttest.TestFileEnvironment("./test-output",
+        env = scripttest.TestFileEnvironment(cls.test_path,
                                              environ=env,
                                              template_path=cls.scripts_path)
         # Copy in configuration file
@@ -154,27 +158,38 @@ class PKIClientTestCase(unittest.TestCase):
         """Get the path to where the scripts are"""
         return cls.scripts_path
 
-    @classmethod
-    def check_private_key(cls, env, path):
+    def check_private_key(self, env, path):
 	"""Check the given private key in the given test environment using openssl
 
+        Also asserts permissions of key file are 0600
+
 	Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
-	result = cls.run_cmd(env,
-                             "openssl", "rsa",
-                             "-in", path,
-                             "-noout", "-check",
-                             # This will cause us not to block on input if
-                             # the key is encrypted. It will be ignored if the
-                             # key isn't encrypted.
-                             "-passin", "pass:null")
+        mode = os.stat(os.path.join(self.test_path, path)).st_mode
+        self.assertEqual(mode & 0777,  # Filter out non-permission bits
+                         0600,
+                         "Key file '%s' permissions are not 0600: %o" %(
+                path, mode))
+	result = self.run_cmd(env,
+                              "openssl", "rsa",
+                              "-in", path,
+                              "-noout", "-check",
+                              # This will cause us not to block on
+                              # input if the key is encrypted. It will
+                              # be ignored if the key isn't encrypted.
+                              "-passin", "pass:null")
         return result
 
-    @classmethod
-    def check_certificate(cls, env, path):
+    def check_certificate(self, env, path):
         """Check the given certificate in the given test environment using openssl
 
+        Also asserts certificate file is not group or world writable.
+
 	Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
-        result = cls.run_cmd(env,
-                             "openssl", "x509",
-                             "-in", path)
+        mode = os.stat(os.path.join(self.test_path, path)).st_mode
+        self.assertEqual(mode & (stat.S_IWGRP | stat.S_IWOTH), 0,
+                         "Cert file '%s' is excessively writable: %o" %(
+                path, mode))
+        result = self.run_cmd(env,
+                              "openssl", "x509",
+                              "-in", path)
         return result
