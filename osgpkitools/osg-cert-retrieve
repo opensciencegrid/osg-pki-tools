@@ -59,7 +59,7 @@ def parse_args():
         '--certfile',
         action='store',
         dest='certfile',
-        help='Specify the output filename for the retrieved user certificate\n. Default is ./host-cert.pem'
+        help='Specify the output filename for the retrieved user certificate\n. Default is ./hostcert.pem'
             ,
         metavar='ID',
         default='./hostcert.pem',
@@ -118,7 +118,7 @@ def parse_args():
     appurl = Config.get(OIM, 'appurl')
     issurl = Config.get(OIM, 'issurl')
     content_type = Config.get(OIM, 'content_type')
-    filetype = 'host-cert'
+    filetype = 'hostcert'
     fileext = 'pkcs7'
     filename = '%s.%s.%s' % (filetype, reqid, fileext)
 
