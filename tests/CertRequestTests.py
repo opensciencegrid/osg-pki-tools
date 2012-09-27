@@ -35,7 +35,7 @@ class CertRequestTests(PKIClientTestCase.PKIClientTestCase):
                           re.MULTILINE)
         self.assertNotEqual(match, None,
                             "Could not find request Id: " + err_msg)
-        self.assertTrue(result.files_created.has_key("host-key.pem"))
+        self.assertTrue(result.files_created.has_key("hostkey.pem"))
         # Check resulting key for looks
         key_file = "host-key.pem"
         key_result = self.check_private_key(env, key_file)
