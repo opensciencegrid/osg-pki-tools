@@ -3,12 +3,11 @@ README.txt
 setup.py
 docs/scripts-spec.txt
 osgpkitools/OSGPKIUtils.py
-osgpkitools/OSGPKIClients.ini
+osgpkitools/pki-clients.ini
 osgpkitools/__init__.py
 osgpkitools/osg-cert-request
 osgpkitools/osg-cert-retrieve
 osgpkitools/osg-gridadmin-cert-request
-osgpkitools/osg-gridadmin-manage
 tests/PKIClientTestCase.py
 tests/__init__.py
 tests/do-tests.py
