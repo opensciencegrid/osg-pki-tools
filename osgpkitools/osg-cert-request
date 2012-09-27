@@ -62,7 +62,7 @@ def parse_args():
         help='Specify the output filename for the retrieved user certificate. \nDefault is ./host-key.pem'
             ,
         metavar='Output Keyfile',
-        default='./host-key.pem',
+        default='./hostkey.pem',
         )
     parser.add_option(
         '-t',
@@ -282,6 +282,7 @@ if __name__ == '__main__':
             == 'gennew.csr':
             cert_obj = OSGPKIUtils.Cert()
             cert_obj.CreatePKey(arguments['pem_filename'])
+            print "Writing key to %s" % arguments['pem_filename']
 
       # ##############################
 

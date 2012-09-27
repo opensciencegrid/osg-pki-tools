@@ -62,7 +62,7 @@ def parse_args():
         help='Specify the output filename for the retrieved user certificate\n. Default is ./host-cert.pem'
             ,
         metavar='ID',
-        default='./host-cert.pem',
+        default='./hostcert.pem',
         )
     parser.add_option(
         '-T',
