@@ -365,6 +365,7 @@ def write_certs(
             charlimit_textwrap("The file %s already exists." % pem_filename)
             pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem')
         os.system('mv ' + temp_file + ' ' + pem_filename) ### fix for move the file to desired name ###
+        os.chmod(pem_filename,0644)
         tmp_filename.close()
         cwd = os.getcwd()
         try:
@@ -488,6 +489,7 @@ def create_certificate(line, reqid, config_items):
     
     cert_obj = OSGPKIUtils.Cert()
     cert_obj.CreatePKey(keyname)
+    os.chmod(keyname,0600)
     new_csr = cert_obj.CreateX509Request(**config_items)
     csr = \
         new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
@@ -500,6 +502,7 @@ def create_certificate(line, reqid, config_items):
 
 if __name__ == '__main__':
     try:
+        os.umask(177)
         arguments = parse_args()
 
         try:

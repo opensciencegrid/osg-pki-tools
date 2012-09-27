@@ -275,6 +275,7 @@ def connect_retrieve(arguments):
         certfile.close()
         os.system('openssl pkcs7 -print_certs -in ' + temp_filename
                   + ' -out ' + arguments['pem_filename'])
+        os.chmod(arguments['pem_filename'],0644)
         os.remove(temp_filename)
     except OSError, e:
         charlimit_textwrap('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org.'
@@ -286,6 +287,7 @@ def connect_retrieve(arguments):
 
 if __name__ == '__main__':
     try:
+        os.umask(177)
         try:
             arguments = parse_args()
         except EOFError, e:

@@ -261,6 +261,7 @@ def connect(arguments):
 
 if __name__ == '__main__':
     try:
+        os.umask(177)
         try:
             arguments = parse_args()
         except EOFError, e:
@@ -283,6 +284,7 @@ if __name__ == '__main__':
             cert_obj = OSGPKIUtils.Cert()
             cert_obj.CreatePKey(arguments['pem_filename'])
             print "Writing key to %s" % arguments['pem_filename']
+            os.chmod(arguments['pem_filename'],0600)
 
       # ##############################
 
