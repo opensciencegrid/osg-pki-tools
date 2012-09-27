@@ -172,12 +172,12 @@ def parse_args():
     #
 
     Config = ConfigParser.ConfigParser()
-    if os.path.exists('OSGPKIClients.ini'):
-        Config.read('OSGPKIClients.ini')
-    elif os.path.exists('/etc/OSGPKIClients.ini'):
-        Config.read('/etc/OSGPKIClients.ini')
+    if os.path.exists('pki-clients.ini'):
+        Config.read('pki-clients.ini')
+    elif os.path.exists('/etc/osg/pki-clients.ini'):
+        Config.read('/etc/osg/pkiclients.ini')
     else:
-        sys.exit('Missing config file: OSGPKIClients.ini\n')
+        sys.exit('Missing config file: pki-clients.ini\n')
     if args.test:
         print "Running in test mode"
         OIM = 'OIMData_ITB'
