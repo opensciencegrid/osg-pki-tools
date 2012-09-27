@@ -1,0 +1,620 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+"""
+This script is used to submit multiple certifcate requests and the intended user for the script is the GridAdmin.
+This script requests certificates and then approves as well as issues them in bulk (limit of 50 at a time).
+This script works in two modes:
+1) Requesting single host certificate with -H option
+2) Request multple host certificates with hostnames stored in a file
+"""
+
+import urllib
+import httplib
+import sys
+import ConfigParser
+try:
+    import json
+except ImportError:
+    import simplejson as json
+import time
+import re
+import os
+import errno
+import getpass
+import StringIO
+import base64
+import M2Crypto
+from optparse import OptionParser
+from optparse import OptionGroup
+import optparse
+from osgpkitools import OSGPKIUtils
+import sys
+import textwrap
+import traceback
+
+
+# Set up Option Parser
+#
+try:
+    def charlimit_textwrap(string):
+        """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
+        list_string = textwrap.wrap(string)
+        for line in list_string:
+            print line
+        return
+    
+    def parse_args():
+        """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
+        usage = \
+            'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
+        parser = OptionParser(usage)
+        group = OptionGroup(parser, 'Hostname Options',
+                            '''Use either of these options.
+    Specify hostname as a single hostname using -H/--hostname
+    or specify from a file using -f/--hostfile.''')
+        parser.add_option(
+            '-k',
+            '--pkey',
+            action='store',
+            dest='userprivkey',
+            help="Specify Requestor's private key (PEM Format).\n If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+                ,
+            metavar='PKEY',
+            default='',
+            )
+        parser.add_option(
+            '-c',
+            '--cert',
+            action='store',
+            dest='usercert',
+            help="Specify Requestor's certificate (PEM Format).\n If not specified will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
+                ,
+            default='',
+            metavar='CERT',
+            )
+        group.add_option(
+            '-H',
+            '--hostname',
+            action='store',
+            dest='hostname',
+            help='Specify the hostname or service/hostname for which you want to request the certificate for.\n If specified -f/--hostfile will be ignored'
+                ,
+            metavar='HOSTNAME',
+            )
+        group.add_option(
+            '-f',
+            '--hostfile',
+            action='store',
+            dest='hostfile',
+            help='Filename with one hostname or service/hostname per line',
+            metavar='HOSTFILE',
+            default='hosts.txt',
+            )
+        parser.add_option(
+            '-T',
+            '--test',
+            action='store_true',
+            dest='test',
+            help='Run in test mode',
+            default=False,
+            )
+        parser.add_option(
+            '-q',
+            '--quiet',
+            action='store_false',
+            dest='verbose',
+            default=True,
+            help="don't print status messages to stdout",
+            )
+        parser.add_option_group(group)
+        (args, values) = parser.parse_args()
+    
+        if not args.hostname:
+            hostfile = args.hostfile
+        else:
+            hostname = args.hostname
+    
+        certdir = './'
+    
+        if args.userprivkey == '':
+            try:
+                userprivkey = os.environ['X509_USER_KEY']
+            except:
+                userprivkey = str(os.environ['HOME']) \
+                    + '/.globus/userkey.pem'
+        else:
+            userprivkey = args.userprivkey
+    
+        if os.path.exists(userprivkey):
+            pass
+        else:
+            charlimit_textwrap('Unable to locate the private key file:' + userprivkey)
+            sys.exit(1)
+    
+        if args.usercert == '':
+            try:
+                usercert = os.environ['X509_USER_CERT']
+            except:
+                usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
+        else:
+            usercert = args.usercert
+    
+        if os.path.exists(usercert):
+            pass
+        else:
+            charlimit_textwrap('Unable to locate the user certificate file:'
+                     + usercert)
+            sys.exit(1)
+        if not args.hostname:
+            if os.path.exists(hostfile):
+                pass
+            else:
+                charlimit_textwrap('Unable to locate the hostfile:' + hostfile)
+                sys.exit(1)
+
+        Config = ConfigParser.ConfigParser()
+        if os.path.exists('pki-clients.ini'):
+            Config.read('pki-clients.ini')
+        elif os.path.exists('/etc/osg/pki-clients.ini'):
+            Config.read('/etc/pki-clients.ini')
+        else:
+            sys.exit('Missing config file: pki-clients.ini\n')
+    
+        if args.test:
+            print "Running in test mode"
+            OIM='OIMData_ITB'
+        else:
+            OIM='OIMData'
+        host = Config.get(OIM, 'hostsec')
+        requrl = Config.get(OIM, 'requrl')
+        appurl = Config.get(OIM, 'appurl')
+        issurl = Config.get(OIM, 'issurl')
+        returl = Config.get(OIM, 'returl')
+        content_type = Config.get(OIM, 'content_type')
+    
+        arguments = dict()
+        if vars().has_key('args'):
+            arguments.update({'args': args})
+        if vars().has_key('values'):
+            arguments.update({'values': values})
+    
+        if vars().has_key('hostname'):
+            arguments.update({'hostname': hostname})
+        if vars().has_key('domain'):
+            arguments.update({'domain': domain})
+        if vars().has_key('outkeyfile'):
+            arguments.update({'outkeyfile': outkeyfile})
+        if vars().has_key('num_requests'):
+            arguments.update({'num_requests': num_requests})
+        arguments.update({'usercert': usercert})
+        arguments.update({'userprivkey': userprivkey})
+        arguments.update({'certdir': certdir})
+        if vars().has_key('hostfile'):
+            arguments.update({'hostfile': hostfile})
+        if vars().has_key('host'):
+            arguments.update({'host': host})
+        arguments.update({'requrl': requrl})
+        arguments.update({'appurl': appurl})
+        arguments.update({'issurl': issurl})
+        arguments.update({'returl': returl})
+        arguments.update({'content_type': content_type})
+        arguments.update({'Config': Config})
+        arguments.update({'issurl': issurl})
+        return arguments
+except SystemExit, e:
+    sys.exit(0)
+    
+
+#################################################
+
+# We make the request here, causing the generation of the CSR and then
+# pass the ID returned from the server along. The ID is the key that OIM
+# uses for all certificate operations via the API
+#
+
+def connect_request(ssl_context, bulk_csr, arguments):
+    """This function accepts a an ssl_context instance which contains information about the established ssl connection,
+    the csr string(base64 encoded) and adictionary consisting of all parameters and their values,
+    It submites the request to the OIM server and returns the request details.
+    """
+
+    print 'Connecting to server to request certificate...'
+    params = urllib.urlencode({'csrs': bulk_csr}, doseq=True)
+    headers = {'Content-type': arguments['content_type'],
+               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+
+    conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
+            ssl_context=ssl_context)
+    try:
+        conn.request('POST', arguments['requrl'], params, headers)
+        response = conn.getresponse()
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
+        raise e
+    data = response.read()
+    if not 'OK' in response.reason:
+        try:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % json.loads(data)['detail'].split('--')[1].lstrip())
+        except IndexError, e:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % json.loads(data)['detail'].lstrip())
+        charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+        
+        sys.exit(1)
+    conn.close()
+    if 'FAILED' in data:
+        try:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % json.loads(data)['detail'].split('--')[1].lstrip())
+        except IndexError, e:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % json.loads(data)['detail'].lstrip())
+        charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+        
+        sys.exit(1)
+    return_data = json.loads(data)
+    for (key, value) in return_data.iteritems():
+        if 'host_request_id' in key:
+            reqid = value
+            print 'Id is:', reqid
+    arguments.update({'reqid': reqid})
+    return arguments
+
+
+# ID from the request is passed in here via secure connection and the request
+# gets approved automatically since it's a bulk request. We also issue the
+# certificate (i.e. OIM contacts the CA on our behalf to get the cert) in this
+# function
+#
+
+def connect_approve(ssl_context, arguments):
+    """This function accepts a an ssl_context instance which contains information about the established ssl connection
+    and a dictionary consisting of all parameters and their values,
+    It approves the request that is submitted to the OIM by connect_request.
+    """
+    print 'Connecting to server to approve certificate...'
+    action = 'approve'
+    params = urllib.urlencode({'host_request_id': arguments['reqid']})
+    headers = {'Content-type': arguments['content_type'],
+               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+    conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
+            ssl_context=ssl_context)
+    try:
+        conn.request('POST', arguments['appurl'], params, headers)
+        response = conn.getresponse()
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed: %s' % (arguments['appurl'],
+                repr(e)))
+        raise e
+
+    if not 'OK' in response.reason:
+        charlimit_textwrap("Request Failed. Status %s" %response.status)
+        charlimit_textwrap("Reason for failure %s" %response.reason)
+        sys.exit(1)
+    data = response.read()
+    conn.close()
+    issurl = arguments['issurl']
+    if action == 'approve' and 'OK' in data:
+        print 'Contacting Server to initiate certificate issuance.'
+        newrequrl = arguments['Config'].get('OIMData', 'issurl')
+        conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
+                ssl_context=ssl_context)
+        try:
+            conn.request('POST', newrequrl, params, headers)
+            response = conn.getresponse()
+        except httplib.HTTPException, e:
+            charlimit_textwrap('Connection to %s failed: %s' % (newrequrl, e))
+            raise e
+        data = response.read()
+        conn.close()
+        if 'FAILED' in data:
+            try:
+                charlimit_textwrap('The request has failed for the following reason:\n%s' \
+                    % json.loads(data)['detail'].split('--')[1].lstrip())
+            except IndexError, e:
+                charlimit_textwrap('The request has failed for the following reason:\n%s' \
+                    % json.loads(data)['detail'].lstrip())
+            charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+            sys.exit(1)
+    elif not 'OK' in data:
+        charlimit_textwrap('The request has failed for the reason: %s' \
+            % json.loads(data)['detail'])
+        sys.exit(1)
+    elif action != 'approve':
+        charlimit_textwrap('Request not approved by the Grid Admin. Exiting now.\n')
+        sys.exit(0)
+
+
+# Here's where things have gotten dicey during the testing phase -
+# We retrieve the certificate from OIM after it has retrieved it from the CA
+# This is where things tend to fall apart - if the delay is to long and the
+# request to the CA times out, the whole script operation fails. I'm not
+# terribly pleased with that at the moment, but it is out of my hands since
+# a GOC staffer has to reset the request to be able to retrieve the
+# certificate
+#
+
+def write_certs(
+    pkcs7raw,
+    arguments,
+    ):
+    """This function accepts the hostname, pkcs7raw dump of the certificate and a dictionary that consists variables and the value against them.
+    It write the certificates to file system."""
+    pkcs7raw = str(pkcs7raw)
+    filetype = 'pkcs7-cert'
+    fileext = 'pem'
+    filename = '%s.%s.%s' % (filetype, arguments['reqid'], fileext)
+    temp_file = "temp-cert.pem"
+    print ""
+    try:
+        certfile = open(filename, 'w+')
+        certfile.write(pkcs7raw)
+        certfile.close()
+        os.system('openssl pkcs7 -print_certs -in ' + filename
+                  + ' -out ' + temp_file)
+        os.remove(filename)
+        """This part of the code extracts the hostname from the certificate"""
+        tmp_filename = open(temp_file)
+        line = tmp_filename.readline()
+        hostname = line.split('CN=')[1]
+        hostname = hostname.strip(' \n')
+        pem_filename = hostname + ".pem"
+        if os.path.exists(pem_filename):
+            charlimit_textwrap("The file %s already exists." % pem_filename)
+            pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem')
+        os.system('mv ' + temp_file + ' ' + pem_filename) ### fix for move the file to desired name ###
+        os.chmod(pem_filename,0644)
+        tmp_filename.close()
+        cwd = os.getcwd()
+        try:
+            os.chdir(arguments['certdir'])
+        except OSError, e:
+            charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
+.Please report the bug to goc@opensciencegrid.org.a
+ %s''',
+                 arguments['certdir'], e)
+            sys.exit(1)   
+    except OSError, e:
+        charlimit_textwrap('''You may not have write permission to the directory %s
+.Please report the bug to goc@opensciencegrid.org.
+ %s''',
+                 arguments['certdir'], e)
+        sys.exit(1)
+    os.chdir(cwd)
+    charlimit_textwrap('''Certificate written to %s%s 
+''' % (arguments['certdir'],
+            pem_filename))
+    return
+
+
+def connect_retrieve(arguments):
+    """This fucntion accepts a dictionary consisting of variables and their values against it.
+    It retrieves the certificate from the OIM."""
+    iterations = 1
+    print 'Issuing certificate...'
+    params = urllib.urlencode({'host_request_id': arguments['reqid']})
+    headers = {'Content-type': arguments['content_type'],
+               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+    conn = httplib.HTTPSConnection(arguments['host'])
+    try:
+        conn.request('POST', arguments['returl'], params, headers)
+        response = conn.getresponse()
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
+        raise httplib.HTTPException
+    data = response.read()
+    if not 'PENDING' in response.reason:
+        if not 'OK' in response.reason:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+                % json.loads(data)['detail'].lstrip())
+            charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+            sys.exit(1)
+    conn.close()
+    charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
+    while 'PENDING' in data:
+        conn.request('POST', arguments['returl'], params, headers)
+        try:
+            response = conn.getresponse()
+        except httplib.HTTPException, e:
+            charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
+            raise httplib.HTTPException
+        data = response.read()
+        conn.close()
+        if 'PENDING' in data:
+            time.sleep(5)
+            iterations = iterations + 1
+            if iterations % 6 == 0:
+                print '.',
+                sys.stdout.flush()
+            if iterations > 60:
+                charlimit_textwrap('Maximum number of attempts reached. This script will now exit.')
+                charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
+                sys.exit(1)
+        else:
+            pass
+    pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
+    if 'FAILED' in data:
+        try:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % json.loads(data)['detail'].split('--')[1].lstrip())
+        except IndexError, e:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % json.loads(data)['detail'].lstrip())
+        charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+        sys.exit(1)
+
+    # The slice and dice on the JSON output to get the certificate out
+    # happens here - the problem is that the new lines are getting all screwy
+    # in the output from OIM. We stringify the data, replace all the text
+    # newline characters with actual new lines and the strip off the
+    # extra data. There's probably a more efficient way to do this, but this
+    # was the quick and dirty solution.
+    #
+
+    pkcs7raw = str(pkcs7raw)
+    pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
+    pkcs7raw = pkcs7raw.split('[')[1]
+    pkcs7raw = pkcs7raw.split(']')[0].split(',')
+    i = 0
+    cert_num = 0
+    while cert_num < num_requests and i < len(pkcs7raw):
+        certstring = str(pkcs7raw[i]).split('"')[1]
+        if 'PKCS7' in certstring:
+            write_certs(certstring, arguments)
+            cert_num = cert_num + 1
+        i = i + 1
+    if cert_num != num_requests:
+        print 'The number of requests made was ', num_requests
+        print 'The number of certificates received is ', cert_num
+        sys.exit('Request and certificate received mismatch')
+    return
+
+
+def create_certificate(line, reqid, config_items):
+    """This fucntion accepts hostname, request id and a dictionary of config_items for the CSR.
+    It writes the key and creates the CSR."""
+    print 'Generating certificate...'
+    try:
+        keyname = line + '-key.pem'
+        if os.path.exists(keyname):
+            charlimit_textwrap("The key file %s already exists" % keyname)
+            keyname = line + '-' + str(reqid) + '-key.pem'
+            charlimit_textwrap("Writing key to %s" % keyname)
+    except EOFError, e:
+        charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
+                  % e)
+        sys.exit(1)
+    
+    cert_obj = OSGPKIUtils.Cert()
+    cert_obj.CreatePKey(keyname)
+    os.chmod(keyname,0600)
+    new_csr = cert_obj.CreateX509Request(**config_items)
+    csr = \
+        new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
+                                     , ''
+                                     ).replace('-----END CERTIFICATE REQUEST-----\n'
+                , '')
+
+    return csr
+
+
+if __name__ == '__main__':
+    try:
+        os.umask(177)
+        arguments = parse_args()
+
+        try:
+            def prompt_for_password(verify):
+
+                # If verify == True, we are supposed to verify password.
+                return getpass.getpass("Please enter the pass phrase for '%s':"
+                                    % arguments['userprivkey'])
+            ssl_context = M2Crypto.SSL.Context('sslv3')
+            ssl_context.load_cert_chain(arguments['usercert'],
+                                    arguments['userprivkey'],
+                                    callback=prompt_for_password)
+        except Exception, e:
+            if 'bad decrypt' in e or 'bad password read' in e: ### fix for incorrect password or carriage return ###
+                print "Incorrect passphrase for %s.\nPlease try again" % arguments['userprivkey']
+                print "Please enter the passphrase again:"
+                try:
+                    def prompt_for_password(verify):
+                        return getpass.getpass("Please enter the pass phrase for '%s':"
+                                    % arguments['userprivkey'])
+                    ssl_context = M2Crypto.SSL.Context('sslv3')
+                    ssl_context.load_cert_chain(arguments['usercert'],
+                                    arguments['userprivkey'],
+                                    callback=prompt_for_password)
+                except Exception, e:
+                    if 'bad decrypt' in e or 'bad password read' in e:
+                        print "Incorrect passphrase. Attempt failed twice. Exiting script"
+                        sys.exit(1)
+                    else:
+                        print traceback.format_exc()
+                        charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org." )
+                        sys.exit(1)
+            elif 'handshake failure' in e: ### fix for wrong key/certificate ###
+                charlimit_textwrap('''Failure : %s''' % e)
+                charlimit_textwrap("Please check for valid certificate/key pairs.")
+                sys.exit(1)
+            elif 'sslv3 alert bad certificate' in e:
+                charlimit_textwrap("Error connecting to server: %s" % e)
+                charlimit_textwrap("Your certificate is not trusted by the server")
+            else:
+                print traceback.format_exc()
+                charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
+                     )
+                sys.exit(1)
+                  
+            
+        config_items = {}
+
+    # ############################# Pipelining the bulk Certificate request process to send them at once##################################
+
+        bulk_csr = list()
+        count = 0
+        num_requests = 0
+        host_set = set()
+        if not arguments.has_key('hostname'):
+            hosts = open(arguments['hostfile'], 'rb')
+            for line in hosts:
+                line = line.strip(' \n')
+                if not line in host_set:
+                    host_set.add(line)
+                    count += 1 ### as a check for number of request and certs retrieved ###
+                    config_items.update({'CN': line})  # ### New Config item list for every host#######
+                    charlimit_textwrap('Beginning request process for %s' % line)
+                    csr = create_certificate(line, count, config_items)
+                    bulk_csr.append(csr)
+                    num_requests = num_requests + 1 ### as a check for number of request and certs retrieved ###
+                    if count == 50: ### Processing max of 50 requests in bulk ###
+                        connect_request(ssl_context, bulk_csr, arguments)
+                        connect_approve(ssl_context, arguments)
+                        connect_retrieve(arguments)
+                        bulk_csr = ''
+                        count = 0
+                else:
+                    charlimit_textwrap("Duplicate Hostname entry for %s.\nSkipping process for %s\n" % (line, line))
+    # ####################################################################################################################################
+
+            if count != 0 and count != 50:
+                connect_request(ssl_context, bulk_csr, arguments)
+                connect_approve(ssl_context, arguments)
+                connect_retrieve(arguments)
+            hosts.close()
+        else:
+            hostname = arguments['hostname'].rstrip('\n')
+            config_items.update({'CN': hostname})  # ### New CN for every host#######
+            num_requests = 1
+            charlimit_textwrap('Beginning request process for %s' % hostname)
+            csr = create_certificate(hostname, count, config_items)
+            try:
+                connect_request(ssl_context, csr, arguments)
+            except Exception, e:
+                if 'sslv3 alert bad certificate' in e:
+                    charlimit_textwrap("Error connecting to server: %s" % e)
+                    charlimit_textwrap("Your certificate is not trusted by the server")
+                    sys.exit(1)
+                else:
+                    print traceback.format_exc()
+                    charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
+                         )
+                    sys.exit(1)
+            connect_approve(ssl_context, arguments)
+            connect_retrieve(arguments)
+    except SystemExit, e: ### fix for weird error on help for python2.4 ###
+            raise 
+    except KeyboardInterrupt, k:
+        print k
+        sys.exit('''Interrupted by user\n''')
+    except Exception, e:
+        print traceback.format_exc()
+        charlimit_textwrap('''Uncaught Exception : 
+
+Please report the bug to goc@opensciencegrid.org.
+'''
+                     )
+        sys.exit(1)
+    sys.exit(0)
