@@ -49,7 +49,7 @@ class PKIClientTestCase(unittest.TestCase):
                                              environ=env,
                                              template_path=cls.scripts_path)
         # Copy in configuration file
-        env.writefile("OSGPKIClients.ini", frompath="OSGPKIClients.ini")
+        env.writefile("pki-clients.ini", frompath="pki-clients.ini")
         return env
 
     @classmethod
