@@ -175,7 +175,7 @@ def parse_args():
     if os.path.exists('pki-clients.ini'):
         Config.read('pki-clients.ini')
     elif os.path.exists('/etc/osg/pki-clients.ini'):
-        Config.read('/etc/osg/pkiclients.ini')
+        Config.read('/etc/osg/pki-clients.ini')
     else:
         sys.exit('Missing config file: pki-clients.ini\n')
     if args.test:
