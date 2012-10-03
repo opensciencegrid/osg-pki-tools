@@ -39,7 +39,7 @@ class GridadminCertSingleHostRequestTests(PKIClientTestCase.PKIClientTestCase):
                          "Failed checking certificate %s: %s" % (cert_file,
                                                                  err_msg))
         # Check output key
-        key_file = fqdn + "-key.pem"
+        key_file = fqdn.replace('/','-') + "-key.pem"
         self.assertTrue(result.files_created.has_key(key_file))
         key_result = self.check_private_key(env, key_file)
         err_msg = self.run_error_msg(key_result)
