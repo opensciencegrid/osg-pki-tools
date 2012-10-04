@@ -5,7 +5,7 @@ import re
 
 import PKIClientTestCase
 
-class GridadminCertSingleHostRequestTests(PKIClientTestCase.PKIClientTestCase):
+class GridadminServiceRequestTests(PKIClientTestCase.PKIClientTestCase):
 
     command = "osg-gridadmin-cert-request"
 
