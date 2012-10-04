@@ -104,6 +104,7 @@ def parse_args():
     except ValueError:
         charlimit_textwrap('Invalid timeout value. Please enter a non-negative integer.\n')
         sys.exit(1)
+    print "Using timeout of %d minutes" % timeout
 
     if os.path.exists(args.certfile):
         opt = \
@@ -261,7 +262,7 @@ def connect_retrieve(arguments):
                 charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
                 charlimit_textwrap(' Delay: %s minutes'% float(iterations / 12))
             if iterations > arguments['timeout']*12:
-                charlimit_textwrap('Maximum number of attempts reached in %s minutes. This script will now exit.' % arguments['timeout'])
+                charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % arguments['timeout'])
                 sys.exit(1)
         else:
             pass
