@@ -100,6 +100,14 @@ try:
             default=False,
             )
         parser.add_option(
+            '-t',
+            '--timeout',
+            action='store_true',
+            dest='timeout',
+            help='Specify the timeout in minutes',
+            default=5,
+        )
+        parser.add_option(
             '-q',
             '--quiet',
             action='store_false',
@@ -114,6 +122,8 @@ try:
             hostfile = args.hostfile
         else:
             hostname = args.hostname
+        
+        timeout = args.timeout
     
         certdir = './'
     
@@ -178,13 +188,14 @@ try:
             arguments.update({'args': args})
         if vars().has_key('values'):
             arguments.update({'values': values})
-    
         if vars().has_key('hostname'):
             arguments.update({'hostname': hostname})
         if vars().has_key('domain'):
             arguments.update({'domain': domain})
         if vars().has_key('outkeyfile'):
             arguments.update({'outkeyfile': outkeyfile})
+        if vars().has_key('timeout'):
+            arguments.update({'timeout': timeout})
         if vars().has_key('num_requests'):
             arguments.update({'num_requests': num_requests})
         arguments.update({'usercert': usercert})
@@ -430,8 +441,8 @@ def connect_retrieve(arguments):
             if iterations % 6 == 0:
                 print '.',
                 sys.stdout.flush()
-            if iterations > 60:
-                charlimit_textwrap('Maximum number of attempts reached. This script will now exit.')
+            if iterations > arguments['timeout']*12:
+                charlimit_textwrap('Maximum number of attempts reached %s minutes. This script will now exit.' % arguments['timeout'] )
                 charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
                 sys.exit(1)
         else:

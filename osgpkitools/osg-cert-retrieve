@@ -73,6 +73,14 @@ def parse_args():
         default=False,
         )
     parser.add_option(
+            '-t',
+            '--timeout',
+            action='store_true',
+            dest='timeout',
+            help='Specify the timeout in minutes',
+            default=5,
+        )
+    parser.add_option(
         '-q',
         '--quiet',
         action='store_false',
@@ -130,6 +138,9 @@ def parse_args():
 
     if vars().has_key('pem_filename'):
         arguments.update({'pem_filename': pem_filename})
+    if vars().has_key('timeout'):
+        arguments.update({'timeout': timeout})
+     
     arguments.update({'id': reqid})
     arguments.update({'filetype': filetype})
     arguments.update({'fileext': fileext})
@@ -240,8 +251,8 @@ def connect_retrieve(arguments):
             if iterations % 6 == 0:
                 charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
                 charlimit_textwrap(' Delay: %s minutes'% float(iterations / 12))
-            if iterations > 60:
-                charlimit_textwrap('Maximum number of attempts reached. This script will now exit.')
+            if iterations > arguments['timeout']*12:
+                charlimit_textwrap('Maximum number of attempts reached in %s minutes. This script will now exit.' % arguments['timeout'])
                 sys.exit(1)
         else:
             pass
