@@ -100,6 +100,14 @@ try:
             default=False,
             )
         parser.add_option(
+            '-t',
+            '--timeout',
+            action='store',
+            dest='timeout',
+            help='Specify the timeout in minutes',
+            default=5,
+        )
+        parser.add_option(
             '-q',
             '--quiet',
             action='store_false',
@@ -114,6 +122,15 @@ try:
             hostfile = args.hostfile
         else:
             hostname = args.hostname
+        
+        try:
+            timeout = int(args.timeout)
+            if not timeout >= 0:
+                charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
+                sys.exit(1)
+        except ValueError:
+            charlimit_textwrap('Invalid timeout value. Please enter a non-negative integer value.\n')
+            sys.exit(1)
     
         certdir = './'
     
@@ -157,7 +174,7 @@ try:
         if os.path.exists('pki-clients.ini'):
             Config.read('pki-clients.ini')
         elif os.path.exists('/etc/osg/pki-clients.ini'):
-            Config.read('/etc/pki-clients.ini')
+            Config.read('/etc/osg/pki-clients.ini')
         else:
             sys.exit('Missing config file: pki-clients.ini\n')
     
@@ -178,13 +195,15 @@ try:
             arguments.update({'args': args})
         if vars().has_key('values'):
             arguments.update({'values': values})
-    
         if vars().has_key('hostname'):
             arguments.update({'hostname': hostname})
         if vars().has_key('domain'):
             arguments.update({'domain': domain})
         if vars().has_key('outkeyfile'):
             arguments.update({'outkeyfile': outkeyfile})
+        if vars().has_key('timeout'):
+            arguments.update({'timeout': timeout})
+            print 'The timeout is set to %s' % arguments['timeout']
         if vars().has_key('num_requests'):
             arguments.update({'num_requests': num_requests})
         arguments.update({'usercert': usercert})
@@ -359,7 +378,9 @@ def write_certs(
         tmp_filename = open(temp_file)
         line = tmp_filename.readline()
         hostname = line.split('CN=')[1]
-        hostname = hostname.strip(' \n')
+        ### replaceing new line and space . As ell as replacing '/' with -'-' in the file name ###
+        ### so that file system doesnt mistake it for path ###
+        hostname = hostname.strip(' \n').replace('/','-')
         pem_filename = hostname + ".pem"
         if os.path.exists(pem_filename):
             charlimit_textwrap("The file %s already exists." % pem_filename)
@@ -428,8 +449,8 @@ def connect_retrieve(arguments):
             if iterations % 6 == 0:
                 print '.',
                 sys.stdout.flush()
-            if iterations > 60:
-                charlimit_textwrap('Maximum number of attempts reached. This script will now exit.')
+            if iterations > arguments['timeout']*12:
+                charlimit_textwrap('Maximum number of attempts reached %s minutes. This script will now exit.' % arguments['timeout'] )
                 charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
                 sys.exit(1)
         else:
@@ -566,7 +587,7 @@ if __name__ == '__main__':
                     count += 1 ### as a check for number of request and certs retrieved ###
                     config_items.update({'CN': line})  # ### New Config item list for every host#######
                     charlimit_textwrap('Beginning request process for %s' % line)
-                    csr = create_certificate(line, count, config_items)
+                    csr = create_certificate(line.replace('/','-'), count, config_items)
                     bulk_csr.append(csr)
                     num_requests = num_requests + 1 ### as a check for number of request and certs retrieved ###
                     if count == 50: ### Processing max of 50 requests in bulk ###
@@ -589,7 +610,7 @@ if __name__ == '__main__':
             config_items.update({'CN': hostname})  # ### New CN for every host#######
             num_requests = 1
             charlimit_textwrap('Beginning request process for %s' % hostname)
-            csr = create_certificate(hostname, count, config_items)
+            csr = create_certificate(hostname.replace('/','-'), count, config_items)
             try:
                 connect_request(ssl_context, csr, arguments)
             except Exception, e:
