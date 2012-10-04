@@ -445,7 +445,6 @@ def connect_retrieve(arguments):
         conn.close()
         if 'PENDING' in data:
             time.sleep(5)
-            print 'The timeout is set to %s in pending' % arguments['timeout']
             iterations = iterations + 1
             if iterations % 6 == 0:
                 print '.',
