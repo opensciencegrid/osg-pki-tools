@@ -75,7 +75,7 @@ def parse_args():
     parser.add_option(
             '-t',
             '--timeout',
-            action='store_true',
+            action='store',
             dest='timeout',
             help='Specify the timeout in minutes',
             default=5,
@@ -95,6 +95,15 @@ def parse_args():
         parser.error('-i/--id argument required')
 
     reqid = args.id
+    
+    try:
+        timeout = int(args.timeout)
+        if not timeout >= 0:
+            charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
+            sys.exit(1)
+    except ValueError:
+        charlimit_textwrap('Invalid timeout value. Please enter a non-negative integer.\n')
+        sys.exit(1)
 
     if os.path.exists(args.certfile):
         opt = \
@@ -140,7 +149,7 @@ def parse_args():
         arguments.update({'pem_filename': pem_filename})
     if vars().has_key('timeout'):
         arguments.update({'timeout': timeout})
-     
+
     arguments.update({'id': reqid})
     arguments.update({'filetype': filetype})
     arguments.update({'fileext': fileext})
