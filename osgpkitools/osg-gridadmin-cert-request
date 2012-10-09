@@ -32,6 +32,8 @@ from osgpkitools import OSGPKIUtils
 import sys
 import textwrap
 import traceback
+import subprocess
+import ssl
 
 
 # Set up Option Parser
@@ -308,7 +310,10 @@ def connect_approve(ssl_context, arguments):
         charlimit_textwrap('Connection to %s failed: %s' % (arguments['appurl'],
                 repr(e)))
         raise e
-
+    if response.status==500:
+        charlimit_textwrap("Request Failed. Status %s" %response.status)
+        charlimit_textwrap("Reason for failure %s" %response.reason)
+        sys.exit(1)
     if not 'OK' in response.reason:
         charlimit_textwrap("Request Failed. Status %s" %response.status)
         charlimit_textwrap("Reason for failure %s" %response.reason)
@@ -372,9 +377,11 @@ def write_certs(
         certfile = open(filename, 'w+')
         certfile.write(pkcs7raw)
         certfile.close()
-        os.system('openssl pkcs7 -print_certs -in ' + filename
-                  + ' -out ' + temp_file)
+        subprocess.call(['openssl', 'pkcs7', '-print_certs', '-in', filename,
+                '-out', temp_file], stdin=subprocess.PIPE)
+
         os.remove(filename)
+        os.chmod(temp_file,0777)
         """This part of the code extracts the hostname from the certificate"""
         tmp_filename = open(temp_file)
         line = tmp_filename.readline()
@@ -386,7 +393,7 @@ def write_certs(
         if os.path.exists(pem_filename):
             charlimit_textwrap("The file %s already exists." % pem_filename)
             pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem')
-        os.system('mv ' + temp_file + ' ' + pem_filename) ### fix for move the file to desired name ###
+        subprocess.call(['mv', temp_file, pem_filename])### fix for move the file to desired name ###
         os.chmod(pem_filename,0644)
         tmp_filename.close()
         cwd = os.getcwd()
@@ -627,7 +634,10 @@ if __name__ == '__main__':
             connect_approve(ssl_context, arguments)
             connect_retrieve(arguments)
     except SystemExit, e: ### fix for weird error on help for python2.4 ###
-            raise 
+            raise
+    except ssl.SSLError, s:
+        print s
+        sys.exit("Please check for valid certificate.\n")
     except KeyboardInterrupt, k:
         print k
         sys.exit('''Interrupted by user\n''')

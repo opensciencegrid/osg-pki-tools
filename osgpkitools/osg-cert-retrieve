@@ -30,6 +30,8 @@ import re
 import os
 import textwrap
 import traceback
+import subprocess
+import ssl
 
 # Set up Option Parser
 #
@@ -294,8 +296,8 @@ def connect_retrieve(arguments):
         certfile = open(temp_filename, 'w+')
         certfile.write(pkcs7raw)
         certfile.close()
-        os.system('openssl pkcs7 -print_certs -in ' + temp_filename
-                  + ' -out ' + arguments['pem_filename'])
+        subprocess.call(['openssl', 'pkcs7', '-print_certs', '-in', temp_filename,
+               '-out', arguments['pem_filename']], stdin=subprocess.PIPE)
         os.chmod(arguments['pem_filename'],0644)
         os.remove(temp_filename)
     except OSError, e:
@@ -321,6 +323,9 @@ if __name__ == '__main__':
     except KeyboardInterrupt, k:
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
+    except ssl.SSLError, s:
+        print s
+        sys.exit("Please check for valid certificate.\n")
     except Exception, e:
         print traceback.format_exc()
         charlimit_textwrap('''Uncaught Exception : 

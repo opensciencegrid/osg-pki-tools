@@ -22,6 +22,7 @@ from optparse import OptionParser
 import M2Crypto
 import textwrap
 import traceback
+import ssl
 
 # Set up Option Parser
 #
@@ -204,7 +205,7 @@ def parse_args():
     arguments.update({'host': host})
     if vars().has_key('csr'):
         arguments.update({'csr': csr})
-    if vars().has_key('values'):
+    if vars().has_key('prikey'):
         arguments.update({'prikey': prikey})
     arguments.update({'requrl': requrl})
     arguments.update({'content_type': content_type})
@@ -294,7 +295,7 @@ if __name__ == '__main__':
                     , '').replace('-----END CERTIFICATE REQUEST-----\n'
                                   , '')
             connect(arguments)
-        elif prikey != 'genprivate.key':
+        elif arguments['prikey'] != 'genprivate.key':
             try:
                 print "Please enter the passphrase for %s" % arguments['userprivkey']
                 mykey = RSA.load_key(arguments['prikey'])
@@ -334,7 +335,10 @@ if __name__ == '__main__':
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
     except SystemExit, e:
-            raise    
+            raise
+    except ssl.SSLError, s:
+        print s
+        sys.exit("Please check for valid certificate.\n")
     except Exception, e:
         print traceback.format_exc()
         charlimit_textwrap('''Uncaught Exception : 
