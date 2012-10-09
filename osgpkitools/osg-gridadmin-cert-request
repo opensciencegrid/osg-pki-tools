@@ -13,10 +13,7 @@ import urllib
 import httplib
 import sys
 import ConfigParser
-try:
-    import json
-except ImportError:
-    import simplejson as json
+import simplejson
 import time
 import re
 import os
@@ -258,25 +255,25 @@ def connect_request(ssl_context, bulk_csr, arguments):
     if not 'OK' in response.reason:
         try:
             charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % json.loads(data)['detail'].split('--')[1].lstrip())
+            % simplejson.loads(data)['detail'].split('--')[1].lstrip())
         except IndexError, e:
             charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % json.loads(data)['detail'].lstrip())
-        charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+            % simplejson.loads(data)['detail'].lstrip())
+        charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
         
         sys.exit(1)
     conn.close()
     if 'FAILED' in data:
         try:
             charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % json.loads(data)['detail'].split('--')[1].lstrip())
+            % simplejson.loads(data)['detail'].split('--')[1].lstrip())
         except IndexError, e:
             charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % json.loads(data)['detail'].lstrip())
-        charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+            % simplejson.loads(data)['detail'].lstrip())
+        charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
         
         sys.exit(1)
-    return_data = json.loads(data)
+    return_data = simplejson.loads(data)
     for (key, value) in return_data.iteritems():
         if 'host_request_id' in key:
             reqid = value
@@ -337,15 +334,15 @@ def connect_approve(ssl_context, arguments):
         if 'FAILED' in data:
             try:
                 charlimit_textwrap('The request has failed for the following reason:\n%s' \
-                    % json.loads(data)['detail'].split('--')[1].lstrip())
+                    % simplejson.loads(data)['detail'].split('--')[1].lstrip())
             except IndexError, e:
                 charlimit_textwrap('The request has failed for the following reason:\n%s' \
-                    % json.loads(data)['detail'].lstrip())
-            charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+                    % simplejson.loads(data)['detail'].lstrip())
+            charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
             sys.exit(1)
     elif not 'OK' in data:
         charlimit_textwrap('The request has failed for the reason: %s' \
-            % json.loads(data)['detail'])
+            % simplejson.loads(data)['detail'])
         sys.exit(1)
     elif action != 'approve':
         charlimit_textwrap('Request not approved by the Grid Admin. Exiting now.\n')
@@ -437,8 +434,8 @@ def connect_retrieve(arguments):
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
             charlimit_textwrap('The request has failed for the following reason:\n%s' \
-                % json.loads(data)['detail'].lstrip())
-            charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+                % simplejson.loads(data)['detail'].lstrip())
+            charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
             sys.exit(1)
     conn.close()
     charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
@@ -463,15 +460,15 @@ def connect_retrieve(arguments):
                 sys.exit(1)
         else:
             pass
-    pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
+    pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
     if 'FAILED' in data:
         try:
             charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % json.loads(data)['detail'].split('--')[1].lstrip())
+            % simplejson.loads(data)['detail'].split('--')[1].lstrip())
         except IndexError, e:
             charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % json.loads(data)['detail'].lstrip())
-        charlimit_textwrap('Status : %s ' % json.loads(data)['status'])
+            % simplejson.loads(data)['detail'].lstrip())
+        charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
         sys.exit(1)
 
     # The slice and dice on the JSON output to get the certificate out

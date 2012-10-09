@@ -21,10 +21,7 @@ import httplib
 import sys
 import ConfigParser
 from optparse import OptionParser
-try:
-    import json
-except ImportError:
-    import simplejson as json
+import simplejson
 import time
 import re
 import os
@@ -202,7 +199,7 @@ def connect_issue(arguments):
  %s
 
 ''' \
-            % json.loads(data)['detail'])
+            % simplejson.loads(data)['detail'])
         sys.exit(1)
 
     return
@@ -232,8 +229,8 @@ def connect_retrieve(arguments):
         charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
         raise httplib.HTTPException
     data = response.read()
-    if json.loads(data).has_key('request_status'):
-        if json.loads(data)['request_status'] == 'REQUESTED':
+    if simplejson.loads(data).has_key('request_status'):
+        if simplejson.loads(data)['request_status'] == 'REQUESTED':
             charlimit_textwrap('Certificate request in Requested state.Needs to be Approved first. Please contact RA to approve this certificate\n'
                      )
             sys.exit(1)
@@ -268,13 +265,13 @@ def connect_retrieve(arguments):
                 sys.exit(1)
         else:
             pass
-    pkcs7raw = json.dumps(json.loads(data), sort_keys=True, indent=2)
+    pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
     if 'FAILED' in data:
         charlimit_textwrap('''The request failed for the following reason
  %s
 
 ''' \
-            % json.loads(data)['detail'])
+            % simplejson.loads(data)['detail'])
         sys.exit(1)
 
     # The slice and dice on the JSON output to get the certificate out

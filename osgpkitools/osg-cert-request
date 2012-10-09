@@ -10,10 +10,7 @@ import urllib
 import httplib
 import sys
 import ConfigParser
-try:
-    import json
-except ImportError:
-    import simplejson as json
+import simplejson
 import base64
 from osgpkitools import OSGPKIUtils
 from pprint import pprint
@@ -243,8 +240,8 @@ def connect(arguments):
         charlimit_textwrap('Error during request to %s. Reason %s' \
             % (arguments['requrl'], repr(e)))
     data = response.read()
-    if 'FAILED' in json.dumps(data):
-        reason = json.loads(data)['detail']
+    if 'FAILED' in simplejson.dumps(data):
+        reason = simplejson.loads(data)['detail']
         try:
             reason = reason.split('--')[1]
         except IndexError, e:
@@ -252,9 +249,9 @@ def connect(arguments):
         charlimit_textwrap('The request failed because : %s' % reason)
         sys.exit(1)
     conn.close()
-    if json.loads(data)['detail'] == 'Nothing to report' \
-        and json.loads(data)['status'] == 'OK' in data:
-        ticket = json.loads(data)['host_request_id']
+    if simplejson.loads(data)['detail'] == 'Nothing to report' \
+        and simplejson.loads(data)['status'] == 'OK' in data:
+        ticket = simplejson.loads(data)['host_request_id']
         print 'Succesfully submitted'
         print 'Request Id#: %s' % ticket
     return
