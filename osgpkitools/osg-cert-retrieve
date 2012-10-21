@@ -231,7 +231,7 @@ def connect_retrieve(arguments):
     data = response.read()
     if simplejson.loads(data).has_key('request_status'):
         if simplejson.loads(data)['request_status'] == 'REQUESTED':
-            charlimit_textwrap('Certificate request in Requested state.Needs to be Approved first. Please contact RA to approve this certificate\n'
+            charlimit_textwrap('Certificate request in Requested state.Needs to be Approved first. Please contact GridAdmin to approve this certificate\n'
                      )
             sys.exit(1)
         else:
