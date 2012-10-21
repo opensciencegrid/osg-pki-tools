@@ -1,0 +1,96 @@
+osg-cert-request:  Request a host certificate
+
+This script:
+  * Generates a new host private key and CSR
+    * Only important part of CSR is CN=<hostname> component
+  * Saves the host private key to disk (as specified by the user)
+  * Prompts the user for their private key pass phrase
+  * Authenticates to OIM and posts the CSR as a request to OIM
+  * Returns the request Id to the user
+
+Inputs:
+  * fully-qualified hostname
+  * filename to store private key [Optional, default is ./hostkey.pem]
+  * path to user's certificate [Optional, default is path specified by
+    $X509_USER_CERT environment variable, ~/.globus/usercert.pem]
+  * path to user's private key [Optional, default is path specified by
+    $X509_USER_KEY environment variable, ~/.globus/userkey.pem]
+  * Passphrase for user's private key via non-echoing prompt.
+
+Outputs:
+  * Private key, to filename specified or ./hostkey.pem
+  * Request Id, to stdout
+
+----------------------------------------------------------------------
+host-cert-request-guest: Request a host certificate without
+authenticating to OIM
+
+This script:
+  * Generates a new host private key and CSR
+    * Only important part of CSR is CN=<hostname> component
+  * Saves the host private key to disk (as specified by the user)
+  * Connects to OIM and posts the CSR as a request to OIM
+  * Returns the request Id to the user
+
+Inputs:
+  * fully-qualified hostname
+  * filename to store private key [Optional, default is ./hostkey.pem]
+
+Outputs:
+  * Private key as PEM, to filename specified or ./hostkey.pem
+  * Request Id, to stdout
+
+----------------------------------------------------------------------
+cert-retrieve: Retrieve a certificate (host or user) from OIM given a
+request Id. Since certificates are public, it does not authenticate to
+OIM.
+
+This script:
+  * Accepts a request Id from the user
+  * Connects to OIM and requests the certificate identified by the request id
+  * Write the certificate to disk (as specified by the user)
+
+Inputs:
+  * Request Id
+  * Filename to store certificate [Optional, default is ./hostcert.pem]
+
+Outputs:
+  * Host certificate as PEM, to filename specified or ./hostcert.pem
+
+----------------------------------------------------------------------
+multi-cert-gridadmin: Request and retrieve mutliple host certificates
+from OIM. Authenticates to OIM and is only for use by Grid Admins for
+certificates they are authorized to vet.
+
+This script:
+  * Reads a list of fully-qualified hostnames from a file specified by the user.
+  * For reach hostname:
+     * Generates a new private key and CSR
+       * Only important part of CSR is CN=<hostname> component
+     * Writes the private key to a file with filename:
+       <prefix>/<hostname>-key.pem
+  * Prompts the user for their private key pass phrase
+    * Pass phrase is caches so user is not re-prompted
+  * Authenticates to OIM and posts the CSRs as a single request to OIM
+    * Request id is returned and subsequently used
+  * Authenticates to OIM and approves the request
+  * Waits one minute for request to be processed by OIM
+  * Start loop:
+    * Connects to OIM and attempts to retrieve certificates
+      * Writes out any certificates it retrieves with filename
+        of <prefix>/<hostname>-cert.pem
+    * if all certificates have been retrieved, exit loop
+    * Wait 5 seconds and repeat.
+
+Inputs:
+  * filename of list of hostnames
+  * prefix path in which to write private keys and certificares [default: .]
+  * path to user's certificate [Optional, default is path specified by
+    $X509_USER_CERT environment variable, ~/.globus/usercert.pem]
+  * path to user's private key [Optional, default is path specified by
+    $X509_USER_KEY environment variable, ~/.globus/userkey.pem]
+  * Passphrase for user's private key via non-echoing prompt.
+
+Outputs:
+  * N host certificates in PEM format
+  * N private keys in PEM format
