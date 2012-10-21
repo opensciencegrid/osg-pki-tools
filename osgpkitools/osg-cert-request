@@ -214,7 +214,7 @@ def parse_args():
     # needed and then pass them into the server
     #
     # The data returned is in JSON format so to make it a little more human
-    # readable we pass it through the json module to pretty print it
+    # readable we pass it through the simplejson module to pretty print it
     #
 
 def connect(arguments):
