@@ -251,6 +251,10 @@ def connect_request(ssl_context, bulk_csr, arguments):
     except httplib.HTTPException, e:
         charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
         raise e
+    if response.status==500:
+            charlimit_textwrap("Request Failed. Status %s" %response.status)
+            charlimit_textwrap("Reason for failure %s" %response.reason)
+            sys.exit(1)
     data = response.read()
     if not 'OK' in response.reason:
         try:
@@ -329,6 +333,10 @@ def connect_approve(ssl_context, arguments):
         except httplib.HTTPException, e:
             charlimit_textwrap('Connection to %s failed: %s' % (newrequrl, e))
             raise e
+        if response.status==500:
+            charlimit_textwrap("Request Failed. Status %s" %response.status)
+            charlimit_textwrap("Reason for failure %s" %response.reason)
+            sys.exit(1)
         data = response.read()
         conn.close()
         if 'FAILED' in data:
@@ -430,6 +438,10 @@ def connect_retrieve(arguments):
     except httplib.HTTPException, e:
         charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
         raise httplib.HTTPException
+    if response.status==500:
+            charlimit_textwrap("Request Failed. Status %s" %response.status)
+            charlimit_textwrap("Reason for failure %s" %response.reason)
+            sys.exit(1)
     data = response.read()
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
@@ -446,6 +458,10 @@ def connect_retrieve(arguments):
         except httplib.HTTPException, e:
             charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
             raise httplib.HTTPException
+        if response.status==500:
+            charlimit_textwrap("Request Failed. Status %s" %response.status)
+            charlimit_textwrap("Reason for failure %s" %response.reason)
+            sys.exit(1)
         data = response.read()
         conn.close()
         if 'PENDING' in data:
@@ -639,6 +655,9 @@ if __name__ == '__main__':
         print k
         sys.exit('''Interrupted by user\n''')
     except Exception, e:
+        if ('operation timed out' in e):
+            charlimit_textwrap("Operation timed out to %s\n. Please check your connectivity and the host settings." %arguments['host'])
+            sys.exit(1)
         print traceback.format_exc()
         charlimit_textwrap('''Uncaught Exception : 
 
