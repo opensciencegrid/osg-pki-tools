@@ -10,13 +10,28 @@ MBSTRING_FLAG = 0x1000
 MBSTRING_ASC  = MBSTRING_FLAG | 1
 MBSTRING_BMP  = MBSTRING_FLAG | 2
 
+def CreateOIMConfig (isITB, **OIMConfig):
+	OIMConfig.update({'requrl': '/oim/rest?action=host_certs_request&version=1'})
+	OIMConfig.update({'appurl': '/oim/rest?action=host_certs_approve&version=1'})
+	OIMConfig.update({'revurl': '/oim/rest?action=host_certs_revoke&version=1'})
+	OIMConfig.update({'canurl': '/oim/rest?action=host_certs_cancel&version=1'})
+	OIMConfig.update({'returl': '/oim/rest?action=host_certs_retrieve&version=1'})
+	OIMConfig.update({'issurl': '/oim/rest?action=host_certs_issue&version=1'})
+	OIMConfig.update({'content_type': 'application/x-www-form-urlencoded'})
+	if (isITB):
+		OIMConfig.update({'host': 'oim-itb.grid.iu.edu:80'})
+		OIMConfig.update({'hostsec': 'oim-itb.grid.iu.edu:443'})
+	else:
+		OIMConfig.update({'host': 'oim.grid.iu.edu:80'})
+		OIMConfig.update({'hostsec': 'oim.grid.iu.edu:443'})
+	return OIMConfig
 
 class Cert:
 	def __init__ ( self ):
 		self.RsaKey = { 'KeyLength'       : 2048,
 						'PubExponent'     : 0x10001,		# -> 65537
 						'keygen_callback' : self.callback 
-					  }
+				  }
 
 		self.KeyPair         = None
 		self.PKey            = None
@@ -26,7 +41,6 @@ class Cert:
 
 	def callback ( self, *args ):
 		return None
-
 
 
 	def CreatePKey ( self , filename ):
@@ -69,7 +83,7 @@ class Cert:
 
 
 if __name__ == '__main__':
-	run = Cert ()
-	run.CreatePKey ()
-	run.CreateX509Request ()
+	run = Cert()
+	run.CreatePKey()
+	run.CreateX509Request()
 	#run.CreateX509Certificate ()
