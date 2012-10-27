@@ -13,6 +13,7 @@ import ConfigParser
 import simplejson
 import base64
 from osgpkitools import OSGPKIUtils
+from OSGPKIUtils import CreateOIMConfig
 from pprint import pprint
 import os
 from optparse import OptionParser
@@ -161,28 +162,18 @@ def parse_args():
     elif not os.path.exists(args.csr):
         charlimit_textwrap('The file %s does not exist' % args.csr)
         sys.exit(1)
-
-    #
-    # Read from the ini file
-    #
-
-    Config = ConfigParser.ConfigParser()
-    if os.path.exists('pki-clients.ini'):
-        Config.read('pki-clients.ini')
-    elif os.path.exists('/etc/osg/pki-clients.ini'):
-        Config.read('/etc/osg/pki-clients.ini')
-    else:
-        sys.exit('Missing config file: pki-clients.ini\n')
+    
     if args.test:
         print "Running in test mode"
-        OIM = 'OIMData_ITB'
+        OIM = True
     else:
-        OIM = 'OIMData'
-    host = Config.get(OIM, 'host')
-    requrl = Config.get(OIM, 'requrl')
-    content_type = Config.get(OIM, 'content_type')
+        OIM = False
+    #host = Config.get(OIM, 'host')
+    #requrl = Config.get(OIM, 'requrl')
+    #content_type = Config.get(OIM, 'content_type')
 
     arguments = dict()
+    arguments = CreateOIMConfig(OIM, **arguments)
     if vars().has_key('args'):
         arguments.update({'args': args})
     if vars().has_key('values'):
@@ -196,14 +187,14 @@ def parse_args():
     arguments.update({'email': email})
     arguments.update({'name': name})
     arguments.update({'phone': phone})
-    arguments.update({'host': host})
+    #arguments.update({'host': host})
     if vars().has_key('csr'):
         arguments.update({'csr': csr})
     if vars().has_key('prikey'):
         arguments.update({'prikey': prikey})
-    arguments.update({'requrl': requrl})
-    arguments.update({'content_type': content_type})
-    arguments.update({'Config': Config})
+    #arguments.update({'requrl': requrl})
+    #arguments.update({'content_type': content_type})
+    #arguments.update({'Config': Config})
     return arguments
 
 
@@ -236,6 +227,10 @@ def connect(arguments):
     except Exception, e:
         charlimit_textwrap('Error during request to %s. Reason %s' \
             % (arguments['requrl'], repr(e)))
+    if response.status==500:
+        charlimit_textwrap("Request Failed. Status %s" %response.status)
+        charlimit_textwrap("Reason for failure %s" %response.reason)
+        sys.exit(1)
     data = response.read()
     if 'FAILED' in simplejson.dumps(data):
         reason = simplejson.loads(data)['detail']

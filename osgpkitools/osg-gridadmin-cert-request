@@ -26,6 +26,7 @@ from optparse import OptionParser
 from optparse import OptionGroup
 import optparse
 from osgpkitools import OSGPKIUtils
+from OSGPKIUtils import CreateOIMConfig
 import sys
 import textwrap
 import traceback
@@ -169,28 +170,13 @@ try:
             else:
                 charlimit_textwrap('Unable to locate the hostfile:' + hostfile)
                 sys.exit(1)
-
-        Config = ConfigParser.ConfigParser()
-        if os.path.exists('pki-clients.ini'):
-            Config.read('pki-clients.ini')
-        elif os.path.exists('/etc/osg/pki-clients.ini'):
-            Config.read('/etc/osg/pki-clients.ini')
-        else:
-            sys.exit('Missing config file: pki-clients.ini\n')
-    
         if args.test:
             print "Running in test mode"
-            OIM='OIMData_ITB'
+            OIM=True
         else:
-            OIM='OIMData'
-        host = Config.get(OIM, 'hostsec')
-        requrl = Config.get(OIM, 'requrl')
-        appurl = Config.get(OIM, 'appurl')
-        issurl = Config.get(OIM, 'issurl')
-        returl = Config.get(OIM, 'returl')
-        content_type = Config.get(OIM, 'content_type')
-    
+            OIM=False
         arguments = dict()
+        arguments = CreateOIMConfig( OIM, **arguments)
         if vars().has_key('args'):
             arguments.update({'args': args})
         if vars().has_key('values'):
@@ -211,16 +197,7 @@ try:
         arguments.update({'certdir': certdir})
         if vars().has_key('hostfile'):
             arguments.update({'hostfile': hostfile})
-        if vars().has_key('host'):
-            arguments.update({'host': host})
-        arguments.update({'requrl': requrl})
-        arguments.update({'appurl': appurl})
-        arguments.update({'issurl': issurl})
-        arguments.update({'returl': returl})
-        arguments.update({'content_type': content_type})
-        arguments.update({'Config': Config})
-        arguments.update({'issurl': issurl})
-        return arguments
+        arguments.update({'host': arguments['hostsec']})
 except SystemExit, e:
     sys.exit(0)
     
@@ -242,7 +219,6 @@ def connect_request(ssl_context, bulk_csr, arguments):
     params = urllib.urlencode({'csrs': bulk_csr}, doseq=True)
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-
     conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
             ssl_context=ssl_context)
     try:
@@ -320,7 +296,7 @@ def connect_approve(ssl_context, arguments):
     issurl = arguments['issurl']
     if action == 'approve' and 'OK' in data:
         print 'Contacting Server to initiate certificate issuance.'
-        newrequrl = arguments['Config'].get('OIMData', 'issurl')
+        newrequrl = arguments['issurl']
         conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
                 ssl_context=ssl_context)
         try:
