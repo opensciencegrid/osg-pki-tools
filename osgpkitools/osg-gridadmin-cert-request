@@ -198,6 +198,7 @@ try:
         if vars().has_key('hostfile'):
             arguments.update({'hostfile': hostfile})
         arguments.update({'host': arguments['hostsec']})
+        return arguments
 except SystemExit, e:
     sys.exit(0)
     
@@ -572,7 +573,19 @@ if __name__ == '__main__':
                     bulk_csr.append(csr)
                     num_requests = num_requests + 1 ### as a check for number of request and certs retrieved ###
                     if count == 50: ### Processing max of 50 requests in bulk ###
-                        connect_request(ssl_context, bulk_csr, arguments)
+                        try:
+                            connect_request(ssl_context, bulk_csr, arguments)
+                        except Exception ,e:
+                            if 'sslv3 alert bad certificate' in e:
+                                charlimit_textwrap("Error connecting to server: %s" % e)
+                                charlimit_textwrap("Your certificate is not trusted by the server")
+                                sys.exit(1)
+                            else:
+                                print("here--------------------------")
+                                print traceback.format_exc()
+                                charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
+                                )
+                                sys.exit(1)
                         connect_approve(ssl_context, arguments)
                         connect_retrieve(arguments)
                         bulk_csr = ''
@@ -582,7 +595,19 @@ if __name__ == '__main__':
     # ####################################################################################################################################
 
             if count != 0 and count != 50:
-                connect_request(ssl_context, bulk_csr, arguments)
+                try:
+                    connect_request(ssl_context, bulk_csr, arguments)
+                except Exception ,e:
+                    if 'sslv3 alert bad certificate' in e:
+                        charlimit_textwrap("Error connecting to server: %s" % e)
+                        charlimit_textwrap("Your certificate is not trusted by the server")
+                        sys.exit(1)
+                    else:
+                        print("here--------------------------")
+                        print traceback.format_exc()
+                        charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
+                                )
+                        sys.exit(1)
                 connect_approve(ssl_context, arguments)
                 connect_retrieve(arguments)
             hosts.close()
