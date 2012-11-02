@@ -21,6 +21,8 @@ import httplib
 import sys
 import ConfigParser
 from optparse import OptionParser
+from osgpkitools import OSGPKIUtils
+from OSGPKIUtils import CreateOIMConfig
 import simplejson
 import time
 import re
@@ -118,28 +120,17 @@ def parse_args():
             sys.exit('Invalid option')
     else:
         pem_filename = args.certfile
-    Config = ConfigParser.ConfigParser()
-    if os.path.exists('pki-clients.ini'):
-        Config.read('pki-clients.ini')
-    elif os.path.exists('/etc/osg/pki-clients.ini'):
-        Config.read('/etc/osg/pki-clients.ini')
-    else:
-        sys.exit('Missing config file: pki-clients.ini\n')
     if args.test:
         print "Running in test mode"
-        OIM='OIMData_ITB'
+        OIM=True
     else:
-        OIM='OIMData'
-    host = Config.get(OIM, 'host')
-    requrl = Config.get(OIM, 'returl')
-    appurl = Config.get(OIM, 'appurl')
-    issurl = Config.get(OIM, 'issurl')
-    content_type = Config.get(OIM, 'content_type')
+        OIM=False
     filetype = 'hostcert'
     fileext = 'pkcs7'
     filename = '%s.%s.%s' % (filetype, reqid, fileext)
 
     arguments = dict()
+    arguments = CreateOIMConfig(OIM, **arguments)
     if vars().has_key('args'):
         arguments.update({'args': args})
     if vars().has_key('values'):
@@ -154,12 +145,6 @@ def parse_args():
     arguments.update({'filetype': filetype})
     arguments.update({'fileext': fileext})
     arguments.update({'filename': filename})
-    arguments.update({'host': host})
-    arguments.update({'requrl': requrl})
-    arguments.update({'appurl': appurl})
-    arguments.update({'content_type': content_type})
-    arguments.update({'Config': Config})
-    arguments.update({'issurl': issurl})
     return arguments
 
 
@@ -180,10 +165,11 @@ def parse_args():
 def connect_issue(arguments):
     """This function accepts a dictionary of parameters and issues the request if the requets is in Approved state."""
     params = urllib.urlencode({'host_request_id': arguments['id']})
+    pprint (params)
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     print 'Contacting Server to initiate certificate issuance. Please wait\n'
-    newrequrl = arguments['Config'].get('OIMData', 'issurl')
+    newrequrl = arguments['issurl']
     conn = httplib.HTTPConnection(arguments['host'])
     try:
         conn.request('POST', newrequrl, params, headers)
@@ -223,10 +209,10 @@ def connect_retrieve(arguments):
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = httplib.HTTPConnection(arguments['host'])
     try:
-        conn.request('POST', arguments['requrl'], params, headers)
+        conn.request('POST', arguments['returl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
+        charlimit_textwrap('Connection to %s failed: %s' % (arguments['requrl'], e))
         raise httplib.HTTPException
     data = response.read()
     if simplejson.loads(data).has_key('request_status'):
@@ -238,19 +224,19 @@ def connect_retrieve(arguments):
             charlimit_textwrap('Certificate request in Approved state. Needs to be issued first\n')
             connect_issue(arguments)
     try:
-        conn.request('POST', arguments['requrl'], params, headers)
+        conn.request('POST', arguments['returl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
+        charlimit_textwrap('Connection to %s failed: %s' % (arguments['returl'], e))
         raise httplib.HTTPException
     data = response.read()
 
     while 'PENDING' in data:
-        conn.request('POST', arguments['requrl'], params, headers)
+        conn.request('POST', arguments['returl'], params, headers)
         try:
             response = conn.getresponse()
         except httplib.HTTPException, e:
-            charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
+            charlimit_textwrap('Connection to %s failed: %s' % (arguments['returl'], e))
             raise httplib.HTTPException
         data = response.read()
         conn.close()

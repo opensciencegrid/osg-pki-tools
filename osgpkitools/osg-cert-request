@@ -303,8 +303,8 @@ if __name__ == '__main__':
                             charlimit_textwrap('''Uncaught Exception ''')
                             sys.exit(1)
 
-            
-            new_csr = OSGPKIUtils.Cert.CreateX509Request(**config_items)
+            new_csr = OSGPKIUtils.Cert()
+            new_csr = new_csr.CreateX509Request(**config_items)
             arguments['csr'] = \
                 new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
                     , '').replace('-----END CERTIFICATE REQUEST-----\n'
