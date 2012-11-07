@@ -286,7 +286,6 @@ def connect_retrieve(arguments):
         os.remove(temp_filename)
         certString = open(arguments['pem_filename'], 'rb').read()
         hostname = extractHostname(certString)
-        print "hostname is %s" %hostname
         extractedEEM = extractEEM(certString, hostname )
         os.remove(arguments['pem_filename'])
         fileWrite = open (arguments['pem_filename'], 'wb')

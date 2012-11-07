@@ -16,9 +16,7 @@ def extractHostname(certString):
 	hostname = ""
 	for subStr in certArray:
 		if '/CN=' in subStr:
-			print "The substring with /CN= %s" %subStr
 			if not 'DigiCert' in subStr.split('/CN=')[1].split('\n')[0]:
-				print " substr in the if is %s" %subStr
 				hostname = subStr.split('/CN=')[1].split('\n')[0]
 			
 	return hostname

@@ -364,7 +364,6 @@ def write_certs(
         #hostname = line.split('CN=')[1]
         certString = open(temp_file, 'rb').read()
         hostname = extractHostname(certString)
-        print "hostname is %s" %hostname
         ### replaceing new line and space . As ell as replacing '/' with -'-' in the file name ###
         ### so that file system doesnt mistake it for path ###
         eemString = extractEEM(certString,hostname)
