@@ -10,6 +10,26 @@ MBSTRING_FLAG = 0x1000
 MBSTRING_ASC  = MBSTRING_FLAG | 1
 MBSTRING_BMP  = MBSTRING_FLAG | 2
 
+def extractHostname(certString):
+	#Extracts hostname from the string of certifcate file"""
+	certArray = certString.split(' ')
+	hostname = ""
+	for subStr in certArray:
+		if '/CN=' in subStr:
+			print "The substring with /CN= %s" %subStr
+			if not 'DigiCert' in subStr.split('/CN=')[1].split('\n')[0]:
+				print " substr in the if is %s" %subStr
+				hostname = subStr.split('/CN=')[1].split('\n')[0]
+			
+	return hostname
+
+def extractEEM(certString, hostname):
+	certArray = certString.split('\n\n')
+	for certArrayString in certArray: 
+		if (hostname in certArrayString):
+			return certArrayString
+
+		
 def CreateOIMConfig (isITB, **OIMConfig):
 	OIMConfig.update({'requrl': '/oim/rest?action=host_certs_request&version=1'})
 	OIMConfig.update({'appurl': '/oim/rest?action=host_certs_approve&version=1'})
@@ -86,4 +106,3 @@ if __name__ == '__main__':
 	run = Cert()
 	run.CreatePKey()
 	run.CreateX509Request()
-	#run.CreateX509Certificate ()

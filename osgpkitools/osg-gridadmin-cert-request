@@ -27,6 +27,8 @@ from optparse import OptionGroup
 import optparse
 from osgpkitools import OSGPKIUtils
 from OSGPKIUtils import CreateOIMConfig
+from OSGPKIUtils import extractHostname
+from OSGPKIUtils import extractEEM
 import sys
 import textwrap
 import traceback
@@ -357,19 +359,28 @@ def write_certs(
         os.remove(filename)
         os.chmod(temp_file,0777)
         """This part of the code extracts the hostname from the certificate"""
-        tmp_filename = open(temp_file)
-        line = tmp_filename.readline()
-        hostname = line.split('CN=')[1]
+        #tmp_filename = open(temp_file)
+        #line = tmp_filename.readline()
+        #hostname = line.split('CN=')[1]
+        certString = open(temp_file, 'rb').read()
+        hostname = extractHostname(certString)
+        print "hostname is %s" %hostname
         ### replaceing new line and space . As ell as replacing '/' with -'-' in the file name ###
         ### so that file system doesnt mistake it for path ###
+        eemString = extractEEM(certString,hostname)
         hostname = hostname.strip(' \n').replace('/','-')
         pem_filename = hostname + ".pem"
+        #tmp_filename.close()
+        #certString = open(temp_file, 'rb')
+        #certString.close()
+        os.remove(temp_file)
+        writeCert = open(temp_file, 'w+')
+        writeCert.write(eemString)
         if os.path.exists(pem_filename):
             charlimit_textwrap("The file %s already exists." % pem_filename)
             pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem')
         subprocess.call(['mv', temp_file, pem_filename])### fix for move the file to desired name ###
         os.chmod(pem_filename,0644)
-        tmp_filename.close()
         cwd = os.getcwd()
         try:
             os.chdir(arguments['certdir'])
