@@ -141,8 +141,17 @@ try:
             try:
                 userprivkey = os.environ['X509_USER_KEY']
             except:
-                userprivkey = str(os.environ['HOME']) \
-                    + '/.globus/userkey.pem'
+                if os.path.exists(str(os.environ['HOME'])+'/.globus/userkey.pem'):
+                    userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
+                elif os.path.exists(str(os.environ['HOME']) + '/.globus/usercred.p12'):
+                    temp_key = str(os.environ['HOME']) + '/.globus/usercred.p12'
+                    userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
+                    print "using .p12 key file"
+                    subprocess.call(['openssl', 'pkcs12', '-nocerts', '-in', temp_key, '-out', userprivkey])
+                else:
+                    charlimit_textwrap("Could not locate the key file")
+                    sys.exit(1)
+                        
         else:
             userprivkey = args.userprivkey
     
@@ -157,6 +166,16 @@ try:
                 usercert = os.environ['X509_USER_CERT']
             except:
                 usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
+                if os.path.exists(str(os.environ['HOME'])+'/.globus/usercert.pem'):
+                    usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
+                elif os.path.exists(str(os.environ['HOME']) + '/.globus/usercred.p12'):
+                    temp_cert = str(os.environ['HOME']) + '/.globus/usercred.p12'
+                    usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
+                    print "Using .p12 file"
+                    subprocess.call(['openssl', 'pkcs12', '-clcerts', '-nokeys', '-in', temp_cert, '-out', usercert])
+                else:
+                    charlimit_textwrap("Could not locate the key file")
+                    sys.exit(1)
         else:
             usercert = args.usercert
     
