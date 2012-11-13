@@ -8,7 +8,7 @@ This script works in two modes:
 1) Requesting single host certificate with -H option
 2) Request multple host certificates with hostnames stored in a file
 """
-
+import pdb
 import urllib
 import httplib
 import sys
@@ -29,6 +29,7 @@ from osgpkitools import OSGPKIUtils
 from OSGPKIUtils import CreateOIMConfig
 from OSGPKIUtils import extractHostname
 from OSGPKIUtils import extractEEM
+from OSGPKIUtils import get_request_count
 import sys
 import textwrap
 import traceback
@@ -241,7 +242,7 @@ def connect_request(ssl_context, bulk_csr, arguments):
     params = urllib.urlencode({'csrs': bulk_csr}, doseq=True)
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
+    conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
             ssl_context=ssl_context)
     try:
         conn.request('POST', arguments['requrl'], params, headers)
@@ -531,6 +532,74 @@ def create_certificate(line, reqid, config_items):
 
     return csr
 
+def check_quota_limit(request_count, ssl_context, arguments):
+    '''This function checks if the quota requirements for the user is met for the particular request'''
+    headers = {'Content-type': arguments['content_type'],
+               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+    conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
+            ssl_context=ssl_context)
+    try:
+        conn.request('GET', arguments['quotaurl'], None, headers)
+        response = conn.getresponse()
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed: %s' % (arguments['quotaurl'], e))
+        raise httplib.HTTPException
+    data = response.read()
+    if not 'PENDING' in response.reason:
+        if not 'OK' in response.reason:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+                % simplejson.loads(data)['detail'].lstrip())
+            charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
+            sys.exit(1)
+    charlimit_textwrap('Waiting for response from Quota Check API. Please wait.')
+    while 'PENDING' in data:
+        conn.request('GET', arguments['quotaurl'], headers)
+        try:
+            response = conn.getresponse()
+        except httplib.HTTPException, e:
+            charlimit_textwrap('Connection to %s failed: %s' % (arguments['quotaurl'], e))
+            raise httplib.HTTPException
+        data = response.read()
+        conn.close()
+        if 'PENDING' in data:
+            time.sleep(5)
+            iterations = iterations + 1
+            if iterations % 6 == 0:
+                print '.',
+                sys.stdout.flush()
+            if iterations > arguments['timeout']*12:
+                charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % arguments['timeout'] )
+                charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
+                sys.exit(1)
+        else:
+            pass
+    if 'FAILED' in data:
+        try:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % simplejson.loads(data)['detail'].split('--')[1].lstrip())
+        except IndexError, e:
+            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+            % simplejson.loads(data)['detail'].lstrip())
+        charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
+        sys.exit(1)
+    else:
+        global_hostcert_year_max = simplejson.loads(data)['global_hostcert_year_max']
+        global_hostcert_year_count =simplejson.loads(data)['global_hostcert_year_count']
+        count_hostcert_day = simplejson.loads(data)['count_hostcert_day']
+        quota_hostcert_day_max = simplejson.loads(data)['quota_hostcert_day_max']
+        count_hostcert_year = simplejson.loads(data)['count_hostcert_year']
+        quota_hostcert_year_max = simplejson.loads(data)['quota_hostcert_year_max']
+        if global_hostcert_year_max > global_hostcert_year_count and \
+            count_hostcert_day < quota_hostcert_day_max and \
+            count_hostcert_year < quota_hostcert_year_max and \
+            quota_hostcert_day_max > request_count:
+            status = True
+        else:
+            status = False
+    print "status %s" %status
+    conn.close()
+    return status
+    
 
 if __name__ == '__main__':
     try:
@@ -591,6 +660,13 @@ if __name__ == '__main__':
         host_set = set()
         if not arguments.has_key('hostname'):
             hosts = open(arguments['hostfile'], 'rb')
+            request_count = get_request_count(arguments['hostfile'])
+            status = check_quota_limit(request_count,ssl_context, arguments)
+            if status:
+                pass
+            else:
+                charlimit_textwrap("The user does not have enough approval quota. The script will now exit")
+                sys.exit(1)
             for line in hosts:
                 line = line.strip(' \n')
                 if not line in host_set:
@@ -610,7 +686,6 @@ if __name__ == '__main__':
                                 charlimit_textwrap("Your certificate is not trusted by the server")
                                 sys.exit(1)
                             else:
-                                print("here--------------------------")
                                 print traceback.format_exc()
                                 charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
                                 )
@@ -641,6 +716,12 @@ if __name__ == '__main__':
                 connect_retrieve(arguments)
             hosts.close()
         else:
+            status = check_quota_limit(1, ssl_context, arguments)
+            if status:
+                pass
+            else:
+                charlimit_textwrap("The user does not have enough approval quota. The script will now exit")
+                sys.exit(1)
             hostname = arguments['hostname'].rstrip('\n')
             config_items.update({'CN': hostname})  # ### New CN for every host#######
             num_requests = 1
@@ -671,7 +752,6 @@ if __name__ == '__main__':
     except Exception, e:
         print traceback.format_exc()
         charlimit_textwrap('''Uncaught Exception : 
-
 Please report the bug to goc@opensciencegrid.org.
 '''
                      )

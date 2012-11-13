@@ -10,6 +10,18 @@ MBSTRING_FLAG = 0x1000
 MBSTRING_ASC  = MBSTRING_FLAG | 1
 MBSTRING_BMP  = MBSTRING_FLAG | 2
 
+def get_request_count(filename):
+	'''Returns the number of request in the file'''
+	hostfile = open(filename, 'rb')
+	name_set = set()
+	count = 0
+	for line in hostfile.readlines():
+		line = line.strip(' \n')
+		if not line in name_set:
+			name_set.add(line)
+			count +=1
+	return count
+
 def extractHostname(certString):
 	#Extracts hostname from the string of certifcate file"""
 	certArray = certString.split(' ')
@@ -35,6 +47,7 @@ def CreateOIMConfig (isITB, **OIMConfig):
 	OIMConfig.update({'canurl': '/oim/rest?action=host_certs_cancel&version=1'})
 	OIMConfig.update({'returl': '/oim/rest?action=host_certs_retrieve&version=1'})
 	OIMConfig.update({'issurl': '/oim/rest?action=host_certs_issue&version=1'})
+	OIMConfig.update({'quotaurl': '/oim/rest?action=user_info'})
 	OIMConfig.update({'content_type': 'application/x-www-form-urlencoded'})
 	if (isITB):
 		OIMConfig.update({'host': 'oim-itb.grid.iu.edu:80'})
