@@ -64,6 +64,26 @@ def parse_args():
         default='./hostkey.pem',
         )
     parser.add_option(
+        '-y',
+        '--cc',
+        action='store',
+        dest='cc_list',
+        help='Specify the CC list(the email id\'s to be CCed)'
+            ,
+        metavar='CC List',
+        default='',
+        )
+    parser.add_option(
+        '-m',
+        '--comment',
+        action='store',
+        dest='comment',
+        help='The comment to be added to the request'
+            ,
+        metavar='Comment',
+        default='',
+        )
+    parser.add_option(
         '-t',
         '--hostname',
         action='store',
@@ -146,6 +166,11 @@ def parse_args():
     prikey = args.prikey
 
 
+    cc_list = args.cc_list
+
+
+    comment = args.comment  
+
     phone_num = phone.replace('-', '')
     if not phone_num.isdigit():
         sys.exit("Phone number should contain only numbers and/or '-'\n"
@@ -168,9 +193,6 @@ def parse_args():
         OIM = True
     else:
         OIM = False
-    #host = Config.get(OIM, 'host')
-    #requrl = Config.get(OIM, 'requrl')
-    #content_type = Config.get(OIM, 'content_type')
 
     arguments = dict()
     arguments = CreateOIMConfig(OIM, **arguments)
@@ -178,23 +200,20 @@ def parse_args():
         arguments.update({'args': args})
     if vars().has_key('values'):
         arguments.update({'values': values})
-
-    if vars().has_key('hostname'):
-        arguments.update({'hostname': hostname})
-
+    if vars().has_key('cc_list'):
+        arguments.update({'cc_list': cc_list})
+    if vars().has_key('comment'):
+        arguments.update({'comment': comment})
     if vars().has_key('pem_filename'):
         arguments.update({'pem_filename': pem_filename})
     arguments.update({'email': email})
     arguments.update({'name': name})
     arguments.update({'phone': phone})
-    #arguments.update({'host': host})
+    arguments.update({'hostname': hostname})
     if vars().has_key('csr'):
         arguments.update({'csr': csr})
     if vars().has_key('prikey'):
         arguments.update({'prikey': prikey})
-    #arguments.update({'requrl': requrl})
-    #arguments.update({'content_type': content_type})
-    #arguments.update({'Config': Config})
     return arguments
 
 
@@ -208,11 +227,14 @@ def parse_args():
 def connect(arguments):
     """This function accepts a dictionary consisting of all parameters and their values.\nIt submites the request to the OIM server and returns the request details."""
     print '\nConnecting to server...'
+    
     params = urllib.urlencode({
         'name': arguments['name'],
         'email': arguments['email'],
         'phone': arguments['phone'],
         'csrs': arguments['csr'],
+        'request_comment' : arguments['comment'],
+        'request_ccs' : arguments['cc_list'],
         })
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
