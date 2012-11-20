@@ -44,7 +44,10 @@ def extractEEM(certString, hostname):
 		
 def CreateOIMConfig (isITB, **OIMConfig):
 	Config = ConfigParser.ConfigParser()
-	if os.path.exists('pki-clients.ini'):
+	if os.path.exists(str(os.environ['HOME'])+'/.osg-pki/OSG_PKI.ini'):
+		print "Overriding INI file with %s/.osg-pki/OSG_PKI.ini" %str(os.environ['HOME'])
+		Config.read('pki-clients.ini')
+	elif os.path.exists('pki-clients.ini'):
 		Config.read('pki-clients.ini')
 	elif os.path.exists('etc/pki-clients.ini'):
 		Config.read('etc/pki-clients.ini')
