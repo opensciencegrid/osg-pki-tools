@@ -5,6 +5,8 @@
 
 import M2Crypto
 import base64
+import ConfigParser
+import os
 
 MBSTRING_FLAG = 0x1000
 MBSTRING_ASC  = MBSTRING_FLAG | 1
@@ -41,20 +43,30 @@ def extractEEM(certString, hostname):
 
 		
 def CreateOIMConfig (isITB, **OIMConfig):
-	OIMConfig.update({'requrl': '/oim/rest?action=host_certs_request&version=1'})
-	OIMConfig.update({'appurl': '/oim/rest?action=host_certs_approve&version=1'})
-	OIMConfig.update({'revurl': '/oim/rest?action=host_certs_revoke&version=1'})
-	OIMConfig.update({'canurl': '/oim/rest?action=host_certs_cancel&version=1'})
-	OIMConfig.update({'returl': '/oim/rest?action=host_certs_retrieve&version=1'})
-	OIMConfig.update({'issurl': '/oim/rest?action=host_certs_issue&version=1'})
-	OIMConfig.update({'quotaurl': '/oim/rest?action=user_info'})
-	OIMConfig.update({'content_type': 'application/x-www-form-urlencoded'})
-	if (isITB):
+	Config = ConfigParser.ConfigParser()
+	if os.path.exists('pki-clients.ini'):
+		Config.read('pki-clients.ini')
+	elif os.path.exists('etc/pki-clients.ini'):
+		Config.read('etc/pki-clients.ini')
+	else:
+		sys.exit('Missing config file: pki-clients.ini\n')
+	if isITB:
+		print "Running in test mode"
+		OIM = 'OIMData_ITB'
 		OIMConfig.update({'host': 'oim-itb.grid.iu.edu:80'})
 		OIMConfig.update({'hostsec': 'oim-itb.grid.iu.edu:443'})
 	else:
+		OIM = 'OIMData'
 		OIMConfig.update({'host': 'oim.grid.iu.edu:80'})
 		OIMConfig.update({'hostsec': 'oim.grid.iu.edu:443'})
+	OIMConfig.update({'requrl': Config.get(OIM, 'requrl')})
+	OIMConfig.update({'appurl': Config.get(OIM, 'appurl')})
+	OIMConfig.update({'revurl': Config.get(OIM, 'revurl')})
+	OIMConfig.update({'canurl': Config.get(OIM, 'canurl')})
+	OIMConfig.update({'returl': Config.get(OIM, 'returl')})
+	OIMConfig.update({'issurl': Config.get(OIM, 'issurl')})
+	OIMConfig.update({'quotaurl': Config.get(OIM, 'quotaurl')})
+	OIMConfig.update({'content_type': Config.get(OIM, 'content_type')})
 	return OIMConfig
 
 class Cert:
