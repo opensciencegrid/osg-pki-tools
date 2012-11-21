@@ -637,9 +637,7 @@ def check_bad_passphrase(e,**arguments):
                 print "Incorrect passphrase. Attempt failed twice. Exiting script"
                 sys.exit(1)
             else:
-                print traceback.format_exc()
-                charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org." )
-                sys.exit(1)
+                print_uncaught_exception()
     elif 'handshake failure' in e: ### fix for wrong key/certificate ###
         charlimit_textwrap('''Failure : %s''' % e)
         charlimit_textwrap("Please check for valid certificate/key pairs.")
@@ -648,13 +646,24 @@ def check_bad_passphrase(e,**arguments):
         charlimit_textwrap("Error connecting to server: %s" % e)
         charlimit_textwrap("Your certificate is not trusted by the server")
     else:
-        print traceback.format_exc()
-        charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
-             )
-        sys.exit(1)
+        print_uncaught_exception()
     return ssl_context
 
+def print_uncaught_exception():
+    print traceback.format_exc()
+    charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
+                                )
+    sys.exit(1)
+                        
+def check_bad_cert_exception(e):
+        if 'sslv3 alert bad certificate' in e:
+                                charlimit_textwrap("Error connecting to server: %s" % e)
+                                charlimit_textwrap("Your certificate is not trusted by the server")
+                                sys.exit(1)
+    
+
 def process_hostfile_mode(ssl_context, **arguments):
+    
     bulk_csr = list()
     count = 0
     num_requests = 0
@@ -703,8 +712,6 @@ if __name__ == '__main__':
                                     callback=prompt_for_password)
         except Exception, e:
             check_bad_passphrase(e, **arguments)
-                  
-            
         config_items = {}
 
     # ############################# Pipelining the bulk Certificate request process to send them at once##################################
@@ -737,14 +744,9 @@ if __name__ == '__main__':
                             arguments = connect_request(ssl_context, bulk_csr, **arguments)
                         except Exception ,e:
                             if 'sslv3 alert bad certificate' in e:
-                                charlimit_textwrap("Error connecting to server: %s" % e)
-                                charlimit_textwrap("Your certificate is not trusted by the server")
-                                sys.exit(1)
+                                check_bad_cert_exception(e)
                             else:
-                                print traceback.format_exc()
-                                charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
-                                )
-                                sys.exit(1)
+                                print_uncaught_exception()
                         connect_approve(ssl_context, **arguments)
                         connect_retrieve(**arguments)
                         bulk_csr = ''
@@ -758,15 +760,9 @@ if __name__ == '__main__':
                     arguments = connect_request(ssl_context, bulk_csr, **arguments)
                 except Exception ,e:
                     if 'sslv3 alert bad certificate' in e:
-                        charlimit_textwrap("Error connecting to server: %s" % e)
-                        charlimit_textwrap("Your certificate is not trusted by the server")
-                        sys.exit(1)
+                        check_bad_cert_exception(e)
                     else:
-                        print("here--------------------------")
-                        print traceback.format_exc()
-                        charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
-                                )
-                        sys.exit(1)
+                        print_uncaught_exception()
                 connect_approve(ssl_context, **arguments)
                 connect_retrieve(**arguments)
             hosts.close()
@@ -784,16 +780,11 @@ if __name__ == '__main__':
             csr = create_certificate(hostname.replace('/','-'), count, config_items)
             try:
                 arguments  = connect_request(ssl_context, csr, **arguments)
-            except Exception, e:
+            except Exception ,e:
                 if 'sslv3 alert bad certificate' in e:
-                    charlimit_textwrap("Error connecting to server: %s" % e)
-                    charlimit_textwrap("Your certificate is not trusted by the server")
-                    sys.exit(1)
+                    check_bad_cert_exception(e)
                 else:
-                    print traceback.format_exc()
-                    charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
-                         )
-                    sys.exit(1)
+                    print_uncaught_exception()
             connect_approve(ssl_context, **arguments)
             connect_retrieve(**arguments)
     except SystemExit, e: ### fix for weird error on help for python2.4 ###
@@ -805,10 +796,5 @@ if __name__ == '__main__':
         print k
         sys.exit('''Interrupted by user\n''')
     except Exception, e:
-        print traceback.format_exc()
-        charlimit_textwrap('''Uncaught Exception : 
-Please report the bug to goc@opensciencegrid.org.
-'''
-                     )
-        sys.exit(1)
+        print_uncaught_exception()
     sys.exit(0)
