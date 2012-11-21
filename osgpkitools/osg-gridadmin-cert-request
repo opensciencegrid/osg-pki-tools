@@ -601,7 +601,7 @@ def check_quota_limit(request_count, ssl_context, arguments):
     conn.close()
     return status
     
-def process_csr_bulk(ssl_context, bulk_csr, **arguments):
+def process_csr(ssl_context, bulk_csr, **arguments):
     try:
         arguments = connect_request(ssl_context, bulk_csr, **arguments)
     except Exception ,e:
@@ -740,15 +740,7 @@ if __name__ == '__main__':
                     bulk_csr.append(csr)
                     num_requests = num_requests + 1 ### as a check for number of request and certs retrieved ###
                     if count == 50: ### Processing max of 50 requests in bulk ###
-                        try:
-                            arguments = connect_request(ssl_context, bulk_csr, **arguments)
-                        except Exception ,e:
-                            if 'sslv3 alert bad certificate' in e:
-                                check_bad_cert_exception(e)
-                            else:
-                                print_uncaught_exception()
-                        connect_approve(ssl_context, **arguments)
-                        connect_retrieve(**arguments)
+                        process_csr(ssl_context, bulk_csr, **arguments)
                         bulk_csr = ''
                         count = 0
                 else:
@@ -756,15 +748,7 @@ if __name__ == '__main__':
     # ####################################################################################################################################
 
             if count != 0 and count != 50:
-                try:
-                    arguments = connect_request(ssl_context, bulk_csr, **arguments)
-                except Exception ,e:
-                    if 'sslv3 alert bad certificate' in e:
-                        check_bad_cert_exception(e)
-                    else:
-                        print_uncaught_exception()
-                connect_approve(ssl_context, **arguments)
-                connect_retrieve(**arguments)
+                process_csr(ssl_context, bulk_csr, **arguments)
             hosts.close()
         else:
             status = check_quota_limit(1, ssl_context, arguments)
@@ -778,15 +762,7 @@ if __name__ == '__main__':
             num_requests = 1
             charlimit_textwrap('Beginning request process for %s' % hostname)
             csr = create_certificate(hostname.replace('/','-'), count, config_items)
-            try:
-                arguments  = connect_request(ssl_context, csr, **arguments)
-            except Exception ,e:
-                if 'sslv3 alert bad certificate' in e:
-                    check_bad_cert_exception(e)
-                else:
-                    print_uncaught_exception()
-            connect_approve(ssl_context, **arguments)
-            connect_retrieve(**arguments)
+            process_csr(ssl_context, csr, **arguments)
     except SystemExit, e: ### fix for weird error on help for python2.4 ###
             raise
     except ssl.SSLError, s:
