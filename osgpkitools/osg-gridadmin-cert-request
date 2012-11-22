@@ -120,7 +120,7 @@ try:
             )
         parser.add_option_group(group)
         (args, values) = parser.parse_args()
-    
+        arguments = dict()
         if not args.hostname:
             hostfile = args.hostfile
         else:
@@ -149,6 +149,8 @@ try:
                     userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
                     print "using .p12 key file"
                     subprocess.call(['openssl', 'pkcs12', '-nocerts', '-in', temp_key, '-out', userprivkey])
+                    arguments.update({'userprivkey': userprivkey})
+                    #arguments = get_ssl_context(**arguments)
                 else:
                     charlimit_textwrap("Could not locate the key file")
                     sys.exit(1)
@@ -174,6 +176,8 @@ try:
                     usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
                     print "Using .p12 file"
                     subprocess.call(['openssl', 'pkcs12', '-clcerts', '-nokeys', '-in', temp_cert, '-out', usercert])
+                    arguments.update({'usercert': usercert})
+                    arguments = get_ssl_context(**arguments)
                 else:
                     charlimit_textwrap("Could not locate the key file")
                     sys.exit(1)
@@ -192,7 +196,6 @@ try:
             else:
                 charlimit_textwrap('Unable to locate the hostfile:' + hostfile)
                 sys.exit(1)
-        arguments = dict()
         if args.test:
             print "Running in test mode"
             OIM=True
@@ -233,7 +236,7 @@ except SystemExit, e:
 # uses for all certificate operations via the API
 #
 
-def connect_request(ssl_context, bulk_csr, **arguments):
+def connect_request(bulk_csr, **arguments):
     """This function accepts a an ssl_context instance which contains information about the established ssl connection,
     the csr string(base64 encoded) and adictionary consisting of all parameters and their values,
     It submites the request to the OIM server and returns the request details.
@@ -244,7 +247,7 @@ def connect_request(ssl_context, bulk_csr, **arguments):
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
-            ssl_context=ssl_context)
+            ssl_context=arguments['ssl_context'])
     try:
         conn.request('POST', arguments['requrl'], params, headers)
         response = conn.getresponse()
@@ -288,7 +291,7 @@ def connect_request(ssl_context, bulk_csr, **arguments):
 # function
 #
 
-def connect_approve(ssl_context, **arguments):
+def connect_approve(**arguments):
     """This function accepts a an ssl_context instance which contains information about the established ssl connection
     and a dictionary consisting of all parameters and their values,
     It approves the request that is submitted to the OIM by connect_request.
@@ -299,7 +302,7 @@ def connect_approve(ssl_context, **arguments):
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
-            ssl_context=ssl_context)
+            ssl_context=arguments['ssl_context'])
     try:
         conn.request('POST', arguments['appurl'], params, headers)
         response = conn.getresponse()
@@ -322,7 +325,7 @@ def connect_approve(ssl_context, **arguments):
         print 'Contacting Server to initiate certificate issuance.'
         newrequrl = arguments['issurl']
         conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
-                ssl_context=ssl_context)
+                ssl_context=arguments['ssl_context'])
         try:
             conn.request('POST', newrequrl, params, headers)
             response = conn.getresponse()
@@ -506,6 +509,7 @@ def create_certificate(line, reqid, config_items):
     It writes the key and creates the CSR."""
     print 'Generating certificate...'
     try:
+        #line = u"//?/" + os.getcwd() + u"/" + line
         keyname = line + '-key.pem'
         if os.path.exists(keyname):
             charlimit_textwrap("The key file %s already exists" % keyname)
@@ -528,12 +532,12 @@ def create_certificate(line, reqid, config_items):
 
     return csr
 
-def check_quota_limit(request_count, ssl_context, arguments):
+def check_quota_limit(request_count, arguments):
     '''This function checks if the quota requirements for the user is met for the particular request'''
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
-            ssl_context=ssl_context)
+            ssl_context=arguments['ssl_context'])
     try:
         conn.request('GET', arguments['quotaurl'], None, headers)
         response = conn.getresponse()
@@ -596,9 +600,9 @@ def check_quota_limit(request_count, ssl_context, arguments):
     conn.close()
     return status
     
-def process_csr(num_requests, ssl_context, bulk_csr, **arguments):
+def process_csr(num_requests, bulk_csr, **arguments):
     try:
-        arguments = connect_request(ssl_context, bulk_csr, **arguments)
+        arguments = connect_request( bulk_csr, **arguments)
     except Exception ,e:
         if 'sslv3 alert bad certificate' in e:
             charlimit_textwrap("Error connecting to server: %s" % e)
@@ -608,7 +612,7 @@ def process_csr(num_requests, ssl_context, bulk_csr, **arguments):
             charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
                                 )
         sys.exit(1)
-    connect_approve(ssl_context, **arguments)
+    connect_approve(**arguments)
     connect_retrieve(num_requests,**arguments)
     return
 
@@ -656,8 +660,13 @@ def check_bad_cert_exception(e):
                                 charlimit_textwrap("Your certificate is not trusted by the server")
                                 sys.exit(1)
     
-def process_single_host_mode(ssl_context, **arguments):
-    status = check_quota_limit(1, ssl_context, arguments)
+def process_single_host_mode(**arguments):
+    bulk_csr = list()
+    count = 0
+    num_requests = 0
+    host_set = set()
+    config_items = {}
+    status = check_quota_limit(1, arguments)
     if status:
         pass
     else:
@@ -668,10 +677,10 @@ def process_single_host_mode(ssl_context, **arguments):
     num_requests = 1
     charlimit_textwrap('Beginning request process for %s' % hostname)
     csr = create_certificate(hostname.replace('/','-'), count, config_items)
-    process_csr(1,ssl_context, csr, **arguments)
+    process_csr(1, csr, **arguments)
     return
 
-def process_hostfile_mode(ssl_context, **arguments):
+def process_hostfile_mode(**arguments):
     bulk_csr = list()
     count = 0
     num_requests = 0
@@ -679,7 +688,7 @@ def process_hostfile_mode(ssl_context, **arguments):
     config_items = {}
     hosts = open(arguments['hostfile'], 'rb')
     request_count = get_request_count(arguments['hostfile'])
-    status = check_quota_limit(request_count,ssl_context, arguments)
+    status = check_quota_limit(request_count, arguments)
     if status:
         pass
     else:
@@ -696,7 +705,7 @@ def process_hostfile_mode(ssl_context, **arguments):
             bulk_csr.append(csr)
             num_requests = num_requests + 1 ### as a check for number of request and certs retrieved ###
             if count == 50: ### Processing max of 50 requests in bulk ###
-                process_csr(request_count,ssl_context, bulk_csr, **arguments)
+                process_csr(request_count, bulk_csr, **arguments)
                 bulk_csr = ''
                 count = 0
         else:
@@ -704,9 +713,17 @@ def process_hostfile_mode(ssl_context, **arguments):
 # ####################################################################################################################################
 
     if count != 0 and count != 50:
-        process_csr(request_count, ssl_context, bulk_csr, **arguments)
+        process_csr(request_count, bulk_csr, **arguments)
     hosts.close()
     return
+
+def get_ssl_context(**arguments):
+    ssl_context = M2Crypto.SSL.Context('sslv3')
+    ssl_context.load_cert_chain(arguments['usercert'],
+                                    arguments['userprivkey'],
+                                    callback=prompt_for_password)
+    arguments.update({'ssl_context': ssl_context})
+    return arguments
 
 if __name__ == '__main__':
     try:
@@ -714,24 +731,18 @@ if __name__ == '__main__':
         arguments = parse_args()
 
         try:
-            ssl_context = M2Crypto.SSL.Context('sslv3')
-            ssl_context.load_cert_chain(arguments['usercert'],
-                                    arguments['userprivkey'],
-                                    callback=prompt_for_password)
+            if not arguments.has_key('ssl_context'):
+                arguments = get_ssl_context(**arguments)
+            #ssl_context = M2Crypto.SSL.Context('sslv3')
+            #ssl_context.load_cert_chain(arguments['usercert'],
+            #                        arguments['userprivkey'],
+            #                        callback=prompt_for_password)
         except Exception, e:
             check_bad_passphrase(e, **arguments)
-        config_items = {}
-
-    # ############################# Pipelining the bulk Certificate request process to send them at once##################################
-
-        bulk_csr = list()
-        count = 0
-        num_requests = 0
-        host_set = set()
         if not arguments.has_key('hostname'):
-            process_hostfile_mode(ssl_context, **arguments)
+            process_hostfile_mode(**arguments)
         else:
-            process_single_host_mode(ssl_context, **arguments)
+            process_single_host_mode(**arguments)
     except SystemExit, e: ### fix for weird error on help for python2.4 ###
             raise
     except ssl.SSLError, s:
