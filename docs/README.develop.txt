@@ -22,3 +22,4 @@ The retrieved certificates are stored in separate files with a suffix of the ser
 the write_cert function is purely designed to perform the string operations that are necessary to cleanse the certificate dump that we get and store them in different files as certificates.
 The arguments are parsed using the optparse utility since it is compatible with python 2.4. Optparse doesn't handle the required options, hence the handling of the required options are done explicitly.
 The key is written in pem format and the csr is base 64 encoded pkcs10 format encrypted using 2.48 bits RSA encryption using sha1 digest.
+This script is only supported with all hosts being in the same domain i.e. we should ensure that the requests go to the same GridAdmin.
