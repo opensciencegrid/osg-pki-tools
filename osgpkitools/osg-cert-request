@@ -14,6 +14,7 @@ import simplejson
 import base64
 from osgpkitools import OSGPKIUtils
 from OSGPKIUtils import CreateOIMConfig
+from OSGPKIUtils import charlimit_textwrap
 from pprint import pprint
 import os
 from optparse import OptionParser
@@ -25,34 +26,9 @@ import ssl
 # Set up Option Parser
 #
 
-def charlimit_textwrap(string):
-    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
-    list_string = textwrap.wrap(string)
-    for line in list_string:
-        print line
-    return
-
 def parse_args():
     """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
     parser = OptionParser()
-    parser.add_option(
-        '-c',
-        '--csr',
-        action='store',
-        dest='csr',
-        default='gennew.csr',
-        help='Specify CSR name (default = gennew.csr)',
-        metavar='CSR',
-        )
-    parser.add_option(
-        '-k',
-        '--key',
-        action='store',
-        dest='prikey',
-        default='genprivate.key',
-        help='Specify Private Key Name (default=genprivate.key)',
-        metavar='PRIKEY',
-        )
     parser.add_option(
         '-o',
         '--outkeyfile',
@@ -162,38 +138,18 @@ def parse_args():
     email = args.email
     name = args.name
     phone = args.phone
-    csr = args.csr
-    prikey = args.prikey
-
-
+    csr = "gennew.csr"
     cc_list = args.cc_list
-
-
     comment = args.comment  
-
     phone_num = phone.replace('-', '')
     if not phone_num.isdigit():
         sys.exit("Phone number should contain only numbers and/or '-'\n"
                  )
-
-    if args.prikey == 'genprivate.key':
-        pass
-    elif not os.path.exists(args.prikey):
-        charlimit_textwrap('The file %s does not exist' % args.prikey)
-        sys.exit(1)
-
-    if args.csr == 'gennew.csr':
-        pass
-    elif not os.path.exists(args.csr):
-        charlimit_textwrap('The file %s does not exist' % args.csr)
-        sys.exit(1)
-    
     if args.test:
         print "Running in test mode"
         OIM = True
     else:
         OIM = False
-
     arguments = dict()
     arguments = CreateOIMConfig(OIM, **arguments)
     if vars().has_key('args'):
@@ -209,11 +165,8 @@ def parse_args():
     arguments.update({'email': email})
     arguments.update({'name': name})
     arguments.update({'phone': phone})
-    arguments.update({'hostname': hostname})
-    if vars().has_key('csr'):
-        arguments.update({'csr': csr})
-    if vars().has_key('prikey'):
-        arguments.update({'prikey': prikey})
+    arguments.update({'hostname': hostname})    
+    arguments.update({'csr': csr})
     return arguments
 
 
@@ -282,66 +235,17 @@ if __name__ == '__main__':
             sys.exit(1)
         config_items = {'CN': arguments['hostname'],
                         'emailAddress': arguments['email']}
-
-        #
-        # Three options for the CSR request
-        # 1. User provides neither private key nor CSR
-        # 2. User provides private key but need to create the CSR
-        # 3. User provides both private key and CSR and we just need to
-        #    dump it and strip the text lines for the server
-        #
-
-        if arguments['prikey'] == 'genprivate.key' and arguments['csr'] \
-            == 'gennew.csr':
-            cert_obj = OSGPKIUtils.Cert()
-            cert_obj.CreatePKey(arguments['pem_filename'])
-            print "Writing key to %s" % arguments['pem_filename']
-            os.chmod(arguments['pem_filename'],0600)
-
-      # ##############################
-
-            new_csr = cert_obj.CreateX509Request(**config_items)
-            arguments['csr'] = \
-                new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
-                    , '').replace('-----END CERTIFICATE REQUEST-----\n'
-                                  , '')
-            connect(arguments)
-        elif arguments['prikey'] != 'genprivate.key':
-            try:
-                print "Please enter the passphrase for %s" % arguments['userprivkey']
-                mykey = RSA.load_key(arguments['prikey'])
-            except Exception, e:
-                if 'bad decrypt' in e:
-                    print "Incorrect passphrase for %s" % arguments['userprivkey']
-                    print "Please enter the passphrase again:"
-                    try:
-                        mykey = RSA.load_key(arguments['prikey'])
-                    except Exception, e:
-                        if 'bad decrypt' in e:
-                            print "Incorrect passphrase. Attempt failed twice. Exiting script"
-                            sys.exit(1)
-                        else:
-                            print traceback.format_exc()
-                            charlimit_textwrap('''Uncaught Exception ''')
-                            sys.exit(1)
-
-            new_csr = OSGPKIUtils.Cert()
-            new_csr = new_csr.CreateX509Request(**config_items)
-            arguments['csr'] = \
-                new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
-                    , '').replace('-----END CERTIFICATE REQUEST-----\n'
-                                  , '')
-            connect(arguments)
-        else:
-            arguments['csr'] = RSA.load_key(arguments['csr'])
-            arguments['csr'] = arguments['csr'].private_decrypt(cipher,
-                    RSA.pkcs1_oaep_padding)
-            arguments['csr'] = arguments['csr'
-                    ].replace('-----BEGIN CERTIFICATE REQUEST-----\n',
-                              ''
-                              ).replace('-----END CERTIFICATE REQUEST-----\n'
-                    , '')
-            connect()
+        cert_obj = OSGPKIUtils.Cert()
+        cert_obj.CreatePKey(arguments['pem_filename'])
+        print "Writing key to %s" % arguments['pem_filename']
+        os.chmod(arguments['pem_filename'],0600)
+        new_csr = cert_obj.CreateX509Request(**config_items)
+        arguments['csr'] = \
+            new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
+                , '').replace('-----END CERTIFICATE REQUEST-----\n'
+                              , '')
+        connect(arguments)
+        
     except KeyboardInterrupt, k:
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
@@ -353,7 +257,6 @@ if __name__ == '__main__':
     except Exception, e:
         print traceback.format_exc()
         charlimit_textwrap('''Uncaught Exception : 
-
 Please report the bug to goc@opensciencegrid.org.
 '''
                      )
