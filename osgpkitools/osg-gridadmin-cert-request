@@ -35,6 +35,7 @@ import textwrap
 import traceback
 import subprocess
 import ssl
+from OSGPKIUtils import charlimit_textwrap
 
 
 # Set up Option Parser
@@ -148,8 +149,13 @@ try:
                     temp_key = str(os.environ['HOME']) + '/.globus/usercred.p12'
                     userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
                     print "using .p12 key file"
-                    subprocess.call(['openssl', 'pkcs12', '-nocerts', '-in', temp_key, '-out', userprivkey])
+                    password = getpass.getpass("Please enter the pass phrase for '%s':"
+                                    % temp_key)
+                    p = subprocess.Popen(['openssl', 'pkcs12', '-nocerts', '-in', temp_key, '-out', userprivkey], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                    print p.communicate(password + "\n")
+                    #subprocess.call(['openssl', 'pkcs12', '-nocerts', '-in', temp_key, '-out', userprivkey])
                     arguments.update({'userprivkey': userprivkey})
+                    arguments.update({'password': password})
                     #arguments = get_ssl_context(**arguments)
                 else:
                     charlimit_textwrap("Could not locate the key file")
@@ -175,7 +181,10 @@ try:
                     temp_cert = str(os.environ['HOME']) + '/.globus/usercred.p12'
                     usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
                     print "Using .p12 file"
-                    subprocess.call(['openssl', 'pkcs12', '-clcerts', '-nokeys', '-in', temp_cert, '-out', usercert])
+                    p = subprocess.Popen(['openssl', 'pkcs12', '-clcerts', '-nokeys', '-in', temp_cert, '-out', usercert], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                    #subprocess.call(['openssl', 'pkcs12', '-clcerts', '-nokeys', '-in', temp_cert, '-out', usercert])
+                    print p.communicate(arguments['password'] + "\n")
+                    #subprocess.call(['openssl', 'pkcs12', '-nocerts', '-in', temp_key, '-out', userprivkey])
                     arguments.update({'usercert': usercert})
                     arguments = get_ssl_context(**arguments)
                 else:
@@ -670,7 +679,7 @@ def process_single_host_mode(**arguments):
     if status:
         pass
     else:
-        charlimit_textwrap("The user does not have enough approval quota. The script will now exit")
+        charlimit_textwrap("Your request would exceed your quota. Aborting")
         sys.exit(1)
     hostname = arguments['hostname'].rstrip('\n')
     config_items.update({'CN': hostname})  # ### New CN for every host#######
@@ -692,7 +701,7 @@ def process_hostfile_mode(**arguments):
     if status:
         pass
     else:
-        charlimit_textwrap("The user does not have enough approval quota. The script will now exit")
+        charlimit_textwrap("Your request would exceed your quota. Aborting")
         sys.exit(1)
     for line in hosts:
         line = line.strip(' \n')
