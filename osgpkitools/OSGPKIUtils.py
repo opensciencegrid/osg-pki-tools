@@ -12,6 +12,14 @@ MBSTRING_FLAG = 0x1000
 MBSTRING_ASC  = MBSTRING_FLAG | 1
 MBSTRING_BMP  = MBSTRING_FLAG | 2
 
+
+def charlimit_textwrap(string):
+    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
+    list_string = textwrap.wrap(string)
+    for line in list_string:
+        print line
+    return
+
 def get_request_count(filename):
 	'''Returns the number of request in the file'''
 	hostfile = open(filename, 'rb')
@@ -49,8 +57,8 @@ def CreateOIMConfig (isITB, **OIMConfig):
 		Config.read('pki-clients.ini')
 	elif os.path.exists('pki-clients.ini'):
 		Config.read('pki-clients.ini')
-	elif os.path.exists('etc/pki-clients.ini'):
-		Config.read('etc/pki-clients.ini')
+	elif os.path.exists('/etc/pki-clients.ini'):
+		Config.read('/etc/pki-clients.ini')
 	else:
 		sys.exit('Missing config file: pki-clients.ini\n')
 	if isITB:
