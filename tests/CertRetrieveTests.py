@@ -18,9 +18,10 @@ class CertRetrieveTests(PKIClientTestCase.PKIClientTestCase):
 
     def test_retrieve(self):
         """Test retrieving a certificate"""
-        # 90 is a known good certificate but otherwise arbitrary
+        # 83 is a known good certificate but otherwise arbitrary
+        # Cert 83 is for: tinge.hpcc.ttu.edu (099CA8A28EC4496A2644A78C5F1DFDCD)
         env = self.get_test_env()
-        result = self.run_script(env, self.command, "-i", "90")
+        result = self.run_script(env, self.command, "-i", "83")
         err_msg = self.run_error_msg(result)
         self.assertEqual(result.returncode, 0, err_msg)
         # Make sure certificate looks OK
