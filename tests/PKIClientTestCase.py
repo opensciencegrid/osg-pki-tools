@@ -6,8 +6,6 @@ import scripttest  # pip install scripttest
 import stat
 import sys
 import unittest
-import osgpkitools.OSGPKIUtils as OSGPKIUtils
-from OSGPKIUtils import CreateOIMConfig
 
 class PKIClientTestCase(unittest.TestCase):
     """OSG PKI CLI TestCase bass class"""
@@ -56,7 +54,6 @@ class PKIClientTestCase(unittest.TestCase):
                                              template_path=cls.scripts_path)
         # Copy in configuration file
         env.writefile("pki-clients.ini", frompath="pki-clients.ini")
-	#env = CreateOIMConfig(True, **env)
         return env
 
     @classmethod
