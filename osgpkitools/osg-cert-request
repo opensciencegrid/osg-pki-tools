@@ -68,7 +68,7 @@ def parse_args():
         '--cc',
         action='store',
         dest='cc_list',
-        help='Specify the CC list(the email id\'s to be CCed)'
+        help='Specify the CC list(the email id\'s to be CCed). Separate values by \',\''
             ,
         metavar='CC List',
         default='',
@@ -227,14 +227,13 @@ def parse_args():
 def connect(arguments):
     """This function accepts a dictionary consisting of all parameters and their values.\nIt submites the request to the OIM server and returns the request details."""
     print '\nConnecting to server...'
-    
     params = urllib.urlencode({
         'name': arguments['name'],
         'email': arguments['email'],
         'phone': arguments['phone'],
         'csrs': arguments['csr'],
         'request_comment' : arguments['comment'],
-        'request_ccs' : arguments['cc_list'],
+        'request_ccs' : arguments['cc_list'].split(','),
         })
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
