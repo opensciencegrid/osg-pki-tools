@@ -33,6 +33,7 @@ import textwrap
 import traceback
 import subprocess
 import ssl
+from OSGPKIUtils import charlimit_textwrap
 
 # Set up Option Parser
 #
@@ -215,6 +216,10 @@ def connect_retrieve(arguments):
     except httplib.HTTPException, e:
         charlimit_textwrap('Connection to %s failed: %s' % (arguments['requrl'], e))
         raise httplib.HTTPException
+    if response.status==500:
+        charlimit_textwrap("Request Failed. Status %s" %response.status)
+        charlimit_textwrap("Reason for failure %s" %response.reason)
+        sys.exit(1)
     data = response.read()
     if simplejson.loads(data).has_key('request_status'):
         if simplejson.loads(data)['request_status'] == 'REQUESTED':
@@ -230,6 +235,10 @@ def connect_retrieve(arguments):
     except httplib.HTTPException, e:
         charlimit_textwrap('Connection to %s failed: %s' % (arguments['returl'], e))
         raise httplib.HTTPException
+    if response.status==500:
+        charlimit_textwrap("Request Failed. Status %s" %response.status)
+        charlimit_textwrap("Reason for failure %s" %response.reason)
+        sys.exit(1)
     data = response.read()
 
     while 'PENDING' in data:
@@ -239,6 +248,10 @@ def connect_retrieve(arguments):
         except httplib.HTTPException, e:
             charlimit_textwrap('Connection to %s failed: %s' % (arguments['returl'], e))
             raise httplib.HTTPException
+        if response.status==500:
+            charlimit_textwrap("Request Failed. Status %s" %response.status)
+            charlimit_textwrap("Reason for failure %s" %response.reason)
+            sys.exit(1)
         data = response.read()
         conn.close()
         if 'PENDING' in data:
