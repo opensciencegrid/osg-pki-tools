@@ -13,6 +13,7 @@ MBSTRING_ASC  = MBSTRING_FLAG | 1
 MBSTRING_BMP  = MBSTRING_FLAG | 2
 
 
+
 def charlimit_textwrap(string):
     """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
     list_string = textwrap.wrap(string)
@@ -32,6 +33,10 @@ def get_request_count(filename):
 			count +=1
 	return count
 
+### We take the whole certificate data as a stirng input
+### Checking for /CN= in every line and extracting the term after that if not Digicert i.e. CA would be the hostname
+### Here we rely on OPenSSL -printcert output format. If it changes our output might be affected
+
 def extractHostname(certString):
 	#Extracts hostname from the string of certifcate file"""
 	certArray = certString.split(' ')
@@ -42,6 +47,11 @@ def extractHostname(certString):
 				hostname = subStr.split('/CN=')[1].split('\n')[0]
 			
 	return hostname
+
+### Checking for a blank new line to seperate the certificates
+### Then cheking if the hotsname is present in the certificate chunk
+### If present then its the host certificate not the CA certificate
+### Here we rely on OPenSSL -printcert output format. If it changes our output might be affected
 
 def extractEEM(certString, hostname):
 	certArray = certString.split('\n\n')

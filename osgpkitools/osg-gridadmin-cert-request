@@ -386,17 +386,19 @@ def write_certs(
         certfile = open(filename, 'w+')
         certfile.write(pkcs7raw)
         certfile.close()
+        #### printing our all the certificates received from OIM to a temporrary file###
         subprocess.call(['openssl', 'pkcs7', '-print_certs', '-in', filename,
                 '-out', temp_file], stdin=subprocess.PIPE)
-
         os.remove(filename)
         os.chmod(temp_file,0777)
         """This part of the code extracts the hostname from the certificate"""
         certString = open(temp_file, 'rb').read()
+        ### Extracting the hostname ###
         hostname = extractHostname(certString)
+        ### Extracting the EEC certificate ###
+        eemString = extractEEM(certString,hostname)
         ### replaceing new line and space . As ell as replacing '/' with -'-' in the file name ###
         ### so that file system doesnt mistake it for path ###
-        eemString = extractEEM(certString,hostname)
         hostname = hostname.strip(' \n').replace('/','-')
         pem_filename = hostname + ".pem"
         os.remove(temp_file)
