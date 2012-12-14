@@ -145,18 +145,6 @@ try:
             except:
                 if os.path.exists(str(os.environ['HOME'])+'/.globus/userkey.pem'):
                     userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
-                elif os.path.exists(str(os.environ['HOME']) + '/.globus/usercred.p12'):
-                    temp_key = str(os.environ['HOME']) + '/.globus/usercred.p12'
-                    userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
-                    print "using .p12 key file"
-                    password = getpass.getpass("Please enter the pass phrase for '%s':"
-                                    % temp_key)
-                    p = subprocess.Popen(['openssl', 'pkcs12', '-nocerts', '-in', temp_key, '-out', userprivkey], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-                    print p.communicate(password + "\n")
-                    #subprocess.call(['openssl', 'pkcs12', '-nocerts', '-in', temp_key, '-out', userprivkey])
-                    arguments.update({'userprivkey': userprivkey})
-                    arguments.update({'password': password})
-                    #arguments = get_ssl_context(**arguments)
                 else:
                     charlimit_textwrap("Could not locate the key file")
                     sys.exit(1)
@@ -177,16 +165,6 @@ try:
                 usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
                 if os.path.exists(str(os.environ['HOME'])+'/.globus/usercert.pem'):
                     usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
-                elif os.path.exists(str(os.environ['HOME']) + '/.globus/usercred.p12'):
-                    temp_cert = str(os.environ['HOME']) + '/.globus/usercred.p12'
-                    usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
-                    print "Using .p12 file"
-                    p = subprocess.Popen(['openssl', 'pkcs12', '-clcerts', '-nokeys', '-in', temp_cert, '-out', usercert], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-                    #subprocess.call(['openssl', 'pkcs12', '-clcerts', '-nokeys', '-in', temp_cert, '-out', usercert])
-                    print p.communicate(arguments['password'] + "\n")
-                    #subprocess.call(['openssl', 'pkcs12', '-nocerts', '-in', temp_key, '-out', userprivkey])
-                    arguments.update({'usercert': usercert})
-                    arguments = get_ssl_context(**arguments)
                 else:
                     charlimit_textwrap("Could not locate the key file")
                     sys.exit(1)
