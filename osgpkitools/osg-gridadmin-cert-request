@@ -691,6 +691,12 @@ def process_single_host_mode(**arguments):
     process_csr(1, csr, **arguments)
     return
 
+def check_bad_cert_exception(e):
+    if 'sslv3 alert bad certificate' in e:
+        charlimit_textwrap("Error connecting to server: %s" % e)
+        charlimit_textwrap("Your certificate is not trusted by the server")
+        sys.exit(1)
+
 def process_hostfile_mode(**arguments):
     bulk_csr = list()
     count = 0
@@ -763,5 +769,6 @@ if __name__ == '__main__':
         print k
         sys.exit('''Interrupted by user\n''')
     except Exception, e:
+        check_bad_cert_exception(e)
         print_uncaught_exception()
     sys.exit(0)
