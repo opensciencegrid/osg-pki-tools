@@ -206,7 +206,6 @@ try:
                 charlimit_textwrap('Unable to locate the hostfile:' + hostfile)
                 sys.exit(1)
         if args.test:
-            print "Running in test mode"
             OIM=True
         else:
             OIM=False
@@ -623,7 +622,6 @@ def check_quota_limit(request_count, arguments):
             status = True
         else:
             status = False
-    print "status %s" %status
     conn.close()
     return status
     
