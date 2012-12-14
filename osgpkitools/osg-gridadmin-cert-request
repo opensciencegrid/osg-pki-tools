@@ -30,6 +30,7 @@ from OSGPKIUtils import CreateOIMConfig
 from OSGPKIUtils import extractHostname
 from OSGPKIUtils import extractEEM
 from OSGPKIUtils import get_request_count
+from OSGPKIUtils import check_response_500
 import sys
 import textwrap
 import traceback
@@ -296,10 +297,7 @@ def connect_approve(**arguments):
         charlimit_textwrap('Connection to %s failed: %s' % (arguments['appurl'],
                 repr(e)))
         raise e
-    if response.status==500:
-        charlimit_textwrap("Request Failed. Status %s" %response.status)
-        charlimit_textwrap("Reason for failure %s" %response.reason)
-        sys.exit(1)
+    check_response_500(response)
     if not 'OK' in response.reason:
         charlimit_textwrap("Request Failed. Status %s" %response.status)
         charlimit_textwrap("Reason for failure %s" %response.reason)
@@ -423,10 +421,7 @@ def connect_retrieve(num_requests,**arguments):
     except httplib.HTTPException, e:
         charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
         raise httplib.HTTPException
-    if response.status==500:
-        charlimit_textwrap("Request Failed. Status %s" %response.status)
-        charlimit_textwrap("Reason for failure %s" %response.reason)
-        sys.exit(1)
+    check_response_500(response)
     data = response.read()
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
@@ -443,10 +438,7 @@ def connect_retrieve(num_requests,**arguments):
         except httplib.HTTPException, e:
             charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
             raise httplib.HTTPException
-        if response.status==500:
-            charlimit_textwrap("Request Failed. Status %s" %response.status)
-            charlimit_textwrap("Reason for failure %s" %response.reason)
-            sys.exit(1)
+        check_response_500(response)
         data = response.read()
         conn.close()
         if 'PENDING' in data:
@@ -540,10 +532,7 @@ def check_quota_limit(request_count, arguments):
     except httplib.HTTPException, e:
         charlimit_textwrap('Connection to %s failed: %s' % (arguments['quotaurl'], e))
         raise httplib.HTTPException
-    if response.status==500:
-        charlimit_textwrap("Request Failed. Status %s" %response.status)
-        charlimit_textwrap("Reason for failure %s" %response.reason)
-        sys.exit(1)
+    check_response_500(response)
     data = response.read()
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
@@ -559,10 +548,7 @@ def check_quota_limit(request_count, arguments):
         except httplib.HTTPException, e:
             charlimit_textwrap('Connection to %s failed: %s' % (arguments['quotaurl'], e))
             raise httplib.HTTPException
-        if response.status==500:
-            charlimit_textwrap("Request Failed. Status %s" %response.status)
-            charlimit_textwrap("Reason for failure %s" %response.reason)
-            sys.exit(1)
+        check_response_500(response)
         data = response.read()
         conn.close()
         if 'PENDING' in data:

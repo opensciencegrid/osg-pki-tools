@@ -12,7 +12,11 @@ MBSTRING_FLAG = 0x1000
 MBSTRING_ASC  = MBSTRING_FLAG | 1
 MBSTRING_BMP  = MBSTRING_FLAG | 2
 
-
+def check_response_500(response):
+    if response.status==500:
+        charlimit_textwrap("Request Failed. Status %s" %response.status)
+        charlimit_textwrap("Reason for failure %s" %response.reason)
+        sys.exit(1)
 
 def charlimit_textwrap(string):
     """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
