@@ -31,6 +31,7 @@ from OSGPKIUtils import extractHostname
 from OSGPKIUtils import extractEEM
 from OSGPKIUtils import get_request_count
 from OSGPKIUtils import check_response_500
+from OSGPKIUtils import check_failed_response
 import sys
 import textwrap
 import traceback
@@ -253,16 +254,7 @@ def connect_request(bulk_csr, **arguments):
         
         sys.exit(1)
     conn.close()
-    if 'FAILED' in data:
-        try:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % simplejson.loads(data)['detail'].split('--')[1].lstrip())
-        except IndexError, e:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % simplejson.loads(data)['detail'].lstrip())
-        charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
-        
-        sys.exit(1)
+    check_failed_response(data)
     return_data = simplejson.loads(data)
     for (key, value) in return_data.iteritems():
         if 'host_request_id' in key:
@@ -318,15 +310,7 @@ def connect_approve(**arguments):
             raise e
         data = response.read()
         conn.close()
-        if 'FAILED' in data:
-            try:
-                charlimit_textwrap('The request has failed for the following reason:\n%s' \
-                    % simplejson.loads(data)['detail'].split('--')[1].lstrip())
-            except IndexError, e:
-                charlimit_textwrap('The request has failed for the following reason:\n%s' \
-                    % simplejson.loads(data)['detail'].lstrip())
-            charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
-            sys.exit(1)
+        check_failed_response(data)
     elif not 'OK' in data:
         charlimit_textwrap('The request has failed for the reason: %s' \
             % simplejson.loads(data)['detail'])
@@ -454,16 +438,7 @@ def connect_retrieve(num_requests,**arguments):
         else:
             pass
     pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
-    if 'FAILED' in data:
-        try:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % simplejson.loads(data)['detail'].split('--')[1].lstrip())
-        except IndexError, e:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % simplejson.loads(data)['detail'].lstrip())
-        charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
-        sys.exit(1)
-
+    check_failed_response(data)
     # The slice and dice on the JSON output to get the certificate out
     # happens here - the problem is that the new lines are getting all screwy
     # in the output from OIM. We stringify the data, replace all the text
@@ -471,7 +446,6 @@ def connect_retrieve(num_requests,**arguments):
     # extra data. There's probably a more efficient way to do this, but this
     # was the quick and dirty solution.
     #
-
     pkcs7raw = str(pkcs7raw)
     pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
     pkcs7raw = pkcs7raw.split('[')[1]
