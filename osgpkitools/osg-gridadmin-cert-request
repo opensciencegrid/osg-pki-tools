@@ -33,6 +33,7 @@ from OSGPKIUtils import get_request_count
 from OSGPKIUtils import check_response_500
 from OSGPKIUtils import check_failed_response
 from OSGPKIUtils import print_failure_reason
+from OSGPKIUtils import check_for_pending
 import sys
 import textwrap
 import traceback
@@ -405,6 +406,7 @@ def connect_retrieve(num_requests,**arguments):
             print_failure_reason(data)
     conn.close()
     charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
+    iterations = 0
     while 'PENDING' in data:
         conn.request('POST', arguments['returl'], params, headers)
         try:
@@ -415,18 +417,7 @@ def connect_retrieve(num_requests,**arguments):
         check_response_500(response)
         data = response.read()
         conn.close()
-        if 'PENDING' in data:
-            time.sleep(5)
-            iterations = iterations + 1
-            if iterations % 6 == 0:
-                print '.',
-                sys.stdout.flush()
-            if iterations > arguments['timeout']*12:
-                charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % arguments['timeout'] )
-                charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
-                sys.exit(1)
-        else:
-            pass
+        iterations = check_for_pending(data, iterations, **arguments)
     pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
     check_failed_response(data)
     # The slice and dice on the JSON output to get the certificate out
@@ -502,6 +493,7 @@ def check_quota_limit(request_count, arguments):
         if not 'OK' in response.reason:
             print_failure_reason(data)
     charlimit_textwrap('Waiting for response from Quota Check API. Please wait.')
+    iterations = 0
     while 'PENDING' in data:
         conn.request('GET', arguments['quotaurl'], headers)
         try:
@@ -512,18 +504,7 @@ def check_quota_limit(request_count, arguments):
         check_response_500(response)
         data = response.read()
         conn.close()
-        if 'PENDING' in data:
-            time.sleep(5)
-            iterations = iterations + 1
-            if iterations % 6 == 0:
-                print '.',
-                sys.stdout.flush()
-            if iterations > arguments['timeout']*12:
-                charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % arguments['timeout'] )
-                charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
-                sys.exit(1)
-        else:
-            pass
+        iterations = check_for_pending(data, iterations, **arguments)
     check_failed_response(data)
     global_hostcert_year_max = simplejson.loads(data)['global_hostcert_year_max']
     global_hostcert_year_count =simplejson.loads(data)['global_hostcert_year_count']

@@ -28,6 +28,7 @@ from OSGPKIUtils import extractHostname
 from OSGPKIUtils import check_failed_response
 from OSGPKIUtils import check_response_500
 from OSGPKIUtils import print_failure_reason
+from OSGPKIUtils import check_for_pending
 import simplejson
 import time
 import re
@@ -230,7 +231,7 @@ def connect_retrieve(arguments):
         raise httplib.HTTPException
     check_response_500(response)
     data = response.read()
-
+    iterations = 0
     while 'PENDING' in data:
         conn.request('POST', arguments['returl'], params, headers)
         try:
@@ -241,17 +242,7 @@ def connect_retrieve(arguments):
         check_response_500(response)
         data = response.read()
         conn.close()
-        if 'PENDING' in data:
-            time.sleep(5)
-            iterations = iterations + 1
-            if iterations % 6 == 0:
-                charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
-                charlimit_textwrap(' Delay: %s minutes'% float(iterations / 12))
-            if iterations > arguments['timeout']*12:
-                charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % arguments['timeout'])
-                sys.exit(1)
-        else:
-            pass
+        iterations = check_for_pending(data, iterations, **arguments)
     pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
     check_failed_response(data)
 

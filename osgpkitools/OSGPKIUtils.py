@@ -7,12 +7,15 @@ import M2Crypto
 import base64
 import ConfigParser
 import os
+import time
+import sys
 
 MBSTRING_FLAG = 0x1000
 MBSTRING_ASC  = MBSTRING_FLAG | 1
 MBSTRING_BMP  = MBSTRING_FLAG | 2
 
 def check_response_500(response):
+    """ This functions handles the 500 error response from the server"""
     if response.status==500:
         charlimit_textwrap("Request Failed. Status %s" %response.status)
         charlimit_textwrap("Reason for failure %s" %response.reason)
@@ -20,11 +23,13 @@ def check_response_500(response):
 
 
 def check_failed_response(data):
+    """ This function checks if the response is failed"""
     if 'FAILED' in data:
         print_failure_reason(data)
         sys.exit(1)
 
 def print_failure_reason(data):
+    """This functions prints the failure reasons"""
     try:
         charlimit_textwrap('The request has failed for the following reason:\n%s' \
             % simplejson.loads(data)['detail'].split('--')[1].lstrip())
@@ -33,6 +38,20 @@ def print_failure_reason(data):
             % simplejson.loads(data)['detail'].lstrip())
         charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
     sys.exit(1)
+
+def check_for_pending(data, iterations, **arguments):
+    """ This function is a centralized location to print the in process output indication"""
+    if 'PENDING' in data:
+            time.sleep(5)
+            iterations = iterations + 1
+            if iterations % 6 == 0:
+                print '.',
+                sys.stdout.flush()
+            if iterations > arguments['timeout']*12:
+                charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % arguments['timeout'] )
+                charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
+                sys.exit(1)
+    return iterations
 
 def charlimit_textwrap(string):
     """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
