@@ -25,6 +25,8 @@ from osgpkitools import OSGPKIUtils
 from OSGPKIUtils import CreateOIMConfig
 from OSGPKIUtils import extractEEM
 from OSGPKIUtils import extractHostname
+from OSGPKIUtils import check_failed_response
+from OSGPKIUtils import check_response_500
 import simplejson
 import time
 import re
@@ -256,13 +258,7 @@ def connect_retrieve(arguments):
         else:
             pass
     pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
-    if 'FAILED' in data:
-        charlimit_textwrap('''The request failed for the following reason
- %s
-
-''' \
-            % simplejson.loads(data)['detail'])
-        sys.exit(1)
+    check_failed_response(data)
 
     # The slice and dice on the JSON output to get the certificate out
     # happens here - the problem is that the new lines are getting all screwy

@@ -15,6 +15,7 @@ import base64
 from osgpkitools import OSGPKIUtils
 from OSGPKIUtils import CreateOIMConfig
 from OSGPKIUtils import check_response_500
+from OSGPKIUtils import check_failed_response
 from pprint import pprint
 import os
 from optparse import OptionParser
@@ -254,14 +255,7 @@ def connect(arguments):
     #    charlimit_textwrap("Reason for failure %s" %response.reason)
     #    sys.exit(1)
     data = response.read()
-    if 'FAILED' in simplejson.dumps(data):
-        reason = simplejson.loads(data)['detail']
-        try:
-            reason = reason.split('--')[1]
-        except IndexError, e:
-            reason = reason
-        charlimit_textwrap('The request failed because : %s' % reason)
-        sys.exit(1)
+    check_failed_response(data)
     conn.close()
     if simplejson.loads(data)['detail'] == 'Nothing to report' \
         and simplejson.loads(data)['status'] == 'OK' in data:
