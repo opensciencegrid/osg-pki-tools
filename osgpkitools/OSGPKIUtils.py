@@ -21,14 +21,18 @@ def check_response_500(response):
 
 def check_failed_response(data):
     if 'FAILED' in data:
-        try:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+        print_failure_reason(data)
+        sys.exit(1)
+
+def print_failure_reason(data):
+    try:
+        charlimit_textwrap('The request has failed for the following reason:\n%s' \
             % simplejson.loads(data)['detail'].split('--')[1].lstrip())
-        except IndexError, e:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
+    except IndexError, e:
+        charlimit_textwrap('The request has failed for the following reason:\n%s' \
             % simplejson.loads(data)['detail'].lstrip())
         charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
-        sys.exit(1)
+    sys.exit(1)
 
 def charlimit_textwrap(string):
     """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""

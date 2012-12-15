@@ -27,6 +27,7 @@ from OSGPKIUtils import extractEEM
 from OSGPKIUtils import extractHostname
 from OSGPKIUtils import check_failed_response
 from OSGPKIUtils import check_response_500
+from OSGPKIUtils import print_failure_reason
 import simplejson
 import time
 import re
@@ -184,13 +185,7 @@ def connect_issue(arguments):
     data = response.read()
     conn.close()
     if not 'OK' in data:
-        charlimit_textwrap('''The request failed for the following reason
- %s
-
-''' \
-            % simplejson.loads(data)['detail'])
-        sys.exit(1)
-
+        print_failure_reason(data)
     return
 
 

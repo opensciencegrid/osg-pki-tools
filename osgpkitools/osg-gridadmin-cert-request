@@ -32,6 +32,7 @@ from OSGPKIUtils import extractEEM
 from OSGPKIUtils import get_request_count
 from OSGPKIUtils import check_response_500
 from OSGPKIUtils import check_failed_response
+from OSGPKIUtils import print_failure_reason
 import sys
 import textwrap
 import traceback
@@ -244,15 +245,7 @@ def connect_request(bulk_csr, **arguments):
         raise e
     data = response.read()
     if not 'OK' in response.reason:
-        try:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % simplejson.loads(data)['detail'].split('--')[1].lstrip())
-        except IndexError, e:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % simplejson.loads(data)['detail'].lstrip())
-        charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
-        
-        sys.exit(1)
+        print_failure_reason(data)
     conn.close()
     check_failed_response(data)
     return_data = simplejson.loads(data)
@@ -409,10 +402,7 @@ def connect_retrieve(num_requests,**arguments):
     data = response.read()
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
-                % simplejson.loads(data)['detail'].lstrip())
-            charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
-            sys.exit(1)
+            print_failure_reason(data)
     conn.close()
     charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
     while 'PENDING' in data:
@@ -510,10 +500,7 @@ def check_quota_limit(request_count, arguments):
     data = response.read()
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
-                % simplejson.loads(data)['detail'].lstrip())
-            charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
-            sys.exit(1)
+            print_failure_reason(data)
     charlimit_textwrap('Waiting for response from Quota Check API. Please wait.')
     while 'PENDING' in data:
         conn.request('GET', arguments['quotaurl'], headers)
@@ -537,29 +524,20 @@ def check_quota_limit(request_count, arguments):
                 sys.exit(1)
         else:
             pass
-    if 'FAILED' in data:
-        try:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % simplejson.loads(data)['detail'].split('--')[1].lstrip())
-        except IndexError, e:
-            charlimit_textwrap('The request has failed for the following reason:\n%s' \
-            % simplejson.loads(data)['detail'].lstrip())
-        charlimit_textwrap('Status : %s ' % simplejson.loads(data)['status'])
-        sys.exit(1)
+    check_failed_response(data)
+    global_hostcert_year_max = simplejson.loads(data)['global_hostcert_year_max']
+    global_hostcert_year_count =simplejson.loads(data)['global_hostcert_year_count']
+    count_hostcert_day = simplejson.loads(data)['count_hostcert_day']
+    quota_hostcert_day_max = simplejson.loads(data)['quota_hostcert_day_max']
+    count_hostcert_year = simplejson.loads(data)['count_hostcert_year']
+    quota_hostcert_year_max = simplejson.loads(data)['quota_hostcert_year_max']
+    if global_hostcert_year_max > global_hostcert_year_count and \
+        count_hostcert_day < quota_hostcert_day_max and \
+        count_hostcert_year < quota_hostcert_year_max and \
+        quota_hostcert_day_max > request_count:
+        status = True
     else:
-        global_hostcert_year_max = simplejson.loads(data)['global_hostcert_year_max']
-        global_hostcert_year_count =simplejson.loads(data)['global_hostcert_year_count']
-        count_hostcert_day = simplejson.loads(data)['count_hostcert_day']
-        quota_hostcert_day_max = simplejson.loads(data)['quota_hostcert_day_max']
-        count_hostcert_year = simplejson.loads(data)['count_hostcert_year']
-        quota_hostcert_year_max = simplejson.loads(data)['quota_hostcert_year_max']
-        if global_hostcert_year_max > global_hostcert_year_count and \
-            count_hostcert_day < quota_hostcert_day_max and \
-            count_hostcert_year < quota_hostcert_year_max and \
-            quota_hostcert_day_max > request_count:
-            status = True
-        else:
-            status = False
+        status = False
     conn.close()
     return status
     
