@@ -538,17 +538,20 @@ def process_csr(num_requests, bulk_csr, **arguments):
     connect_retrieve(num_requests,**arguments)
     return
 
-def prompt_for_password(verify, **arguments):
-
-                # If verify == True, we are supposed to verify password.
-                return getpass.getpass("Please enter the pass phrase for '%s':"
-                                    % arguments['userprivkey'])
+#def prompt_for_password(verify, **arguments):
+#
+#                # If verify == True, we are supposed to verify password.
+#                return getpass.getpass("Please enter the pass phrase for '%s':"
+#                                    % arguments['userprivkey'])
 
 def check_bad_passphrase(e,**arguments):
     if 'bad decrypt' in e or 'bad password read' in e: ### fix for incorrect password or carriage return ###
         print "Incorrect passphrase for %s.\nPlease try again" % arguments['userprivkey']
         print "Please enter the passphrase again:"
         try:
+            def prompt_for_password(verify):
+                        return getpass.getpass("Please enter the pass phrase for '%s':"
+                                    % arguments['userprivkey'])
             ssl_context = M2Crypto.SSL.Context('sslv3')
             ssl_context.load_cert_chain(arguments['usercert'],
                             arguments['userprivkey'],
@@ -646,6 +649,9 @@ def process_hostfile_mode(**arguments):
     return
 
 def get_ssl_context(**arguments):
+    def prompt_for_password(verify):
+                        return getpass.getpass("Please enter the pass phrase for '%s':"
+                                    % arguments['userprivkey'])
     ssl_context = M2Crypto.SSL.Context('sslv3')
     ssl_context.load_cert_chain(arguments['usercert'],
                                     arguments['userprivkey'],
