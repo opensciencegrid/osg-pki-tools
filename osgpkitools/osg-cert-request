@@ -195,10 +195,12 @@ def parse_args():
         #charlimit_textwrap('The file %s does not exist' % args.csr)
         #sys.exit(1)
     
-    if args.test:
-        OIM = True
-    else:
-        OIM = False
+    OIM = args.test
+    
+    #if args.test:
+    #    OIM = True
+    #else:
+    #    OIM = False
 
     arguments = dict()
     arguments = CreateOIMConfig(OIM, **arguments)
