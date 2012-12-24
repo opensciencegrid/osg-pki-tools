@@ -25,6 +25,12 @@ import M2Crypto
 from optparse import OptionParser
 from optparse import OptionGroup
 import optparse
+import sys
+import textwrap
+import traceback
+import subprocess
+import ssl
+
 from osgpkitools import OSGPKIUtils
 from OSGPKIUtils import CreateOIMConfig
 from OSGPKIUtils import extractHostname
@@ -34,11 +40,6 @@ from OSGPKIUtils import check_response_500
 from OSGPKIUtils import check_failed_response
 from OSGPKIUtils import print_failure_reason_exit
 from OSGPKIUtils import check_for_pending
-import sys
-import textwrap
-import traceback
-import subprocess
-import ssl
 from OSGPKIUtils import charlimit_textwrap
 from ExceptionDefinitions import *
 

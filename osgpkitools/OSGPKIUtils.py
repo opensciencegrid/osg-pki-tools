@@ -9,8 +9,8 @@ import ConfigParser
 import os
 import time
 import sys
-import ExceptionDefinitions
 import textwrap
+
 from ExceptionDefinitions import *
 
 # These flags are for the purpose of passing to the M2Crypto calls and are used later in the script

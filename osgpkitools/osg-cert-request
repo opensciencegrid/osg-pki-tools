@@ -12,18 +12,19 @@ import sys
 import ConfigParser
 import simplejson
 import base64
-from osgpkitools import OSGPKIUtils
-from OSGPKIUtils import CreateOIMConfig
-from OSGPKIUtils import check_response_500
-from OSGPKIUtils import charlimit_textwrap
-from OSGPKIUtils import check_failed_response
-from pprint import pprint
 import os
 from optparse import OptionParser
 import M2Crypto
 import textwrap
 import traceback
 import ssl
+from pprint import pprint
+
+from osgpkitools import OSGPKIUtils
+from OSGPKIUtils import CreateOIMConfig
+from OSGPKIUtils import check_response_500
+from OSGPKIUtils import charlimit_textwrap
+from OSGPKIUtils import check_failed_response
 from ExceptionDefinitions import *
 
 # Set up Option Parser
