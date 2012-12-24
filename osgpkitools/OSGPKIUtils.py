@@ -50,13 +50,21 @@ def check_for_pending(data, iterations, **arguments):
 	if iterations % 6 == 0:
 	    print '.',
 	    sys.stdout.flush()
-	if iterations > arguments['timeout']*12:
-	    raise TimeoutException(arguments['timeout'])
-	    #charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % arguments['timeout'] )
+	check_timeout(iterations, arguments['timeout'])
+	#if iterations > arguments['timeout']*12:
+	#    raise TimeoutException(arguments['timeout'])
+	#    #charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % arguments['timeout'] )
 	    #charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
 	    #sys.exit(1)
 	return iterations
 
+def check_timeout(iterations, timeout):
+	"""This function checks for a timeout. If timeout has occurred it raises a TIMEOUT EXCEPTION"""
+	if iterations > timeout*12:
+	    raise TimeoutException(timeout)
+	else:
+	    return
+	
 def charlimit_textwrap(string):
     """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
     list_string = textwrap.wrap(string)
