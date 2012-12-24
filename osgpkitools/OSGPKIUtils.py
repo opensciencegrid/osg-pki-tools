@@ -82,7 +82,10 @@ def get_request_count(filename):
 ### Here we rely on OPenSSL -printcert output format. If it changes our output might be affected
 
 def extractHostname(certString):
-	#Extracts hostname from the string of certifcate file"""
+	"""Extracts hostname from the string of certifcate file
+	We take the whole certificate data as a stirng input
+	Checking for /CN= in every line and extracting the term after that if not Digicert i.e. CA would be the hostname
+	Here we rely on OPenSSL -printcert output format. If it changes our output might be affected"""
 	certArray = certString.split(' ')
 	hostname = ""
 	for subStr in certArray:
@@ -90,6 +93,8 @@ def extractHostname(certString):
 			if not 'DigiCert' in subStr.split('/CN=')[1].split('\n')[0]:
 				hostname = subStr.split('/CN=')[1].split('\n')[0]
 			
+	if hostname == "":
+		raise UnexpectedBehaviourException("Unexpected behaviour by OIM retrive API. EEC certificate not found")
 	return hostname
 
 ### Checking for a blank new line to seperate the certificates
