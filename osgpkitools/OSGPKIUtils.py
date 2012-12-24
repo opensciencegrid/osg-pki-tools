@@ -74,6 +74,7 @@ def get_request_count(filename):
 		if not line in name_set:
 			name_set.add(line)
 			count +=1
+	hostfile.close()
 	return count
 
 ### We take the whole certificate data as a stirng input
