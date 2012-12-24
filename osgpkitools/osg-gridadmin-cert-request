@@ -343,7 +343,7 @@ def extract_certs(
     subprocess.call(['openssl', 'pkcs7', '-print_certs', '-in', filename,
             '-out', temp_file])
     os.remove(filename)
-    os.chmod(temp_file,0777)
+    #os.chmod(temp_file,0777)
     """This part of the code extracts the hostname from the certificate"""
     certString = open(temp_file, 'rb').read()
     ### Extracting the hostname ###
@@ -365,7 +365,7 @@ def write_certificate(hostname, temp_file, eecString, **arguments):
     if os.path.exists(pem_filename):
         charlimit_textwrap("The file %s already exists." % pem_filename)
         pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem')
-    subprocess.call(['mv', temp_file, pem_filename])### fix for move the file to desired name ###
+    subprocess.call(['mv', temp_file, pem_filename])### fix for move the file to desired name ###   
     os.chmod(pem_filename,0644)
     cwd = os.getcwd()
     try:
@@ -466,7 +466,7 @@ def create_certificate_request(line, reqid, config_items):
 
     cert_obj = OSGPKIUtils.Cert()
     cert_obj.CreatePKey(keyname)
-    os.chmod(keyname,0600)
+    #os.chmod(keyname,0600)
     new_csr = cert_obj.CreateX509Request(**config_items)
     csr = \
         new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
@@ -664,7 +664,7 @@ def get_ssl_context(**arguments):
 
 if __name__ == '__main__':
     try:
-        os.umask(177)
+        os.umask(0177)
         arguments = parse_args()
 
         try:
