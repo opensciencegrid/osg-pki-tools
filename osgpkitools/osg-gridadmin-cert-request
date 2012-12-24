@@ -324,68 +324,64 @@ def connect_approve(**arguments):
 # certificate
 #
 
-def write_certs(
+def extract_certs(
     pkcs7raw,
     arguments,
     ):
     """This function accepts the hostname, pkcs7raw dump of the certificate and a dictionary that consists variables and the value against them.
-    It write the certificates to file system."""
+    It write the certificates to file system by calling write_certificate function"""
     pkcs7raw = str(pkcs7raw)
     filetype = 'pkcs7-cert'
     fileext = 'pem'
     filename = '%s.%s.%s' % (filetype, arguments['reqid'], fileext)
     temp_file = "temp-cert.pem"
     print ""
-    try:
-        certfile = open(filename, 'w+')
-        certfile.write(pkcs7raw)
-        certfile.close()
-        #### printing our all the certificates received from OIM to a temporrary file###
-        subprocess.call(['openssl', 'pkcs7', '-print_certs', '-in', filename,
-                '-out', temp_file])
-        os.remove(filename)
-        os.chmod(temp_file,0777)
-        """This part of the code extracts the hostname from the certificate"""
-        certString = open(temp_file, 'rb').read()
-        ### Extracting the hostname ###
-        hostname = extractHostname(certString)
-        ### Extracting the EEC certificate ###
-        eecString = extractEEC(certString,hostname)
-        ### replaceing new line and space . As ell as replacing '/' with -'-' in the file name ###
-        ### so that file system doesnt mistake it for path ###
-        hostname = hostname.strip(' \n').replace('/','-')
-        pem_filename = hostname + ".pem"
-        os.remove(temp_file)
-        writeCert = open(temp_file, 'w+')
-        writeCert.write(eecString)
-        if os.path.exists(pem_filename):
-            charlimit_textwrap("The file %s already exists." % pem_filename)
-            pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem')
-        subprocess.call(['mv', temp_file, pem_filename])### fix for move the file to desired name ###
-        os.chmod(pem_filename,0644)
-        cwd = os.getcwd()
-        try:
-            os.chdir(arguments['certdir'])
-        except OSError, e:
-            charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
-.Please report the bug to goc@opensciencegrid.org.a
- %s''',
-                 arguments['certdir'], e)
-            raise OSError
-            #sys.exit(1)   
-    except OSError, e:
-        charlimit_textwrap('''You may not have write permission to the directory %s
-.Please report the bug to goc@opensciencegrid.org.
- %s''',
-                 arguments['certdir'], e)
-        raise OSError
-        #sys.exit(1)
-    os.chdir(cwd)
-    charlimit_textwrap('''Certificate written to %s%s 
-''' % (arguments['certdir'],
-            pem_filename))
+    certfile = open(filename, 'w+')
+    certfile.write(pkcs7raw)
+    certfile.close()
+    #### printing our all the certificates received from OIM to a temporrary file###
+    subprocess.call(['openssl', 'pkcs7', '-print_certs', '-in', filename,
+            '-out', temp_file])
+    os.remove(filename)
+    os.chmod(temp_file,0777)
+    """This part of the code extracts the hostname from the certificate"""
+    certString = open(temp_file, 'rb').read()
+    ### Extracting the hostname ###
+    hostname = extractHostname(certString)
+    ### Extracting the EEC certificate ###
+    eecString = extractEEC(certString,hostname)
+    ### replaceing new line and space . As ell as replacing '/' with -'-' in the file name ###
+    ### so that file system doesnt mistake it for path ###
+    write_certificate(hostname, temp_file, eecString, **arguments)
     return
 
+def write_certificate(hostname, temp_file, eecString, **arguments):
+    """ This function writes the extracted EEC certificate"""
+    hostname = hostname.strip(' \n').replace('/','-')
+    pem_filename = hostname + ".pem"
+    os.remove(temp_file)
+    writeCert = open(temp_file, 'w+')
+    writeCert.write(eecString)
+    if os.path.exists(pem_filename):
+        charlimit_textwrap("The file %s already exists." % pem_filename)
+        pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem')
+    subprocess.call(['mv', temp_file, pem_filename])### fix for move the file to desired name ###
+    os.chmod(pem_filename,0644)
+    cwd = os.getcwd()
+    try:
+        os.chdir(arguments['certdir'])
+    except OSError, e:
+        charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
+    .Please report the bug to goc@opensciencegrid.org.a
+    %s''',
+             arguments['certdir'], e)
+        raise OSError
+        #sys.exit(1)   
+    os.chdir(cwd)
+    charlimit_textwrap('''Certificate written to %s%s 
+    ''' % (arguments['certdir'],
+            pem_filename))
+    return
 
 def connect_retrieve(num_requests,**arguments):
     """This fucntion accepts a dictionary consisting of variables and their values against it.
@@ -440,7 +436,7 @@ def connect_retrieve(num_requests,**arguments):
         certstring = str(pkcs7raw[i]).split('"')[1]
         #print "Certstring is -----\n %s" %certstring
         if 'PKCS7' in certstring:
-            write_certs(certstring, arguments)
+            extract_certs(certstring, arguments)
             cert_num = cert_num + 1
         i = i + 1
     if cert_num != num_requests:
