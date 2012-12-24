@@ -344,7 +344,7 @@ if __name__ == '__main__':
                               ''
                               ).replace('-----END CERTIFICATE REQUEST-----\n'
                     , '')
-            connect()
+            connect(arguments)
     except KeyboardInterrupt, k:
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
