@@ -23,6 +23,7 @@ import M2Crypto
 import textwrap
 import traceback
 import ssl
+from ExceptionDefinitions import *
 
 # Set up Option Parser
 #
@@ -175,20 +176,23 @@ def parse_args():
 
     phone_num = phone.replace('-', '')
     if not phone_num.isdigit():
-        sys.exit("Phone number should contain only numbers and/or '-'\n"
-                 )
+        raise ValidationException("Phone number should contain only numbers and/or '-'\n")
+        #sys.exit("Phone number should contain only numbers and/or '-'\n"
+         #        )
 
     if args.prikey == 'genprivate.key':
         pass
     elif not os.path.exists(args.prikey):
-        charlimit_textwrap('The file %s does not exist' % args.prikey)
-        sys.exit(1)
+        raise FileNotFoundException(args.prikey,'The file %s does not exist' % args.prikey )
+        #charlimit_textwrap('The file %s does not exist' % args.prikey)
+        #sys.exit(1)
 
     if args.csr == 'gennew.csr':
         pass
     elif not os.path.exists(args.csr):
-        charlimit_textwrap('The file %s does not exist' % args.csr)
-        sys.exit(1)
+        raise FileNotFoundException(args.csr,'The file %s does not exist' % args.csr )
+        #charlimit_textwrap('The file %s does not exist' % args.csr)
+        #sys.exit(1)
     
     if args.test:
         OIM = True
@@ -312,12 +316,14 @@ if __name__ == '__main__':
                         mykey = RSA.load_key(arguments['prikey'])
                     except Exception, e:
                         if 'bad decrypt' in e:
-                            print "Incorrect passphrase. Attempt failed twice. Exiting script"
-                            sys.exit(1)
+                            raise BadPassphraseException("Incorrect passphrase. Attempt failed twice. Exiting script")
+                            #print "Incorrect passphrase. Attempt failed twice. Exiting script"
+                            #sys.exit(1)
                         else:
-                            print traceback.format_exc()
-                            charlimit_textwrap('''Uncaught Exception ''')
-                            sys.exit(1)
+                            raise UncaughtException(traceback.format_exc())
+                            #print traceback.format_exc()
+                            #charlimit_textwrap('''Uncaught Exception ''')
+                            #sys.exit(1)
 
             new_csr = OSGPKIUtils.Cert()
             new_csr = new_csr.CreateX509Request(**config_items)

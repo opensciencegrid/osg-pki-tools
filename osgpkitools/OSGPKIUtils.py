@@ -9,7 +9,11 @@ import ConfigParser
 import os
 import time
 import sys
+import ExceptionDefinitions
+import textwrap
+from ExceptionDefinitions import *
 
+# These flags are for the purpose of passing to the M2Crypto calls and are used later in the script
 MBSTRING_FLAG = 0x1000
 MBSTRING_ASC  = MBSTRING_FLAG | 1
 MBSTRING_BMP  = MBSTRING_FLAG | 2
@@ -17,19 +21,19 @@ MBSTRING_BMP  = MBSTRING_FLAG | 2
 def check_response_500(response):
     """ This functions handles the 500 error response from the server"""
     if response.status==500:
-        charlimit_textwrap("Request Failed. Status %s" %response.status)
-        charlimit_textwrap("Reason for failure %s" %response.reason)
-        sys.exit(1)
+        raise Exception_500response(response.status, reponse.reason)
+	#charlimit_textwrap("Request Failed. Status %s" %response.status)
+        #charlimit_textwrap("Reason for failure %s" %response.reason)
+        #sys.exit(1)
 
 
 def check_failed_response(data):
     """ This function checks if the response is failed"""
     if 'FAILED' in data:
-        print_failure_reason(data)
-        sys.exit(1)
+        print_failure_reason_exit(data)
 
-def print_failure_reason(data):
-    """This functions prints the failure reasons"""
+def print_failure_reason_exit(data):
+    """This functions prints the failure reasons and exits"""
     try:
         charlimit_textwrap('The request has failed for the following reason:\n%s' \
             % simplejson.loads(data)['detail'].split('--')[1].lstrip())
@@ -40,18 +44,18 @@ def print_failure_reason(data):
     sys.exit(1)
 
 def check_for_pending(data, iterations, **arguments):
-    """ This function is a centralized location to print the in process output indication"""
-    if 'PENDING' in data:
-            time.sleep(5)
-            iterations = iterations + 1
-            if iterations % 6 == 0:
-                print '.',
-                sys.stdout.flush()
-            if iterations > arguments['timeout']*12:
-                charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % arguments['timeout'] )
-                charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
-                sys.exit(1)
-    return iterations
+        """ This function is a centralized location to print the in process output indication"""
+	time.sleep(5)
+	iterations = iterations + 1
+	if iterations % 6 == 0:
+	    print '.',
+	    sys.stdout.flush()
+	if iterations > arguments['timeout']*12:
+	    raise TimeoutException(arguments['timeout'])
+	    #charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % arguments['timeout'] )
+	    #charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
+	    #sys.exit(1)
+	return iterations
 
 def charlimit_textwrap(string):
     """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
@@ -61,7 +65,7 @@ def charlimit_textwrap(string):
     return
 
 def get_request_count(filename):
-	'''Returns the number of request in the file'''
+	'''Returns the number of hostname requested in the file supplied as -f furing bulk certificate request'''
 	hostfile = open(filename, 'rb')
 	name_set = set()
 	count = 0
@@ -92,7 +96,7 @@ def extractHostname(certString):
 ### If present then its the host certificate not the CA certificate
 ### Here we rely on OPenSSL -printcert output format. If it changes our output might be affected
 
-def extractEEM(certString, hostname):
+def extractEEC(certString, hostname):
 	certArray = certString.split('\n\n')
 	for certArrayString in certArray: 
 		if (hostname in certArrayString):
@@ -103,13 +107,13 @@ def CreateOIMConfig (isITB, **OIMConfig):
 	Config = ConfigParser.ConfigParser()
 	if os.path.exists(str(os.environ['HOME'])+'/.osg-pki/OSG_PKI.ini'):
 		print "Overriding INI file with %s/.osg-pki/OSG_PKI.ini" %str(os.environ['HOME'])
-		Config.read('pki-clients.ini')
+		Config.read(str(os.environ['HOME'])+'/.osg-pki/OSG_PKI.ini')
 	elif os.path.exists('pki-clients.ini'):
 		Config.read('pki-clients.ini')
 	elif os.path.exists('/etc/pki-clients.ini'):
 		Config.read('/etc/pki-clients.ini')
 	else:
-		sys.exit('Missing config file: pki-clients.ini\n')
+		raise FileNotFoundException('pki-clients.ini', 'Could not locate the file')
 	if isITB:
 		print "Running in test mode"
 		OIM = 'OIMData_ITB'
@@ -182,10 +186,3 @@ class Cert:
 		self.X509Request.set_pubkey ( pkey=self.PKey )
 		self.X509Request.sign ( pkey=self.PKey, md = 'sha1')
 		return self.X509Request
-
-
-
-if __name__ == '__main__':
-	run = Cert()
-	run.CreatePKey()
-	run.CreateX509Request()

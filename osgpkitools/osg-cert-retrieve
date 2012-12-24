@@ -23,11 +23,11 @@ import ConfigParser
 from optparse import OptionParser
 from osgpkitools import OSGPKIUtils
 from OSGPKIUtils import CreateOIMConfig
-from OSGPKIUtils import extractEEM
+from OSGPKIUtils import extractEEC
 from OSGPKIUtils import extractHostname
 from OSGPKIUtils import check_failed_response
 from OSGPKIUtils import check_response_500
-from OSGPKIUtils import print_failure_reason
+from OSGPKIUtils import print_failure_reason_exit
 from OSGPKIUtils import check_for_pending
 import simplejson
 import time
@@ -38,16 +38,17 @@ import traceback
 import subprocess
 import ssl
 from OSGPKIUtils import charlimit_textwrap
+from ExceptionDefinitions import *
 
 # Set up Option Parser
 #
 
-def charlimit_textwrap(string):
-    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
-    list_string = textwrap.wrap(string)
-    for line in list_string:
-        print line
-    return
+#def charlimit_textwrap(string):
+#    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
+#    list_string = textwrap.wrap(string)
+#    for line in list_string:
+#        print line
+#    return
 
 def parse_args():
     """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
@@ -107,11 +108,13 @@ def parse_args():
     try:
         timeout = int(args.timeout)
         if not timeout >= 0:
-            charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
-            sys.exit(1)
-    except ValueError:
+            raise VaildationError('Your timeout value cannot be a negative integer.\nExiting now')
+            #charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
+            #sys.exit(1)
+    except ValueError, e:
         charlimit_textwrap('Invalid timeout value. Please enter a non-negative integer.\n')
-        sys.exit(1)
+        raise e
+        #sys.exit(1)
     print "Using timeout of %d minutes" % timeout
 
     if os.path.exists(args.certfile):
@@ -124,7 +127,8 @@ def parse_args():
             pem_filename = \
                 raw_input('Please enter a different file name\n')
         else:
-            sys.exit('Invalid option')
+            raise InvalidOptionException('Invalid Option')
+            #sys.exit('Invalid option')
     else:
         pem_filename = args.certfile
     if args.test:
@@ -186,7 +190,7 @@ def connect_issue(arguments):
     data = response.read()
     conn.close()
     if not 'OK' in data:
-        print_failure_reason(data)
+        print_failure_reason_exit(data)
     return
 
 
@@ -217,9 +221,11 @@ def connect_retrieve(arguments):
     data = response.read()
     if simplejson.loads(data).has_key('request_status'):
         if simplejson.loads(data)['request_status'] == 'REQUESTED':
-            charlimit_textwrap('Certificate request in Requested state.Needs to be Approved first. Please contact GA to approve this certificate\n'
+            raise NotApprovedException('Certificate request in Requested state.Needs to be Approved first. Please contact GA to approve this certificate\n'
                      )
-            sys.exit(1)
+            #charlimit_textwrap('Certificate request in Requested state.Needs to be Approved first. Please contact GA to approve this certificate\n'
+            #         )
+            #sys.exit(1)
         else:
             charlimit_textwrap('Certificate request in Approved state. Needs to be issued first\n')
             connect_issue(arguments)
@@ -271,15 +277,16 @@ def connect_retrieve(arguments):
         os.remove(temp_filename)
         certString = open(arguments['pem_filename'], 'rb').read()
         hostname = extractHostname(certString)
-        extractedEEM = extractEEM(certString, hostname )
+        extractedEEC = extractEEC(certString, hostname )
         os.remove(arguments['pem_filename'])
         fileWrite = open (arguments['pem_filename'], 'wb')
-        fileWrite.write(extractedEEM)
+        fileWrite.write(extractedEEC)
         os.chmod(arguments['pem_filename'],0644)
     except OSError, e:
         charlimit_textwrap('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org.'
                  )
-        sys.exit(1)
+        raise e
+        #sys.exit(1)
     charlimit_textwrap('Certificate written to %s \n' % arguments['pem_filename'])
     return
 

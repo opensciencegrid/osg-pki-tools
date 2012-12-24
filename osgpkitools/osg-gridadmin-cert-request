@@ -28,11 +28,11 @@ import optparse
 from osgpkitools import OSGPKIUtils
 from OSGPKIUtils import CreateOIMConfig
 from OSGPKIUtils import extractHostname
-from OSGPKIUtils import extractEEM
+from OSGPKIUtils import extractEEC
 from OSGPKIUtils import get_request_count
 from OSGPKIUtils import check_response_500
 from OSGPKIUtils import check_failed_response
-from OSGPKIUtils import print_failure_reason
+from OSGPKIUtils import print_failure_reason_exit
 from OSGPKIUtils import check_for_pending
 import sys
 import textwrap
@@ -40,183 +40,181 @@ import traceback
 import subprocess
 import ssl
 from OSGPKIUtils import charlimit_textwrap
+from ExceptionDefinitions import *
 
 
 # Set up Option Parser
 #
-try:
-    def charlimit_textwrap(string):
-        """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
-        list_string = textwrap.wrap(string)
-        for line in list_string:
-            print line
-        return
-    
-    def parse_args():
-        """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
-        usage = \
-            'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
-        parser = OptionParser(usage)
-        group = OptionGroup(parser, 'Hostname Options',
-                            '''Use either of these options.
-    Specify hostname as a single hostname using -H/--hostname
-    or specify from a file using -f/--hostfile.''')
-        parser.add_option(
-            '-k',
-            '--pkey',
-            action='store',
-            dest='userprivkey',
-            help="Specify Requestor's private key (PEM Format).\n If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
-                ,
-            metavar='PKEY',
-            default='',
-            )
-        parser.add_option(
-            '-c',
-            '--cert',
-            action='store',
-            dest='usercert',
-            help="Specify Requestor's certificate (PEM Format).\n If not specified will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
-                ,
-            default='',
-            metavar='CERT',
-            )
-        group.add_option(
-            '-H',
-            '--hostname',
-            action='store',
-            dest='hostname',
-            help='Specify the hostname or service/hostname for which you want to request the certificate for.\n If specified -f/--hostfile will be ignored'
-                ,
-            metavar='HOSTNAME',
-            )
-        group.add_option(
-            '-f',
-            '--hostfile',
-            action='store',
-            dest='hostfile',
-            help='Filename with one hostname or service/hostname per line',
-            metavar='HOSTFILE',
-            default='hosts.txt',
-            )
-        parser.add_option(
-            '-T',
-            '--test',
-            action='store_true',
-            dest='test',
-            help='Run in test mode',
-            default=False,
-            )
-        parser.add_option(
-            '-t',
-            '--timeout',
-            action='store',
-            dest='timeout',
-            help='Specify the timeout in minutes',
-            default=5,
-        )
-        parser.add_option(
-            '-q',
-            '--quiet',
-            action='store_false',
-            dest='verbose',
-            default=True,
-            help="don't print status messages to stdout",
-            )
-        parser.add_option_group(group)
-        (args, values) = parser.parse_args()
-        arguments = dict()
-        if not args.hostname:
-            hostfile = args.hostfile
-        else:
-            hostname = args.hostname
-        
-        try:
-            timeout = int(args.timeout)
-            if not timeout >= 0:
-                charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
-                sys.exit(1)
-        except ValueError:
-            charlimit_textwrap('Invalid timeout value. Please enter a non-negative integer value.\n')
-            sys.exit(1)
-        print "Using timeout of %d minutes" % timeout
 
-        certdir = './'
+def parse_args():
+    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
+    usage = \
+        'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
+    parser = OptionParser(usage)
+    group = OptionGroup(parser, 'Hostname Options',
+                        '''Use either of these options.
+Specify hostname as a single hostname using -H/--hostname
+or specify from a file using -f/--hostfile.''')
+    parser.add_option(
+        '-k',
+        '--pkey',
+        action='store',
+        dest='userprivkey',
+        help="Specify Requestor's private key (PEM Format).\n If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+            ,
+        metavar='PKEY',
+        default='',
+        )
+    parser.add_option(
+        '-c',
+        '--cert',
+        action='store',
+        dest='usercert',
+        help="Specify Requestor's certificate (PEM Format).\n If not specified will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
+            ,
+        default='',
+        metavar='CERT',
+        )
+    group.add_option(
+        '-H',
+        '--hostname',
+        action='store',
+        dest='hostname',
+        help='Specify the hostname or service/hostname for which you want to request the certificate for.\n If specified -f/--hostfile will be ignored'
+            ,
+        metavar='HOSTNAME',
+        )
+    group.add_option(
+        '-f',
+        '--hostfile',
+        action='store',
+        dest='hostfile',
+        help='Filename with one hostname or service/hostname per line',
+        metavar='HOSTFILE',
+        default='hosts.txt',
+        )
+    parser.add_option(
+        '-T',
+        '--test',
+        action='store_true',
+        dest='test',
+        help='Run in test mode',
+        default=False,
+        )
+    parser.add_option(
+        '-t',
+        '--timeout',
+        action='store',
+        dest='timeout',
+        help='Specify the timeout in minutes',
+        default=5,
+    )
+    parser.add_option(
+        '-q',
+        '--quiet',
+        action='store_false',
+        dest='verbose',
+        default=True,
+        help="don't print status messages to stdout",
+        )
+    parser.add_option_group(group)
+    (args, values) = parser.parse_args()
+    arguments = dict()
+    if not args.hostname:
+        hostfile = args.hostfile
+    else:
+        hostname = args.hostname
     
-        if args.userprivkey == '':
-            try:
-                userprivkey = os.environ['X509_USER_KEY']
-            except:
-                if os.path.exists(str(os.environ['HOME'])+'/.globus/userkey.pem'):
-                    userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
-                else:
-                    charlimit_textwrap("Could not locate the key file")
-                    sys.exit(1)
-                        
-        else:
-            userprivkey = args.userprivkey
-    
-        if os.path.exists(userprivkey):
-            pass
-        else:
-            charlimit_textwrap('Unable to locate the private key file:' + userprivkey)
+    try:
+        timeout = int(args.timeout)
+        if not timeout >= 0:
+            charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
             sys.exit(1)
-    
-        if args.usercert == '':
-            try:
-                usercert = os.environ['X509_USER_CERT']
-            except:
-                usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
-                if os.path.exists(str(os.environ['HOME'])+'/.globus/usercert.pem'):
-                    usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
-                else:
-                    charlimit_textwrap("Could not locate the key file")
-                    sys.exit(1)
-        else:
-            usercert = args.usercert
-    
-        if os.path.exists(usercert):
-            pass
-        else:
-            charlimit_textwrap('Unable to locate the user certificate file:'
-                     + usercert)
-            sys.exit(1)
-        if not args.hostname:
-            if os.path.exists(hostfile):
-                pass
+    except ValueError:
+        raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
+        #sys.exit(1)
+    print "Using timeout of %d minutes" % timeout
+
+    certdir = './'
+
+    if args.userprivkey == '':
+        try:
+            userprivkey = os.environ['X509_USER_KEY']
+        except:
+            if os.path.exists(str(os.environ['HOME'])+'/.globus/userkey.pem'):
+                userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
             else:
-                charlimit_textwrap('Unable to locate the hostfile:' + hostfile)
-                sys.exit(1)
-        if args.test:
-            OIM=True
+                raise FileNotFoundException("Key file", "Could not locate the private key file")
+                #charlimit_textwrap("Could not locate the key file")
+                #sys.exit(1)
+                    
+    else:
+        userprivkey = args.userprivkey
+
+    if os.path.exists(userprivkey):
+        pass
+    else:
+        raise FileNotFoundException(userprivkey, "Could not locate the private key file")
+        #charlimit_textwrap('Unable to locate the private key file:' + userprivkey)
+        #sys.exit(1)
+
+    if args.usercert == '':
+        try:
+            usercert = os.environ['X509_USER_CERT']
+        except:
+            usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
+            if os.path.exists(str(os.environ['HOME'])+'/.globus/usercert.pem'):
+                usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
+            else:
+                raise FileNotFoundException("Certificate File", "Could not locate the certificate file")
+                #charlimit_textwrap("Could not locate the key file")
+                #sys.exit(1)
+    else:
+        usercert = args.usercert
+
+    if os.path.exists(usercert):
+        pass
+    else:
+        raise FileNotFoundException(usercert, "Could not locate the certificate file")
+        #charlimit_textwrap('Unable to locate the user certificate file:'
+        #         + usercert)
+        #sys.exit(1)
+    if not args.hostname:
+        if os.path.exists(hostfile):
+            pass
         else:
-            OIM=False
-        arguments.update({'mode': OIM})
-        arguments = CreateOIMConfig( OIM, **arguments)
-        if vars().has_key('args'):
-            arguments.update({'args': args})
-        if vars().has_key('values'):
-            arguments.update({'values': values})
-        if vars().has_key('hostname'):
-            arguments.update({'hostname': hostname})
-        if vars().has_key('domain'):
-            arguments.update({'domain': domain})
-        if vars().has_key('outkeyfile'):
-            arguments.update({'outkeyfile': outkeyfile})
-        if vars().has_key('timeout'):
-            arguments.update({'timeout': timeout})
-            print 'The timeout is set to %s' % arguments['timeout']
-        if vars().has_key('num_requests'):
-            arguments.update({'num_requests': num_requests})
-        arguments.update({'usercert': usercert})
-        arguments.update({'userprivkey': userprivkey})
-        arguments.update({'certdir': certdir})
-        if vars().has_key('hostfile'):
-            arguments.update({'hostfile': hostfile})
-        arguments.update({'host': arguments['hostsec']})
-        return arguments
-except SystemExit, e:
-    sys.exit(0)
+            raise FileNotFoundException(hostfile, "Could not locate the hostfile")
+            #charlimit_textwrap('Unable to locate the hostfile:' + hostfile)
+            #sys.exit(1)
+    if args.test:
+        OIM=True
+    else:
+        OIM=False
+    arguments.update({'mode': OIM})
+    arguments = CreateOIMConfig( OIM, **arguments)
+    if vars().has_key('args'):
+        arguments.update({'args': args})
+    if vars().has_key('values'):
+        arguments.update({'values': values})
+    if vars().has_key('hostname'):
+        arguments.update({'hostname': hostname})
+    if vars().has_key('domain'):
+        arguments.update({'domain': domain})
+    if vars().has_key('outkeyfile'):
+        arguments.update({'outkeyfile': outkeyfile})
+    if vars().has_key('timeout'):
+        arguments.update({'timeout': timeout})
+        print 'The timeout is set to %s' % arguments['timeout']
+    if vars().has_key('num_requests'):
+        arguments.update({'num_requests': num_requests})
+    arguments.update({'usercert': usercert})
+    arguments.update({'userprivkey': userprivkey})
+    arguments.update({'certdir': certdir})
+    if vars().has_key('hostfile'):
+        arguments.update({'hostfile': hostfile})
+    arguments.update({'host': arguments['hostsec']})
+    return arguments
+
     
 
 #################################################
@@ -246,7 +244,7 @@ def connect_request(bulk_csr, **arguments):
         raise e
     data = response.read()
     if not 'OK' in response.reason:
-        print_failure_reason(data)
+        print_failure_reason_exit(data)
     conn.close()
     check_failed_response(data)
     return_data = simplejson.loads(data)
@@ -285,9 +283,10 @@ def connect_approve(**arguments):
         raise e
     check_response_500(response)
     if not 'OK' in response.reason:
-        charlimit_textwrap("Request Failed. Status %s" %response.status)
-        charlimit_textwrap("Reason for failure %s" %response.reason)
-        sys.exit(1)
+        raise NotOKException(response.status, response.reason)
+        #charlimit_textwrap("Request Failed. Status %s" %response.status)
+        #charlimit_textwrap("Reason for failure %s" %response.reason)
+        #sys.exit(1)
     data = response.read()
     conn.close()
     issurl = arguments['issurl']
@@ -306,12 +305,13 @@ def connect_approve(**arguments):
         conn.close()
         check_failed_response(data)
     elif not 'OK' in data:
-        charlimit_textwrap('The request has failed for the reason: %s' \
-            % simplejson.loads(data)['detail'])
-        sys.exit(1)
-    elif action != 'approve':
-        charlimit_textwrap('Request not approved by the Grid Admin. Exiting now.\n')
-        sys.exit(0)
+        raise NotOKException("Failed", simplejson.loads(data)['detail'])
+        #charlimit_textwrap('The request has failed for the reason: %s' \
+        #    % simplejson.loads(data)['detail'])
+        #sys.exit(1)
+    #elif action != 'approve':
+    #    charlimit_textwrap('Request not approved by the Grid Admin. Exiting now.\n')
+    #    sys.exit(0)
 
 
 # Here's where things have gotten dicey during the testing phase -
@@ -349,14 +349,14 @@ def write_certs(
         ### Extracting the hostname ###
         hostname = extractHostname(certString)
         ### Extracting the EEC certificate ###
-        eemString = extractEEM(certString,hostname)
+        eecString = extractEEC(certString,hostname)
         ### replaceing new line and space . As ell as replacing '/' with -'-' in the file name ###
         ### so that file system doesnt mistake it for path ###
         hostname = hostname.strip(' \n').replace('/','-')
         pem_filename = hostname + ".pem"
         os.remove(temp_file)
         writeCert = open(temp_file, 'w+')
-        writeCert.write(eemString)
+        writeCert.write(eecString)
         if os.path.exists(pem_filename):
             charlimit_textwrap("The file %s already exists." % pem_filename)
             pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem')
@@ -370,13 +370,15 @@ def write_certs(
 .Please report the bug to goc@opensciencegrid.org.a
  %s''',
                  arguments['certdir'], e)
-            sys.exit(1)   
+            raise OSError
+            #sys.exit(1)   
     except OSError, e:
         charlimit_textwrap('''You may not have write permission to the directory %s
 .Please report the bug to goc@opensciencegrid.org.
  %s''',
                  arguments['certdir'], e)
-        sys.exit(1)
+        raise OSError
+        #sys.exit(1)
     os.chdir(cwd)
     charlimit_textwrap('''Certificate written to %s%s 
 ''' % (arguments['certdir'],
@@ -403,7 +405,7 @@ def connect_retrieve(num_requests,**arguments):
     data = response.read()
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
-            print_failure_reason(data)
+            print_failure_reason_exit(data)
     conn.close()
     charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
     iterations = 0
@@ -441,13 +443,14 @@ def connect_retrieve(num_requests,**arguments):
             cert_num = cert_num + 1
         i = i + 1
     if cert_num != num_requests:
-        print 'The number of requests made was ', num_requests
-        print 'The number of certificates received is ', cert_num
-        sys.exit('Request and certificate received mismatch')
+        raise CertificateMismatchException(num_requests, cert_num, 'Request and certificate received mismatch')
+        #print 'The number of requests made was ', num_requests
+        #print 'The number of certificates received is ', cert_num
+        #sys.exit('Request and certificate received mismatch')
     return
 
 
-def create_certificate(line, reqid, config_items):
+def create_certificate_request(line, reqid, config_items):
     """This fucntion accepts hostname, request id and a dictionary of config_items for the CSR.
     It writes the key and creates the CSR."""
     print 'Generating certificate...'
@@ -461,8 +464,9 @@ def create_certificate(line, reqid, config_items):
     except EOFError, e:
         charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
                   % e)
-        sys.exit(1)
-    
+        raise e
+        #sys.exit(1)
+
     cert_obj = OSGPKIUtils.Cert()
     cert_obj.CreatePKey(keyname)
     os.chmod(keyname,0600)
@@ -491,7 +495,7 @@ def check_quota_limit(request_count, arguments):
     data = response.read()
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
-            print_failure_reason(data)
+            print_failure_reason_exit(data)
     charlimit_textwrap('Waiting for response from Quota Check API. Please wait.')
     iterations = 0
     while 'PENDING' in data:
@@ -527,22 +531,19 @@ def process_csr(num_requests, bulk_csr, **arguments):
         arguments = connect_request( bulk_csr, **arguments)
     except Exception ,e:
         if 'sslv3 alert bad certificate' in e:
-            charlimit_textwrap("Error connecting to server: %s" % e)
-            charlimit_textwrap("Your certificate is not trusted by the server")
+            raise BadCertificateException("Error connecting to server: %s.\nYour certificate is not trusted by the server" %e)
+            #charlimit_textwrap("Error connecting to server: %s" % e)
+            #charlimit_textwrap("Your certificate is not trusted by the server")
         else:
-            print traceback.format_exc()
-            charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
-                                )
-        sys.exit(1)
+            
+            raise UncaughtException("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
+        #    print traceback.format_exc()
+        #    charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
+        #                        )
+        #sys.exit(1)
     connect_approve(**arguments)
     connect_retrieve(num_requests,**arguments)
     return
-
-#def prompt_for_password(verify, **arguments):
-#
-#                # If verify == True, we are supposed to verify password.
-#                return getpass.getpass("Please enter the pass phrase for '%s':"
-#                                    % arguments['userprivkey'])
 
 def check_bad_passphrase(e,**arguments):
     if 'bad decrypt' in e or 'bad password read' in e: ### fix for incorrect password or carriage return ###
@@ -558,32 +559,41 @@ def check_bad_passphrase(e,**arguments):
                             callback=prompt_for_password)
         except Exception, e:
             if 'bad decrypt' in e or 'bad password read' in e:
-                print "Incorrect passphrase. Attempt failed twice. Exiting script"
-                sys.exit(1)
+                raise BadPassphraseException("Incorrect passphrase. Attempt failed twice. Exiting script")
+  
             else:
-                print_uncaught_exception()
+                
+                raise UncaughtException("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
+                # UncaughtException
     elif 'handshake failure' in e: ### fix for wrong key/certificate ###
-        charlimit_textwrap('''Failure : %s''' % e)
-        charlimit_textwrap("Please check for valid certificate/key pairs.")
-        sys.exit(1)
+        raise HanshakeFailureException("Failure: %s.\nPlease check for valid certificate/key pairs." %e)
+        #charlimit_textwrap('''Failure : %s''' % e)
+        #charlimit_textwrap("Please check for valid certificate/key pairs.")
+        #sys.exit(1)
     elif 'sslv3 alert bad certificate' in e:
-        charlimit_textwrap("Error connecting to server: %s" % e)
-        charlimit_textwrap("Your certificate is not trusted by the server")
+        raise BadCertificateException("Error connecting to server: %s.\nYour certificate is not trusted by the server" %e)
     else:
-        print_uncaught_exception()
+        
+        raise UncaughtException("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
+        #raise UncaughtException
     return ssl_context
 
 def print_uncaught_exception():
     print traceback.format_exc()
-    charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
-                                )
-    sys.exit(1)
+    #charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
+    #                            )
+    #sys.exit(1)
                         
 def check_bad_cert_exception(e):
         if 'sslv3 alert bad certificate' in e:
-                                charlimit_textwrap("Error connecting to server: %s" % e)
-                                charlimit_textwrap("Your certificate is not trusted by the server")
-                                sys.exit(1)
+            raise BadCertificateException("Error connecting to server: %s\nYour certificate is not trusted by the server" %e)
+                                #charlimit_textwrap("Error connecting to server: %s" % e)
+                                #charlimit_textwrap("Your certificate is not trusted by the server")
+                                #sys.exit(1)
+        else:
+            
+            raise UncaughtException("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
+            #raise UncaughtException("%s.\nAn uncaught exception has occured" %traceback.format_exc())
     
 def process_single_host_mode(**arguments):
     bulk_csr = list()
@@ -595,21 +605,16 @@ def process_single_host_mode(**arguments):
     if status:
         pass
     else:
-        charlimit_textwrap("Your request would exceed your quota. Aborting")
-        sys.exit(1)
+        raise QuotaException("Your request would exceed your quota. Aborting")
+        #charlimit_textwrap("Your request would exceed your quota. Aborting")
+        #sys.exit(1)
     hostname = arguments['hostname'].rstrip('\n')
     config_items.update({'CN': hostname})  # ### New CN for every host#######
     num_requests = 1
     charlimit_textwrap('Beginning request process for %s' % hostname)
-    csr = create_certificate(hostname.replace('/','-'), count, config_items)
+    csr = create_certificate_request(hostname.replace('/','-'), count, config_items)
     process_csr(1, csr, **arguments)
     return
-
-def check_bad_cert_exception(e):
-    if 'sslv3 alert bad certificate' in e:
-        charlimit_textwrap("Error connecting to server: %s" % e)
-        charlimit_textwrap("Your certificate is not trusted by the server")
-        sys.exit(1)
 
 def process_hostfile_mode(**arguments):
     bulk_csr = list()
@@ -623,8 +628,9 @@ def process_hostfile_mode(**arguments):
     if status:
         pass
     else:
-        charlimit_textwrap("Your request would exceed your quota. Aborting")
-        sys.exit(1)
+        raise QuotaException("Your request would exceed your quota. Aborting")
+        #charlimit_textwrap("Your request would exceed your quota. Aborting")
+        #sys.exit(1)
     for line in hosts:
         line = line.strip(' \n')
         if not line in host_set:
@@ -632,7 +638,7 @@ def process_hostfile_mode(**arguments):
             count += 1 ### as a check for number of request and certs retrieved ###
             config_items.update({'CN': line})  # ### New Config item list for every host#######
             charlimit_textwrap('Beginning request process for %s' % line)
-            csr = create_certificate(line.replace('/','-'), count, config_items)
+            csr = create_certificate_request(line.replace('/','-'), count, config_items)
             bulk_csr.append(csr)
             num_requests = num_requests + 1 ### as a check for number of request and certs retrieved ###
             if count == 50: ### Processing max of 50 requests in bulk ###
@@ -685,7 +691,51 @@ if __name__ == '__main__':
     except KeyboardInterrupt, k:
         print k
         sys.exit('''Interrupted by user\n''')
-    except Exception, e:
-        check_bad_cert_exception(e)
+    except OSError, e:
+        sys.exit(1)
+    except Exception_500response, e:
+        charlimit_textwrap("Request Failed. Status %s" %e.status)
+        charlimit_textwrap("Reason for failure %s" %e.message)
+        sys.exit(1)
+    except TimeoutException, e:
+        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % e.timeout )
+	charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
+        sys.exit(1)
+    except FileNotFoundException, e:
+        charlimit_textwrap(e.message + ":"+ e.filename)
+        sys.exit(1)
+    except ValueError, e:
+        sys.exit(1)
+    except NotOKException, e:
+        charlimit_textwrap("Request Failed. Status %s" %e.status)
+        charlimit_textwrap("Reason for failure %s" %e.message)
+        sys.exit(1)
+    except CertificateMismatchException, e:
+        print 'The number of requests made was ', e.request_num
+        print 'The number of certificates received is ', e.retrieve_num
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except EOFError,e:
+        sys.exit(1)
+    except BadCertificateException,e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except BadPassphraseException,e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except HandshakeFailureException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except QuotaException,e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except UncaughtException, e:
         print_uncaught_exception()
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except Exception, e:
+        #check_bad_cert_exception(e)
+        print_uncaught_exception()
+        charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
+        sys.exit(1)
     sys.exit(0)
