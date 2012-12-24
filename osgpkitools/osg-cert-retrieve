@@ -294,7 +294,7 @@ def connect_retrieve(arguments):
 
 if __name__ == '__main__':
     try:
-        os.umask(177)
+        os.umask(0177)
         arguments = parse_args()
         connect_retrieve(arguments)
     except EOFError, e:
