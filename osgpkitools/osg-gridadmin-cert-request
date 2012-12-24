@@ -342,7 +342,7 @@ def write_certs(
         certfile.close()
         #### printing our all the certificates received from OIM to a temporrary file###
         subprocess.call(['openssl', 'pkcs7', '-print_certs', '-in', filename,
-                '-out', temp_file], stdin=subprocess.PIPE)
+                '-out', temp_file])
         os.remove(filename)
         os.chmod(temp_file,0777)
         """This part of the code extracts the hostname from the certificate"""
@@ -517,10 +517,10 @@ def check_quota_limit(request_count, arguments):
     quota_hostcert_day_max = simplejson.loads(data)['quota_hostcert_day_max']
     count_hostcert_year = simplejson.loads(data)['count_hostcert_year']
     quota_hostcert_year_max = simplejson.loads(data)['quota_hostcert_year_max']
-    if global_hostcert_year_max > global_hostcert_year_count and \
-        count_hostcert_day < quota_hostcert_day_max and \
-        count_hostcert_year < quota_hostcert_year_max and \
-        quota_hostcert_day_max > request_count:
+    if global_hostcert_year_max > (global_hostcert_year_count + request_count) and \
+        (count_hostcert_day + request_count) < quota_hostcert_day_max and \
+        (count_hostcert_year + request_count) < quota_hostcert_year_max and \
+        quota_hostcert_day_max >= request_count:
         status = True
     else:
         status = False
