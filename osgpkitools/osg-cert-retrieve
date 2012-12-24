@@ -294,13 +294,12 @@ def connect_retrieve(arguments):
 if __name__ == '__main__':
     try:
         os.umask(177)
-        try:
-            arguments = parse_args()
-        except EOFError, e:
-            charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
-                  % e)
-            sys.exit(1)
+        arguments = parse_args()
         connect_retrieve(arguments)
+    except EOFError, e:
+        charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
+              % e)
+        sys.exit(1)   
     except SystemExit, e:
             raise
     except KeyboardInterrupt, k:
