@@ -108,7 +108,7 @@ def parse_args():
     try:
         timeout = int(args.timeout)
         if not timeout >= 0:
-            raise VaildationError('Your timeout value cannot be a negative integer.\nExiting now')
+            raise ValidationException('Your timeout value cannot be a negative integer.\nExiting now')
             #charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
             #sys.exit(1)
     except ValueError, e:
@@ -309,11 +309,40 @@ if __name__ == '__main__':
     except ssl.SSLError, s:
         print s
         sys.exit("Please check for valid certificate.\n")
+    except Exception_500response, e:
+        charlimit_textwrap("Request Failed. Status %s" %e.status)
+        charlimit_textwrap("Reason for failure %s" %e.message)
+        sys.exit(1)
+    except TimeoutException, e:
+        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % e.timeout )
+	charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
+        sys.exit(1)
+    except FileNotFoundException, e:
+        charlimit_textwrap(e.message + ":"+ e.filename)
+        sys.exit(1)
+    except ValueError, e:
+        sys.exit(1)
+    except NotOKException, e:
+        charlimit_textwrap("Request Failed. Status %s" %e.status)
+        charlimit_textwrap("Reason for failure %s" %e.message)
+        sys.exit(1)
+    except ValidationException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except InvalidOptionException,e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except UncaughtException, e:
+        print_uncaught_exception()
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except NotApprovedException,e:
+        charlimit_textwrap(e.message)
+    except OSError,e:
+        sys.exit(1)
     except Exception, e:
-        print traceback.format_exc()
-        charlimit_textwrap('''Uncaught Exception : 
-Please report the bug to goc@opensciencegrid.org.
-'''
-                     )
+        #check_bad_cert_exception(e)
+        print_uncaught_exception()
+        charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
         sys.exit(1)
     sys.exit(0)

@@ -15,6 +15,7 @@ import base64
 from osgpkitools import OSGPKIUtils
 from OSGPKIUtils import CreateOIMConfig
 from OSGPKIUtils import check_response_500
+from OSGPKIUtils import charlimit_textwrap
 from OSGPKIUtils import check_failed_response
 from pprint import pprint
 import os
@@ -28,12 +29,12 @@ from ExceptionDefinitions import *
 # Set up Option Parser
 #
 
-def charlimit_textwrap(string):
-    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
-    list_string = textwrap.wrap(string)
-    for line in list_string:
-        print line
-    return
+#def charlimit_textwrap(string):
+#    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
+#    list_string = textwrap.wrap(string)
+#    for line in list_string:
+#        print line
+#    return
 
 def parse_args():
     """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
@@ -350,12 +351,48 @@ if __name__ == '__main__':
     except ssl.SSLError, s:
         print s
         sys.exit("Please check for valid certificate.\n")
+    except OSError, e:
+        sys.exit(1)
+    except Exception_500response, e:
+        charlimit_textwrap("Request Failed. Status %s" %e.status)
+        charlimit_textwrap("Reason for failure %s" %e.message)
+        sys.exit(1)
+    except TimeoutException, e:
+        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % e.timeout )
+	charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
+        sys.exit(1)
+    except FileNotFoundException, e:
+        charlimit_textwrap(e.message + ":"+ e.filename)
+        sys.exit(1)
+    except ValueError, e:
+        sys.exit(1)
+    except NotOKException, e:
+        charlimit_textwrap("Request Failed. Status %s" %e.status)
+        charlimit_textwrap("Reason for failure %s" %e.message)
+        sys.exit(1)
+    except CertificateMismatchException, e:
+        print 'The number of requests made was ', e.request_num
+        print 'The number of certificates received is ', e.retrieve_num
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except EOFError,e:
+        sys.exit(1)
+    except BadCertificateException,e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except BadPassphraseException,e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except HandshakeFailureException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except UncaughtException, e:
+        print_uncaught_exception()
+        charlimit_textwrap(e.message)
+        sys.exit(1)
     except Exception, e:
-        print traceback.format_exc()
-        charlimit_textwrap('''Uncaught Exception : 
-
-Please report the bug to goc@opensciencegrid.org.
-'''
-                     )
+        #check_bad_cert_exception(e)
+        print_uncaught_exception()
+        charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
         sys.exit(1)
     sys.exit(0)
