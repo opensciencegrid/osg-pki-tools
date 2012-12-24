@@ -349,7 +349,8 @@ if __name__ == '__main__':
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
     except SystemExit, e:
-            raise
+        # This is to prevent optparse throwing spurious exception for -h in python2.4 
+        raise
     except ssl.SSLError, s:
         print s
         sys.exit("Please check for valid certificate.\n")
