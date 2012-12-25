@@ -8,6 +8,7 @@ This script works in two modes:
 1) Requesting single host certificate with -H option
 2) Request multple host certificates with hostnames stored in a file
 """
+
 import pdb
 import urllib
 import httplib
@@ -49,6 +50,7 @@ from ExceptionDefinitions import *
 
 def parse_args():
     """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
+
     usage = \
         'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
     parser = OptionParser(usage)
@@ -109,7 +111,7 @@ or specify from a file using -f/--hostfile.''')
         dest='timeout',
         help='Specify the timeout in minutes',
         default=5,
-    )
+        )
     parser.add_option(
         '-q',
         '--quiet',
@@ -125,16 +127,20 @@ or specify from a file using -f/--hostfile.''')
         hostfile = args.hostfile
     else:
         hostname = args.hostname
-    
+
     try:
         timeout = int(args.timeout)
         if not timeout >= 0:
-            charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
+            charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now'
+                               )
             sys.exit(1)
     except ValueError:
-        raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
-        #sys.exit(1)
-    print "Using timeout of %d minutes" % timeout
+        raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n'
+                         )
+
+        # sys.exit(1)
+
+    print 'Using timeout of %d minutes' % timeout
 
     certdir = './'
 
@@ -142,57 +148,76 @@ or specify from a file using -f/--hostfile.''')
         try:
             userprivkey = os.environ['X509_USER_KEY']
         except:
-            if os.path.exists(str(os.environ['HOME'])+'/.globus/userkey.pem'):
-                userprivkey = str(os.environ['HOME']) + '/.globus/userkey.pem'
+            if os.path.exists(str(os.environ['HOME'])
+                              + '/.globus/userkey.pem'):
+                userprivkey = str(os.environ['HOME']) \
+                    + '/.globus/userkey.pem'
             else:
-                raise FileNotFoundException("Key file", "Could not locate the private key file")
-                #charlimit_textwrap("Could not locate the key file")
-                #sys.exit(1)
-                    
+                raise FileNotFoundException('Key file',
+                        'Could not locate the private key file')
     else:
+
+                # charlimit_textwrap("Could not locate the key file")
+                # sys.exit(1)
+
         userprivkey = args.userprivkey
 
     if os.path.exists(userprivkey):
         pass
     else:
-        raise FileNotFoundException(userprivkey, "Could not locate the private key file")
-        #charlimit_textwrap('Unable to locate the private key file:' + userprivkey)
-        #sys.exit(1)
+        raise FileNotFoundException(userprivkey,
+                                    'Could not locate the private key file'
+                                    )
+
+        # charlimit_textwrap('Unable to locate the private key file:' + userprivkey)
+        # sys.exit(1)
 
     if args.usercert == '':
         try:
             usercert = os.environ['X509_USER_CERT']
         except:
             usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
-            if os.path.exists(str(os.environ['HOME'])+'/.globus/usercert.pem'):
-                usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
+            if os.path.exists(str(os.environ['HOME'])
+                              + '/.globus/usercert.pem'):
+                usercert = str(os.environ['HOME']) \
+                    + '/.globus/usercert.pem'
             else:
-                raise FileNotFoundException("Certificate File", "Could not locate the certificate file")
-                #charlimit_textwrap("Could not locate the key file")
-                #sys.exit(1)
+                raise FileNotFoundException('Certificate File',
+                        'Could not locate the certificate file')
     else:
+
+                # charlimit_textwrap("Could not locate the key file")
+                # sys.exit(1)
+
         usercert = args.usercert
 
     if os.path.exists(usercert):
         pass
     else:
-        raise FileNotFoundException(usercert, "Could not locate the certificate file")
-        #charlimit_textwrap('Unable to locate the user certificate file:'
+        raise FileNotFoundException(usercert,
+                                    'Could not locate the certificate file'
+                                    )
+
+        # charlimit_textwrap('Unable to locate the user certificate file:'
         #         + usercert)
-        #sys.exit(1)
+        # sys.exit(1)
+
     if not args.hostname:
         if os.path.exists(hostfile):
             pass
         else:
-            raise FileNotFoundException(hostfile, "Could not locate the hostfile")
-            #charlimit_textwrap('Unable to locate the hostfile:' + hostfile)
-            #sys.exit(1)
+            raise FileNotFoundException(hostfile,
+                    'Could not locate the hostfile')
+
+            # charlimit_textwrap('Unable to locate the hostfile:' + hostfile)
+            # sys.exit(1)
+
     if args.test:
-        OIM=True
+        OIM = True
     else:
-        OIM=False
+        OIM = False
     arguments.update({'mode': OIM})
-    arguments = CreateOIMConfig( OIM, **arguments)
+    arguments = CreateOIMConfig(OIM, **arguments)
     if vars().has_key('args'):
         arguments.update({'args': args})
     if vars().has_key('values'):
@@ -216,7 +241,6 @@ or specify from a file using -f/--hostfile.''')
     arguments.update({'host': arguments['hostsec']})
     return arguments
 
-    
 
 #################################################
 
@@ -268,6 +292,7 @@ def connect_approve(**arguments):
     and a dictionary consisting of all parameters and their values,
     It approves the request that is submitted to the OIM by connect_request.
     """
+
     print 'Connecting to server to approve certificate...'
     action = 'approve'
     params = urllib.urlencode({'host_request_id': arguments['reqid']})
@@ -279,15 +304,17 @@ def connect_approve(**arguments):
         conn.request('POST', arguments['appurl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s' % (arguments['appurl'],
-                repr(e)))
+        charlimit_textwrap('Connection to %s failed: %s'
+                           % (arguments['appurl'], repr(e)))
         raise e
     check_response_500(response)
     if not 'OK' in response.reason:
         raise NotOKException(response.status, response.reason)
-        #charlimit_textwrap("Request Failed. Status %s" %response.status)
-        #charlimit_textwrap("Reason for failure %s" %response.reason)
-        #sys.exit(1)
+
+        # charlimit_textwrap("Request Failed. Status %s" %response.status)
+        # charlimit_textwrap("Reason for failure %s" %response.reason)
+        # sys.exit(1)
+
     data = response.read()
     conn.close()
     issurl = arguments['issurl']
@@ -300,20 +327,22 @@ def connect_approve(**arguments):
             conn.request('POST', newrequrl, params, headers)
             response = conn.getresponse()
         except httplib.HTTPException, e:
-            charlimit_textwrap('Connection to %s failed: %s' % (newrequrl, e))
+            charlimit_textwrap('Connection to %s failed: %s'
+                               % (newrequrl, e))
             raise e
         data = response.read()
         conn.close()
         check_failed_response(data)
     elif not 'OK' in data:
-        raise NotOKException("Failed", simplejson.loads(data)['detail'])
-        #charlimit_textwrap('The request has failed for the reason: %s' \
+        raise NotOKException('Failed', simplejson.loads(data)['detail'])
+
+
+        # charlimit_textwrap('The request has failed for the reason: %s' \
         #    % simplejson.loads(data)['detail'])
-        #sys.exit(1)
-    #elif action != 'approve':
+        # sys.exit(1)
+    # elif action != 'approve':
     #    charlimit_textwrap('Request not approved by the Grid Admin. Exiting now.\n')
     #    sys.exit(0)
-
 
 # Here's where things have gotten dicey during the testing phase -
 # We retrieve the certificate from OIM after it has retrieved it from the CA
@@ -324,49 +353,69 @@ def connect_approve(**arguments):
 # certificate
 #
 
-def extract_certs(
-    pkcs7raw,
-    arguments,
-    ):
+def extract_certs(pkcs7raw, arguments):
     """This function accepts the hostname, pkcs7raw dump of the certificate and a dictionary that consists variables and the value against them.
     It write the certificates to file system by calling write_certificate function"""
+
     pkcs7raw = str(pkcs7raw)
     filetype = 'pkcs7-cert'
     fileext = 'pem'
     filename = '%s.%s.%s' % (filetype, arguments['reqid'], fileext)
-    temp_file = "temp-cert.pem"
-    print ""
+    temp_file = 'temp-cert.pem'
+    print ''
     certfile = open(filename, 'w+')
     certfile.write(pkcs7raw)
     certfile.close()
-    #### printing our all the certificates received from OIM to a temporrary file###
-    subprocess.call(['openssl', 'pkcs7', '-print_certs', '-in', filename,
-            '-out', temp_file])
+
+    # ### printing our all the certificates received from OIM to a temporrary file###
+
+    subprocess.call([
+        'openssl',
+        'pkcs7',
+        '-print_certs',
+        '-in',
+        filename,
+        '-out',
+        temp_file,
+        ])
     os.remove(filename)
-    #os.chmod(temp_file,0777)
-    """This part of the code extracts the hostname from the certificate"""
+
+    # os.chmod(temp_file,0777)
+
     certString = open(temp_file, 'rb').read()
-    ### Extracting the hostname ###
+
+    # ## Extracting the hostname ###
+
     hostname = extractHostname(certString)
-    ### Extracting the EEC certificate ###
-    eecString = extractEEC(certString,hostname)
-    ### replaceing new line and space . As ell as replacing '/' with -'-' in the file name ###
-    ### so that file system doesnt mistake it for path ###
-    write_certificate(hostname, temp_file, eecString, **arguments)
+
+    # ## Extracting the EEC certificate ###
+
+    eecString = extractEEC(certString, hostname)
+
+    # ## replaceing new line and space . As ell as replacing '/' with -'-' in the file name ###
+    # ## so that file system doesnt mistake it for path ###
+    arguments.update({'hostname': hostname})
+    arguments.update({'eecString': eecString})
+    write_certificate(**arguments)
     return
 
-def write_certificate(hostname, temp_file, eecString, **arguments):
+
+def write_certificate(**arguments):
     """ This function writes the extracted EEC certificate"""
-    hostname = hostname.strip(' \n').replace('/','-')
-    pem_filename = hostname + ".pem"
+    temp_file = 'temp-cert.pem'
+    hostname = arguments['hostname']
+    eecString = arguments['eecString']
+    hostname = hostname.strip(' \n').replace('/', '-')
+    pem_filename = hostname + '.pem'
     os.remove(temp_file)
     writeCert = open(temp_file, 'w+')
     writeCert.write(eecString)
     if os.path.exists(pem_filename):
-        charlimit_textwrap("The file %s already exists." % pem_filename)
-        pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem')
-    subprocess.call(['mv', temp_file, pem_filename])### fix for move the file to desired name ###   
-    os.chmod(pem_filename,0644)
+        charlimit_textwrap('The file %s already exists.' % pem_filename)
+        pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem'
+                )
+    subprocess.call(['mv', temp_file, pem_filename])  # ## fix for move the file to desired name ###
+    os.chmod(pem_filename, 0644)
     cwd = os.getcwd()
     try:
         os.chdir(arguments['certdir'])
@@ -374,18 +423,22 @@ def write_certificate(hostname, temp_file, eecString, **arguments):
         charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
     .Please report the bug to goc@opensciencegrid.org.a
     %s''',
-             arguments['certdir'], e)
+                           arguments['certdir'], e)
         raise OSError
-        #sys.exit(1)   
+
+        # sys.exit(1)
+
     os.chdir(cwd)
     charlimit_textwrap('''Certificate written to %s%s 
-    ''' % (arguments['certdir'],
-            pem_filename))
+    '''
+                       % (arguments['certdir'], pem_filename))
     return
 
-def connect_retrieve(num_requests,**arguments):
+
+def connect_retrieve(num_requests, **arguments):
     """This fucntion accepts a dictionary consisting of variables and their values against it.
     It retrieves the certificate from the OIM."""
+
     iterations = 1
     print 'Issuing certificate...'
     params = urllib.urlencode({'host_request_id': arguments['reqid']})
@@ -404,21 +457,25 @@ def connect_retrieve(num_requests,**arguments):
         if not 'OK' in response.reason:
             print_failure_reason_exit(data)
     conn.close()
-    charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
+    charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.'
+                       )
     iterations = 0
     while 'PENDING' in data:
         conn.request('POST', arguments['returl'], params, headers)
         try:
             response = conn.getresponse()
         except httplib.HTTPException, e:
-            charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
+            charlimit_textwrap('Connection to %s failed: %s' % (newurl,
+                               e))
             raise httplib.HTTPException
         check_response_500(response)
         data = response.read()
         conn.close()
         iterations = check_for_pending(data, iterations, **arguments)
-    pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
+    pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True,
+                                indent=2)
     check_failed_response(data)
+
     # The slice and dice on the JSON output to get the certificate out
     # happens here - the problem is that the new lines are getting all screwy
     # in the output from OIM. We stringify the data, replace all the text
@@ -426,6 +483,7 @@ def connect_retrieve(num_requests,**arguments):
     # extra data. There's probably a more efficient way to do this, but this
     # was the quick and dirty solution.
     #
+
     pkcs7raw = str(pkcs7raw)
     pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
     pkcs7raw = pkcs7raw.split('[')[1]
@@ -434,50 +492,64 @@ def connect_retrieve(num_requests,**arguments):
     cert_num = 0
     while cert_num < num_requests and i < len(pkcs7raw):
         certstring = str(pkcs7raw[i]).split('"')[1]
-        #print "Certstring is -----\n %s" %certstring
+
+        # print "Certstring is -----\n %s" %certstring
+
         if 'PKCS7' in certstring:
             extract_certs(certstring, arguments)
             cert_num = cert_num + 1
         i = i + 1
     if cert_num != num_requests:
-        raise CertificateMismatchException(num_requests, cert_num, 'Request and certificate received mismatch')
-        #print 'The number of requests made was ', num_requests
-        #print 'The number of certificates received is ', cert_num
-        #sys.exit('Request and certificate received mismatch')
+        raise CertificateMismatchException(num_requests, cert_num,
+                'Request and certificate received mismatch')
+
+        # print 'The number of requests made was ', num_requests
+        # print 'The number of certificates received is ', cert_num
+        # sys.exit('Request and certificate received mismatch')
+
     return
 
 
 def create_certificate_request(line, reqid, config_items):
     """This fucntion accepts hostname, request id and a dictionary of config_items for the CSR.
     It writes the key and creates the CSR."""
+
     print 'Generating certificate...'
     try:
-        #line = u"//?/" + os.getcwd() + u"/" + line
+
+        # line = u"//?/" + os.getcwd() + u"/" + line
+
         keyname = line + '-key.pem'
         if os.path.exists(keyname):
-            charlimit_textwrap("The key file %s already exists" % keyname)
+            charlimit_textwrap('The key file %s already exists'
+                               % keyname)
             keyname = line + '-' + str(reqid) + '-key.pem'
-            charlimit_textwrap("Writing key to %s" % keyname)
+            charlimit_textwrap('Writing key to %s' % keyname)
     except EOFError, e:
         charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
-                  % e)
+                            % e)
         raise e
-        #sys.exit(1)
+
+        # sys.exit(1)
 
     cert_obj = OSGPKIUtils.Cert()
     cert_obj.CreatePKey(keyname)
-    #os.chmod(keyname,0600)
+
+    # os.chmod(keyname,0600)
+
     new_csr = cert_obj.CreateX509Request(**config_items)
     csr = \
         new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
-                                     , ''
-                                     ).replace('-----END CERTIFICATE REQUEST-----\n'
-                , '')
+                                 , ''
+                                 ).replace('-----END CERTIFICATE REQUEST-----\n'
+            , '')
 
     return csr
 
+
 def check_quota_limit(request_count, arguments):
     '''This function checks if the quota requirements for the user is met for the particular request'''
+
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
@@ -486,112 +558,149 @@ def check_quota_limit(request_count, arguments):
         conn.request('GET', arguments['quotaurl'], None, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s' % (arguments['quotaurl'], e))
+        charlimit_textwrap('Connection to %s failed: %s'
+                           % (arguments['quotaurl'], e))
         raise httplib.HTTPException
     check_response_500(response)
     data = response.read()
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
             print_failure_reason_exit(data)
-    charlimit_textwrap('Waiting for response from Quota Check API. Please wait.')
+    charlimit_textwrap('Waiting for response from Quota Check API. Please wait.'
+                       )
     iterations = 0
     while 'PENDING' in data:
         conn.request('GET', arguments['quotaurl'], headers)
         try:
             response = conn.getresponse()
         except httplib.HTTPException, e:
-            charlimit_textwrap('Connection to %s failed: %s' % (arguments['quotaurl'], e))
+            charlimit_textwrap('Connection to %s failed: %s'
+                               % (arguments['quotaurl'], e))
             raise httplib.HTTPException
         check_response_500(response)
         data = response.read()
         conn.close()
         iterations = check_for_pending(data, iterations, **arguments)
     check_failed_response(data)
-    global_hostcert_year_max = simplejson.loads(data)['global_hostcert_year_max']
-    global_hostcert_year_count =simplejson.loads(data)['global_hostcert_year_count']
+    global_hostcert_year_max = \
+        simplejson.loads(data)['global_hostcert_year_max']
+    global_hostcert_year_count = \
+        simplejson.loads(data)['global_hostcert_year_count']
     count_hostcert_day = simplejson.loads(data)['count_hostcert_day']
-    quota_hostcert_day_max = simplejson.loads(data)['quota_hostcert_day_max']
+    quota_hostcert_day_max = \
+        simplejson.loads(data)['quota_hostcert_day_max']
     count_hostcert_year = simplejson.loads(data)['count_hostcert_year']
-    quota_hostcert_year_max = simplejson.loads(data)['quota_hostcert_year_max']
-    if global_hostcert_year_max > (global_hostcert_year_count + request_count) and \
-        (count_hostcert_day + request_count) < quota_hostcert_day_max and \
-        (count_hostcert_year + request_count) < quota_hostcert_year_max and \
-        quota_hostcert_day_max >= request_count:
+    quota_hostcert_year_max = \
+        simplejson.loads(data)['quota_hostcert_year_max']
+    if global_hostcert_year_max > global_hostcert_year_count \
+        + request_count and count_hostcert_day + request_count \
+        < quota_hostcert_day_max and count_hostcert_year \
+        + request_count < quota_hostcert_year_max \
+        and quota_hostcert_day_max >= request_count:
         status = True
     else:
         status = False
     conn.close()
     return status
-    
+
+
 def process_csr(num_requests, bulk_csr, **arguments):
     try:
-        arguments = connect_request( bulk_csr, **arguments)
-    except Exception ,e:
+        arguments = connect_request(bulk_csr, **arguments)
+    except Exception, e:
         if 'sslv3 alert bad certificate' in e:
-            raise BadCertificateException("Error connecting to server: %s.\nYour certificate is not trusted by the server" %e)
-            #charlimit_textwrap("Error connecting to server: %s" % e)
-            #charlimit_textwrap("Your certificate is not trusted by the server")
+            raise BadCertificateException('Error connecting to server: %s.\nYour certificate is not trusted by the server'
+                     % e)
         else:
-            
-            raise UncaughtException("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
+
+            # charlimit_textwrap("Error connecting to server: %s" % e)
+            # charlimit_textwrap("Your certificate is not trusted by the server")
+
+            raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                                    )
+
         #    print traceback.format_exc()
         #    charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
         #                        )
-        #sys.exit(1)
+        # sys.exit(1)
+
     connect_approve(**arguments)
-    connect_retrieve(num_requests,**arguments)
+    connect_retrieve(num_requests, **arguments)
     return
 
-def check_bad_passphrase(e,**arguments):
-    if 'bad decrypt' in e or 'bad password read' in e: ### fix for incorrect password or carriage return ###
-        print "Incorrect passphrase for %s.\nPlease try again" % arguments['userprivkey']
-        print "Please enter the passphrase again:"
+
+def check_bad_passphrase(e, **arguments):
+    if 'bad decrypt' in e or 'bad password read' in e:  # ## fix for incorrect password or carriage return ###
+        print 'Incorrect passphrase for %s.\nPlease try again' \
+            % arguments['userprivkey']
+        print 'Please enter the passphrase again:'
         try:
+
             def prompt_for_password(verify):
-                        return getpass.getpass("Please enter the pass phrase for '%s':"
-                                    % arguments['userprivkey'])
+                return getpass.getpass("Please enter the pass phrase for '%s':"
+                         % arguments['userprivkey'])
+
             ssl_context = M2Crypto.SSL.Context('sslv3')
             ssl_context.load_cert_chain(arguments['usercert'],
-                            arguments['userprivkey'],
-                            callback=prompt_for_password)
+                    arguments['userprivkey'],
+                    callback=prompt_for_password)
         except Exception, e:
             if 'bad decrypt' in e or 'bad password read' in e:
-                raise BadPassphraseException("Incorrect passphrase. Attempt failed twice. Exiting script")
-  
+                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
+                        )
             else:
-                
-                raise UncaughtException("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
+
+                raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                        )
+    elif 'handshake failure' in e:
+
                 # UncaughtException
-    elif 'handshake failure' in e: ### fix for wrong key/certificate ###
-        raise HanshakeFailureException("Failure: %s.\nPlease check for valid certificate/key pairs." %e)
-        #charlimit_textwrap('''Failure : %s''' % e)
-        #charlimit_textwrap("Please check for valid certificate/key pairs.")
-        #sys.exit(1)
+                                   # ## fix for wrong key/certificate ###
+
+        raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
+                 % e)
     elif 'sslv3 alert bad certificate' in e:
-        raise BadCertificateException("Error connecting to server: %s.\nYour certificate is not trusted by the server" %e)
+
+        # charlimit_textwrap('''Failure : %s''' % e)
+        # charlimit_textwrap("Please check for valid certificate/key pairs.")
+        # sys.exit(1)
+
+        raise BadCertificateException('Error connecting to server: %s.\nYour certificate is not trusted by the server'
+                 % e)
     else:
-        
-        raise UncaughtException("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
-        #raise UncaughtException
+
+        raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                                )
+
+        # raise UncaughtException
+
     return ssl_context
+
 
 def print_uncaught_exception():
     print traceback.format_exc()
-    #charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
+
+
+    # charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
     #                            )
-    #sys.exit(1)
-                        
+    # sys.exit(1)
+
 def check_bad_cert_exception(e):
-        if 'sslv3 alert bad certificate' in e:
-            raise BadCertificateException("Error connecting to server: %s\nYour certificate is not trusted by the server" %e)
-                                #charlimit_textwrap("Error connecting to server: %s" % e)
-                                #charlimit_textwrap("Your certificate is not trusted by the server")
-                                #sys.exit(1)
-        else:
-            
-            raise UncaughtException("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
-            #raise UncaughtException("%s.\nAn uncaught exception has occured" %traceback.format_exc())
-    
+    if 'sslv3 alert bad certificate' in e:
+        raise BadCertificateException('Error connecting to server: %s\nYour certificate is not trusted by the server'
+                 % e)
+    else:
+
+                                # charlimit_textwrap("Error connecting to server: %s" % e)
+                                # charlimit_textwrap("Your certificate is not trusted by the server")
+                                # sys.exit(1)
+
+        raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                                )
+
+
+            # raise UncaughtException("%s.\nAn uncaught exception has occured" %traceback.format_exc())
+
 def process_single_host_mode(**arguments):
     bulk_csr = list()
     count = 0
@@ -602,16 +711,21 @@ def process_single_host_mode(**arguments):
     if status:
         pass
     else:
-        raise QuotaException("Your request would exceed your quota. Aborting")
-        #charlimit_textwrap("Your request would exceed your quota. Aborting")
-        #sys.exit(1)
+        raise QuotaException('Your request would exceed your quota. Aborting'
+                             )
+
+        # charlimit_textwrap("Your request would exceed your quota. Aborting")
+        # sys.exit(1)
+
     hostname = arguments['hostname'].rstrip('\n')
     config_items.update({'CN': hostname})  # ### New CN for every host#######
     num_requests = 1
     charlimit_textwrap('Beginning request process for %s' % hostname)
-    csr = create_certificate_request(hostname.replace('/','-'), count, config_items)
+    csr = create_certificate_request(hostname.replace('/', '-'), count,
+            config_items)
     process_csr(1, csr, **arguments)
     return
+
 
 def process_hostfile_mode(**arguments):
     bulk_csr = list()
@@ -625,42 +739,55 @@ def process_hostfile_mode(**arguments):
     if status:
         pass
     else:
-        raise QuotaException("Your request would exceed your quota. Aborting")
-        #charlimit_textwrap("Your request would exceed your quota. Aborting")
-        #sys.exit(1)
+        raise QuotaException('Your request would exceed your quota. Aborting'
+                             )
+
+        # charlimit_textwrap("Your request would exceed your quota. Aborting")
+        # sys.exit(1)
+
     for line in hosts:
         line = line.strip(' \n')
         if not line in host_set:
             host_set.add(line)
-            count += 1 ### as a check for number of request and certs retrieved ###
+            count += 1  # ## as a check for number of request and certs retrieved ###
             config_items.update({'CN': line})  # ### New Config item list for every host#######
-            charlimit_textwrap('Beginning request process for %s' % line)
-            csr = create_certificate_request(line.replace('/','-'), count, config_items)
+            charlimit_textwrap('Beginning request process for %s'
+                               % line)
+            csr = create_certificate_request(line.replace('/', '-'),
+                    count, config_items)
             bulk_csr.append(csr)
-            num_requests = num_requests + 1 ### as a check for number of request and certs retrieved ###
-            if count == 50: ### Processing max of 50 requests in bulk ###
+            num_requests = num_requests + 1  # ## as a check for number of request and certs retrieved ###
+            if count == 50:  # ## Processing max of 50 requests in bulk ###
                 process_csr(request_count, bulk_csr, **arguments)
                 bulk_csr = ''
                 count = 0
         else:
-            charlimit_textwrap("Duplicate Hostname entry for %s.\nSkipping process for %s\n" % (line, line))
-# ####################################################################################################################################
+            charlimit_textwrap('''Duplicate Hostname entry for %s.
+Skipping process for %s
+'''
+                               % (line, line))
+
+#####################################################################################################################################
 
     if count != 0 and count != 50:
         process_csr(request_count, bulk_csr, **arguments)
     hosts.close()
     return
 
+
 def get_ssl_context(**arguments):
+
     def prompt_for_password(verify):
-                        return getpass.getpass("Please enter the pass phrase for '%s':"
-                                    % arguments['userprivkey'])
+        return getpass.getpass("Please enter the pass phrase for '%s':"
+                               % arguments['userprivkey'])
+
     ssl_context = M2Crypto.SSL.Context('sslv3')
     ssl_context.load_cert_chain(arguments['usercert'],
-                                    arguments['userprivkey'],
-                                    callback=prompt_for_password)
+                                arguments['userprivkey'],
+                                callback=prompt_for_password)
     arguments.update({'ssl_context': ssl_context})
     return arguments
+
 
 if __name__ == '__main__':
     try:
@@ -670,60 +797,67 @@ if __name__ == '__main__':
         try:
             if not arguments.has_key('ssl_context'):
                 arguments = get_ssl_context(**arguments)
-            #ssl_context = M2Crypto.SSL.Context('sslv3')
-            #ssl_context.load_cert_chain(arguments['usercert'],
+        except Exception, e:
+
+            # ssl_context = M2Crypto.SSL.Context('sslv3')
+            # ssl_context.load_cert_chain(arguments['usercert'],
             #                        arguments['userprivkey'],
             #                        callback=prompt_for_password)
-        except Exception, e:
+
             check_bad_passphrase(e, **arguments)
         if not arguments.has_key('hostname'):
             process_hostfile_mode(**arguments)
         else:
             process_single_host_mode(**arguments)
-    except SystemExit, e: ### fix for weird error on help for python2.4 ###
-            raise
+    except SystemExit, e:
+
+                          # ## fix for weird error on help for python2.4 ###
+
+        raise
     except ssl.SSLError, s:
         print s
-        sys.exit("Please check for valid certificate.\n")
+        sys.exit('Please check for valid certificate.\n')
     except KeyboardInterrupt, k:
         print k
         sys.exit('''Interrupted by user\n''')
     except OSError, e:
         sys.exit(1)
     except Exception_500response, e:
-        charlimit_textwrap("Request Failed. Status %s" %e.status)
-        charlimit_textwrap("Reason for failure %s" %e.message)
+        charlimit_textwrap('Request Failed. Status %s' % e.status)
+        charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
     except TimeoutException, e:
-        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % e.timeout )
-	charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
+        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.'
+                            % e.timeout)
+        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
+                           )
         sys.exit(1)
     except FileNotFoundException, e:
-        charlimit_textwrap(e.message + ":"+ e.filename)
+        charlimit_textwrap(e.message + ':' + e.filename)
         sys.exit(1)
     except ValueError, e:
         sys.exit(1)
     except NotOKException, e:
-        charlimit_textwrap("Request Failed. Status %s" %e.status)
-        charlimit_textwrap("Reason for failure %s" %e.message)
+        charlimit_textwrap('Request Failed. Status %s' % e.status)
+        charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
     except CertificateMismatchException, e:
         print 'The number of requests made was ', e.request_num
         print 'The number of certificates received is ', e.retrieve_num
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except EOFError,e:
+    except EOFError, e:
         sys.exit(1)
-    except BadCertificateException,e:
+    except BadCertificateException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except BadPassphraseException,e:
+    except BadPassphraseException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
     except HandshakeFailureException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except QuotaException,e:
+    except QuotaException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
     except UncaughtException, e:
@@ -734,8 +868,11 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message)
         sys.exit(1)
     except Exception, e:
-        #check_bad_cert_exception(e)
+
+        # check_bad_cert_exception(e)
+
         print_uncaught_exception()
-        charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
+        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                           )
         sys.exit(1)
     sys.exit(0)
