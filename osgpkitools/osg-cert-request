@@ -27,18 +27,14 @@ from OSGPKIUtils import charlimit_textwrap
 from OSGPKIUtils import check_failed_response
 from ExceptionDefinitions import *
 
+
 # Set up Option Parser
 #
 
-#def charlimit_textwrap(string):
-#    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
-#    list_string = textwrap.wrap(string)
-#    for line in list_string:
-#        print line
-#    return
-
 def parse_args():
-    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
+    """This function parses all the arguments, validates them and then stores\
+    them in a dictionary that is used throughout the script.\n"""
+
     parser = OptionParser()
     parser.add_option(
         '-c',
@@ -63,7 +59,8 @@ def parse_args():
         '--outkeyfile',
         action='store',
         dest='keyfile',
-        help='Specify the output filename for the retrieved user certificate. \nDefault is ./hostkey.pem'
+        help='Specify the output filename for the retrieved user certificate.\
+             \nDefault is ./hostkey.pem'
             ,
         metavar='Output Keyfile',
         default='./hostkey.pem',
@@ -73,7 +70,8 @@ def parse_args():
         '--cc',
         action='store',
         dest='cc_list',
-        help='Specify the CC list(the email id\'s to be CCed). Separate values by \',\''
+        help='Specify the CC list(the email id\'s to be CCed). \
+             Separate values by \',\''
             ,
         metavar='CC List',
         default='',
@@ -83,8 +81,7 @@ def parse_args():
         '--comment',
         action='store',
         dest='comment',
-        help='The comment to be added to the request'
-            ,
+        help='The comment to be added to the request',
         metavar='Comment',
         default='',
         )
@@ -151,7 +148,8 @@ def parse_args():
 
     if os.path.exists(args.keyfile):
         opt = \
-            raw_input('%s already exists. Do you want to overwrite it? Y/N : \n'
+            raw_input('%s already exists. Do you want to overwrite it?\
+                      Y/N : \n'
                        % args.keyfile)
         if opt == 'y' or opt == 'Y':
             pem_filename = args.keyfile
@@ -170,37 +168,44 @@ def parse_args():
     csr = args.csr
     prikey = args.prikey
 
-
     cc_list = args.cc_list
 
-
-    comment = args.comment  
+    comment = args.comment
 
     phone_num = phone.replace('-', '')
     if not phone_num.isdigit():
-        raise ValidationException("Phone number should contain only numbers and/or '-'\n")
-        #sys.exit("Phone number should contain only numbers and/or '-'\n"
+        raise ValidationException("Phone number should contain \
+                                  only numbers and/or '-'\n"
+                                  )
+
+        # sys.exit("Phone number should contain only numbers and/or '-'\n"
          #        )
 
     if args.prikey == 'genprivate.key':
         pass
     elif not os.path.exists(args.prikey):
-        raise FileNotFoundException(args.prikey,'The file %s does not exist' % args.prikey )
-        #charlimit_textwrap('The file %s does not exist' % args.prikey)
-        #sys.exit(1)
+        raise FileNotFoundException(args.prikey,
+                                    'The file %s does not exist'
+                                    % args.prikey)
+
+        # charlimit_textwrap('The file %s does not exist' % args.prikey)
+        # sys.exit(1)
 
     if args.csr == 'gennew.csr':
         pass
     elif not os.path.exists(args.csr):
-        raise FileNotFoundException(args.csr,'The file %s does not exist' % args.csr )
-        #charlimit_textwrap('The file %s does not exist' % args.csr)
-        #sys.exit(1)
-    
+        raise FileNotFoundException(args.csr,
+                                    'The file %s does not exist'
+                                    % args.csr)
+
+        # charlimit_textwrap('The file %s does not exist' % args.csr)
+        # sys.exit(1)
+
     OIM = args.test
-    
-    #if args.test:
+
+    # if args.test:
     #    OIM = True
-    #else:
+    # else:
     #    OIM = False
 
     arguments = dict()
@@ -233,16 +238,21 @@ def parse_args():
     # readable we pass it through the json module to pretty print it
     #
 
+def print_uncaught_exception():
+    print traceback.format_exc()
+
+
 def connect(arguments):
     """This function accepts a dictionary consisting of all parameters and their values.\nIt submites the request to the OIM server and returns the request details."""
+
     print '\nConnecting to server...'
     params = urllib.urlencode({
         'name': arguments['name'],
         'email': arguments['email'],
         'phone': arguments['phone'],
         'csrs': arguments['csr'],
-        'request_comment' : arguments['comment'],
-        'request_ccs' : arguments['cc_list'].split(','),
+        'request_comment': arguments['comment'],
+        'request_ccs': arguments['cc_list'].split(','),
         })
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
@@ -251,17 +261,19 @@ def connect(arguments):
         conn.request('POST', arguments['requrl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s' % (arguments['requrl'],
-                repr(e)))
+        charlimit_textwrap('Connection to %s failed: %s'
+                           % (arguments['requrl'], repr(e)))
         raise e
     except Exception, e:
-        charlimit_textwrap('Error during request to %s. Reason %s' \
-            % (arguments['requrl'], repr(e)))
+        charlimit_textwrap('Error during request to %s. Reason %s'
+                           % (arguments['requrl'], repr(e)))
     check_response_500(response)
-    #if response.status==500:
+
+    # if response.status==500:
     #    charlimit_textwrap("Request Failed. Status %s" %response.status)
     #    charlimit_textwrap("Reason for failure %s" %response.reason)
     #    sys.exit(1)
+
     data = response.read()
     check_failed_response(data)
     conn.close()
@@ -280,7 +292,7 @@ if __name__ == '__main__':
             arguments = parse_args()
         except EOFError, e:
             charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
-                  % e)
+                                % e)
             sys.exit(1)
         config_items = {'CN': arguments['hostname'],
                         'emailAddress': arguments['email']}
@@ -297,8 +309,9 @@ if __name__ == '__main__':
             == 'gennew.csr':
             cert_obj = OSGPKIUtils.Cert()
             cert_obj.CreatePKey(arguments['pem_filename'])
-            print "Writing key to %s" % arguments['pem_filename']
-            #os.chmod(arguments['pem_filename'],0600)
+            print 'Writing key to %s' % arguments['pem_filename']
+
+            # os.chmod(arguments['pem_filename'],0600)
 
       # ##############################
 
@@ -310,24 +323,30 @@ if __name__ == '__main__':
             connect(arguments)
         elif arguments['prikey'] != 'genprivate.key':
             try:
-                print "Please enter the passphrase for %s" % arguments['userprivkey']
+                print 'Please enter the passphrase for %s' \
+                    % arguments['userprivkey']
                 mykey = RSA.load_key(arguments['prikey'])
             except Exception, e:
                 if 'bad decrypt' in e:
-                    print "Incorrect passphrase for %s" % arguments['userprivkey']
-                    print "Please enter the passphrase again:"
+                    print 'Incorrect passphrase for %s' \
+                        % arguments['userprivkey']
+                    print 'Please enter the passphrase again:'
                     try:
                         mykey = RSA.load_key(arguments['prikey'])
                     except Exception, e:
                         if 'bad decrypt' in e:
-                            raise BadPassphraseException("Incorrect passphrase. Attempt failed twice. Exiting script")
-                            #print "Incorrect passphrase. Attempt failed twice. Exiting script"
-                            #sys.exit(1)
+                            raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
+                                    )
                         else:
+
+                            # print "Incorrect passphrase. Attempt failed twice. Exiting script"
+                            # sys.exit(1)
+
                             raise UncaughtException(traceback.format_exc())
-                            #print traceback.format_exc()
-                            #charlimit_textwrap('''Uncaught Exception ''')
-                            #sys.exit(1)
+
+                            # print traceback.format_exc()
+                            # charlimit_textwrap('''Uncaught Exception ''')
+                            # sys.exit(1)
 
             new_csr = OSGPKIUtils.Cert()
             new_csr = new_csr.CreateX509Request(**config_items)
@@ -350,41 +369,45 @@ if __name__ == '__main__':
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
     except SystemExit, e:
-        # This is to prevent optparse throwing spurious exception for -h in python2.4 
+
+        # This is to prevent optparse throwing spurious exception for -h in python2.4
+
         raise
     except ssl.SSLError, s:
         print s
-        sys.exit("Please check for valid certificate.\n")
+        sys.exit('Please check for valid certificate.\n')
     except OSError, e:
         sys.exit(1)
     except Exception_500response, e:
-        charlimit_textwrap("Request Failed. Status %s" %e.status)
-        charlimit_textwrap("Reason for failure %s" %e.message)
+        charlimit_textwrap('Request Failed. Status %s' % e.status)
+        charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
     except TimeoutException, e:
-        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % e.timeout )
-	charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
+        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.'
+                            % e.timeout)
+        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
+                           )
         sys.exit(1)
     except FileNotFoundException, e:
-        charlimit_textwrap(e.message + ":"+ e.filename)
+        charlimit_textwrap(e.message + ':' + e.filename)
         sys.exit(1)
     except ValueError, e:
         sys.exit(1)
     except NotOKException, e:
-        charlimit_textwrap("Request Failed. Status %s" %e.status)
-        charlimit_textwrap("Reason for failure %s" %e.message)
+        charlimit_textwrap('Request Failed. Status %s' % e.status)
+        charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
     except CertificateMismatchException, e:
         print 'The number of requests made was ', e.request_num
         print 'The number of certificates received is ', e.retrieve_num
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except EOFError,e:
+    except EOFError, e:
         sys.exit(1)
-    except BadCertificateException,e:
+    except BadCertificateException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except BadPassphraseException,e:
+    except BadPassphraseException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
     except HandshakeFailureException, e:
@@ -398,8 +421,11 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message)
         sys.exit(1)
     except Exception, e:
-        #check_bad_cert_exception(e)
+
+        # check_bad_cert_exception(e)
+
         print_uncaught_exception()
-        charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
+        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                           )
         sys.exit(1)
     sys.exit(0)

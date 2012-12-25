@@ -41,10 +41,11 @@ from OSGPKIUtils import print_failure_reason_exit
 from OSGPKIUtils import check_for_pending
 from ExceptionDefinitions import *
 
+
 # Set up Option Parser
 #
 
-#def charlimit_textwrap(string):
+# def charlimit_textwrap(string):
 #    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
 #    list_string = textwrap.wrap(string)
 #    for line in list_string:
@@ -53,6 +54,7 @@ from ExceptionDefinitions import *
 
 def parse_args():
     """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
+
     usage = \
         'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
     parser = OptionParser(usage)
@@ -83,12 +85,12 @@ def parse_args():
         default=False,
         )
     parser.add_option(
-            '-t',
-            '--timeout',
-            action='store',
-            dest='timeout',
-            help='Specify the timeout in minutes',
-            default=5,
+        '-t',
+        '--timeout',
+        action='store',
+        dest='timeout',
+        help='Specify the timeout in minutes',
+        default=5,
         )
     parser.add_option(
         '-q',
@@ -105,18 +107,24 @@ def parse_args():
         parser.error('-i/--id argument required')
 
     reqid = args.id
-    
+
     try:
         timeout = int(args.timeout)
         if not timeout >= 0:
-            raise ValidationException('Your timeout value cannot be a negative integer.\nExiting now')
-            #charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
-            #sys.exit(1)
+            raise ValidationException('Your timeout value cannot be a negative integer.\nExiting now'
+                    )
     except ValueError, e:
-        charlimit_textwrap('Invalid timeout value. Please enter a non-negative integer.\n')
+
+            # charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
+            # sys.exit(1)
+
+        charlimit_textwrap('Invalid timeout value. Please enter a non-negative integer.\n'
+                           )
         raise e
-        #sys.exit(1)
-    print "Using timeout of %d minutes" % timeout
+
+        # sys.exit(1)
+
+    print 'Using timeout of %d minutes' % timeout
 
     if os.path.exists(args.certfile):
         opt = \
@@ -129,13 +137,15 @@ def parse_args():
                 raw_input('Please enter a different file name\n')
         else:
             raise InvalidOptionException('Invalid Option')
-            #sys.exit('Invalid option')
     else:
+
+            # sys.exit('Invalid option')
+
         pem_filename = args.certfile
     if args.test:
-        OIM=True
+        OIM = True
     else:
-        OIM=False
+        OIM = False
     filetype = 'hostcert'
     fileext = 'pkcs7'
     filename = '%s.%s.%s' % (filetype, reqid, fileext)
@@ -175,6 +185,7 @@ def parse_args():
 
 def connect_issue(arguments):
     """This function accepts a dictionary of parameters and issues the request if the requets is in Approved state."""
+
     params = urllib.urlencode({'host_request_id': arguments['id']})
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
@@ -186,7 +197,8 @@ def connect_issue(arguments):
         time.sleep(10)
         response = conn.getresponse()
     except Exception, e:
-        charlimit_textwrap('Connection to %s failed: %s' % (newrequrl, e))
+        charlimit_textwrap('Connection to %s failed: %s' % (newrequrl,
+                           e))
         raise e
     data = response.read()
     conn.close()
@@ -206,6 +218,7 @@ def connect_issue(arguments):
 
 def connect_retrieve(arguments):
     """This function checks if the request is in Issues state.\nIf its is in the issued state, it then retrieves the certificate.\nIt accepts a dictionary that consist of all the parameters and tehir value."""
+
     iterations = 1
     print 'Connecting server to retrieve certificate...'
     params = urllib.urlencode({'host_request_id': arguments['id']})
@@ -216,25 +229,30 @@ def connect_retrieve(arguments):
         conn.request('POST', arguments['returl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s' % (arguments['requrl'], e))
+        charlimit_textwrap('Connection to %s failed: %s'
+                           % (arguments['requrl'], e))
         raise httplib.HTTPException
     check_response_500(response)
     data = response.read()
     if simplejson.loads(data).has_key('request_status'):
         if simplejson.loads(data)['request_status'] == 'REQUESTED':
             raise NotApprovedException('Certificate request in Requested state.Needs to be Approved first. Please contact GA to approve this certificate\n'
-                     )
-            #charlimit_textwrap('Certificate request in Requested state.Needs to be Approved first. Please contact GA to approve this certificate\n'
-            #         )
-            #sys.exit(1)
+                    )
         else:
-            charlimit_textwrap('Certificate request in Approved state. Needs to be issued first\n')
+
+            # charlimit_textwrap('Certificate request in Requested state.Needs to be Approved first. Please contact GA to approve this certificate\n'
+            #         )
+            # sys.exit(1)
+
+            charlimit_textwrap('Certificate request in Approved state. Needs to be issued first\n'
+                               )
             connect_issue(arguments)
     try:
         conn.request('POST', arguments['returl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s' % (arguments['returl'], e))
+        charlimit_textwrap('Connection to %s failed: %s'
+                           % (arguments['returl'], e))
         raise httplib.HTTPException
     check_response_500(response)
     data = response.read()
@@ -244,13 +262,15 @@ def connect_retrieve(arguments):
         try:
             response = conn.getresponse()
         except httplib.HTTPException, e:
-            charlimit_textwrap('Connection to %s failed: %s' % (arguments['returl'], e))
+            charlimit_textwrap('Connection to %s failed: %s'
+                               % (arguments['returl'], e))
             raise httplib.HTTPException
         check_response_500(response)
         data = response.read()
         conn.close()
         iterations = check_for_pending(data, iterations, **arguments)
-    pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
+    pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True,
+                                indent=2)
     check_failed_response(data)
 
     # The slice and dice on the JSON output to get the certificate out
@@ -272,23 +292,35 @@ def connect_retrieve(arguments):
         certfile = open(temp_filename, 'w+')
         certfile.write(pkcs7raw)
         certfile.close()
-        subprocess.call(['openssl', 'pkcs7', '-print_certs', '-in', temp_filename,
-               '-out', arguments['pem_filename']], stdin=subprocess.PIPE)
-        #os.chmod(arguments['pem_filename'],0644)
+        subprocess.call([
+            'openssl',
+            'pkcs7',
+            '-print_certs',
+            '-in',
+            temp_filename,
+            '-out',
+            arguments['pem_filename'],
+            ], stdin=subprocess.PIPE)
+
+        # os.chmod(arguments['pem_filename'],0644)
+
         os.remove(temp_filename)
         certString = open(arguments['pem_filename'], 'rb').read()
         hostname = extractHostname(certString)
-        extractedEEC = extractEEC(certString, hostname )
+        extractedEEC = extractEEC(certString, hostname)
         os.remove(arguments['pem_filename'])
-        fileWrite = open (arguments['pem_filename'], 'wb')
+        fileWrite = open(arguments['pem_filename'], 'wb')
         fileWrite.write(extractedEEC)
-        os.chmod(arguments['pem_filename'],0644)
+        os.chmod(arguments['pem_filename'], 0644)
     except OSError, e:
         charlimit_textwrap('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org.'
-                 )
+                           )
         raise e
-        #sys.exit(1)
-    charlimit_textwrap('Certificate written to %s \n' % arguments['pem_filename'])
+
+        # sys.exit(1)
+
+    charlimit_textwrap('Certificate written to %s \n'
+                       % arguments['pem_filename'])
     return
 
 
@@ -299,53 +331,58 @@ if __name__ == '__main__':
         connect_retrieve(arguments)
     except EOFError, e:
         charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
-              % e)
-        sys.exit(1)   
+                            % e)
+        sys.exit(1)
     except SystemExit, e:
-            raise
+        raise
     except KeyboardInterrupt, k:
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
     except ssl.SSLError, s:
         print s
-        sys.exit("Please check for valid certificate.\n")
+        sys.exit('Please check for valid certificate.\n')
     except Exception_500response, e:
-        charlimit_textwrap("Request Failed. Status %s" %e.status)
-        charlimit_textwrap("Reason for failure %s" %e.message)
+        charlimit_textwrap('Request Failed. Status %s' % e.status)
+        charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
     except TimeoutException, e:
-        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % e.timeout )
-	charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
+        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.'
+                            % e.timeout)
+        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
+                           )
         sys.exit(1)
     except FileNotFoundException, e:
-        charlimit_textwrap(e.message + ":"+ e.filename)
+        charlimit_textwrap(e.message + ':' + e.filename)
         sys.exit(1)
     except ValueError, e:
         sys.exit(1)
     except NotOKException, e:
-        charlimit_textwrap("Request Failed. Status %s" %e.status)
-        charlimit_textwrap("Reason for failure %s" %e.message)
+        charlimit_textwrap('Request Failed. Status %s' % e.status)
+        charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
     except ValidationException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except InvalidOptionException,e:
+    except InvalidOptionException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
     except UncaughtException, e:
         print_uncaught_exception()
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except NotApprovedException,e:
+    except NotApprovedException, e:
         charlimit_textwrap(e.message)
-    except OSError,e:
+    except OSError, e:
         sys.exit(1)
     except UnexpectedBehaviourException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
     except Exception, e:
-        #check_bad_cert_exception(e)
+
+        # check_bad_cert_exception(e)
+
         print_uncaught_exception()
-        charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org.")
+        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                           )
         sys.exit(1)
     sys.exit(0)
