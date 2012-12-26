@@ -187,26 +187,13 @@ def parse_args():
         raise FileNotFoundException(args.prikey,
                                     'The file %s does not exist'
                                     % args.prikey)
-
-        # charlimit_textwrap('The file %s does not exist' % args.prikey)
-        # sys.exit(1)
-
     if args.csr == 'gennew.csr':
         pass
     elif not os.path.exists(args.csr):
         raise FileNotFoundException(args.csr,
                                     'The file %s does not exist'
                                     % args.csr)
-
-        # charlimit_textwrap('The file %s does not exist' % args.csr)
-        # sys.exit(1)
-
     OIM = args.test
-
-    # if args.test:
-    #    OIM = True
-    # else:
-    #    OIM = False
 
     arguments = dict()
     arguments = CreateOIMConfig(OIM, **arguments)
@@ -284,6 +271,38 @@ def connect(arguments):
         print 'Request Id#: %s' % ticket
     return
 
+def get_ssl_context(new_csr, **arguments):
+    first = True
+    count = 0
+    e = 'bad decrypt'
+    pass_str = 'Please enter the pass phrase for'
+    while('bad decrypt' in e or 'bad password read' in e):
+        try:
+            def prompt_for_password(verify):
+                return getpass.getpass(pass_str+" '%s':"
+                                       % arguments['prikey'])
+            ssl_context = M2Crypto.SSL.Context('sslv3')
+            new_csr.PKey = M2Crypto.RSA.load_key(arguments['prikey'],
+                                 callback=prompt_for_password)
+            arguments.update({'ssl_context': ssl_context})
+            arguments.update({'new_csr': new_csr})
+            break
+        except Exception, e:
+            first = False
+            count = count + 1
+            pass_str = 'Incorrect password. Please enter the password again for'
+            if count > 2:
+                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
+                        )
+                break
+    else:
+        if 'handshake failure' in e:
+            raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
+                 % e)
+        elif 'sslv3 alert bad certificate' in e:
+            raise BadCertificateException('Error connecting to server: %s.\nYour certificate is not trusted by the server'
+                 % e)
+    return arguments
 
 if __name__ == '__main__':
     try:
@@ -310,45 +329,16 @@ if __name__ == '__main__':
             cert_obj = OSGPKIUtils.Cert()
             cert_obj.CreatePKey(arguments['pem_filename'])
             print 'Writing key to %s' % arguments['pem_filename']
-
-            # os.chmod(arguments['pem_filename'],0600)
-
-      # ##############################
-
             new_csr = cert_obj.CreateX509Request(**config_items)
             arguments['csr'] = \
                 new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
                     , '').replace('-----END CERTIFICATE REQUEST-----\n'
                                   , '')
             connect(arguments)
-        elif arguments['prikey'] != 'genprivate.key':
-            try:
-                print 'Please enter the passphrase for %s' \
-                    % arguments['userprivkey']
-                mykey = RSA.load_key(arguments['prikey'])
-            except Exception, e:
-                if 'bad decrypt' in e:
-                    print 'Incorrect passphrase for %s' \
-                        % arguments['userprivkey']
-                    print 'Please enter the passphrase again:'
-                    try:
-                        mykey = RSA.load_key(arguments['prikey'])
-                    except Exception, e:
-                        if 'bad decrypt' in e:
-                            raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
-                                    )
-                        else:
-
-                            # print "Incorrect passphrase. Attempt failed twice. Exiting script"
-                            # sys.exit(1)
-
-                            raise UncaughtException(traceback.format_exc())
-
-                            # print traceback.format_exc()
-                            # charlimit_textwrap('''Uncaught Exception ''')
-                            # sys.exit(1)
-
+        elif arguments['prikey'] != 'genprivate.key' and arguments['csr'] == 'gennew.csr':
             new_csr = OSGPKIUtils.Cert()
+            arguments = get_ssl_context(new_csr, **arguments)
+            new_csr = arguments['new_csr']
             new_csr = new_csr.CreateX509Request(**config_items)
             arguments['csr'] = \
                 new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
@@ -356,11 +346,7 @@ if __name__ == '__main__':
                                   , '')
             connect(arguments)
         else:
-            arguments['csr'] = RSA.load_key(arguments['csr'])
-            arguments['csr'] = arguments['csr'].private_decrypt(cipher,
-                    RSA.pkcs1_oaep_padding)
-            arguments['csr'] = arguments['csr'
-                    ].replace('-----BEGIN CERTIFICATE REQUEST-----\n',
+            csr = open(arguments['csr'], 'rb').read().replace('-----BEGIN CERTIFICATE REQUEST-----\n',
                               ''
                               ).replace('-----END CERTIFICATE REQUEST-----\n'
                     , '')
@@ -369,9 +355,6 @@ if __name__ == '__main__':
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
     except SystemExit, e:
-
-        # This is to prevent optparse throwing spurious exception for -h in python2.4
-
         raise
     except ssl.SSLError, s:
         print s
