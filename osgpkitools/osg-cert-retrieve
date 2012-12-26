@@ -45,13 +45,6 @@ from ExceptionDefinitions import *
 # Set up Option Parser
 #
 
-# def charlimit_textwrap(string):
-#    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
-#    list_string = textwrap.wrap(string)
-#    for line in list_string:
-#        print line
-#    return
-
 def parse_args():
     """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
 
@@ -114,16 +107,9 @@ def parse_args():
             raise ValidationException('Your timeout value cannot be a negative integer.\nExiting now'
                     )
     except ValueError, e:
-
-            # charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
-            # sys.exit(1)
-
         charlimit_textwrap('Invalid timeout value. Please enter a non-negative integer.\n'
                            )
         raise e
-
-        # sys.exit(1)
-
     print 'Using timeout of %d minutes' % timeout
 
     if os.path.exists(args.certfile):
@@ -138,9 +124,6 @@ def parse_args():
         else:
             raise InvalidOptionException('Invalid Option')
     else:
-
-            # sys.exit('Invalid option')
-
         pem_filename = args.certfile
     if args.test:
         OIM = True
@@ -239,11 +222,6 @@ def connect_retrieve(arguments):
             raise NotApprovedException('Certificate request in Requested state.Needs to be Approved first. Please contact GA to approve this certificate\n'
                     )
         else:
-
-            # charlimit_textwrap('Certificate request in Requested state.Needs to be Approved first. Please contact GA to approve this certificate\n'
-            #         )
-            # sys.exit(1)
-
             charlimit_textwrap('Certificate request in Approved state. Needs to be issued first\n'
                                )
             connect_issue(arguments)
@@ -300,10 +278,7 @@ def connect_retrieve(arguments):
             temp_filename,
             '-out',
             arguments['pem_filename'],
-            ], stdin=subprocess.PIPE)
-
-        # os.chmod(arguments['pem_filename'],0644)
-
+            ])
         os.remove(temp_filename)
         certString = open(arguments['pem_filename'], 'rb').read()
         hostname = extractHostname(certString)
@@ -316,9 +291,6 @@ def connect_retrieve(arguments):
         charlimit_textwrap('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org.'
                            )
         raise e
-
-        # sys.exit(1)
-
     charlimit_textwrap('Certificate written to %s \n'
                        % arguments['pem_filename'])
     return
@@ -378,9 +350,6 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message)
         sys.exit(1)
     except Exception, e:
-
-        # check_bad_cert_exception(e)
-
         print_uncaught_exception()
         charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
                            )
