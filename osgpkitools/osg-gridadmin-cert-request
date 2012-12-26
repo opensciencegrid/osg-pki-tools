@@ -336,14 +336,6 @@ def connect_approve(**arguments):
     elif not 'OK' in data:
         raise NotOKException('Failed', simplejson.loads(data)['detail'])
 
-
-        # charlimit_textwrap('The request has failed for the reason: %s' \
-        #    % simplejson.loads(data)['detail'])
-        # sys.exit(1)
-    # elif action != 'approve':
-    #    charlimit_textwrap('Request not approved by the Grid Admin. Exiting now.\n')
-    #    sys.exit(0)
-
 # Here's where things have gotten dicey during the testing phase -
 # We retrieve the certificate from OIM after it has retrieved it from the CA
 # This is where things tend to fall apart - if the delay is to long and the
@@ -492,9 +484,6 @@ def connect_retrieve(num_requests, **arguments):
     cert_num = 0
     while cert_num < num_requests and i < len(pkcs7raw):
         certstring = str(pkcs7raw[i]).split('"')[1]
-
-        # print "Certstring is -----\n %s" %certstring
-
         if 'PKCS7' in certstring:
             extract_certs(certstring, arguments)
             cert_num = cert_num + 1
@@ -502,11 +491,6 @@ def connect_retrieve(num_requests, **arguments):
     if cert_num != num_requests:
         raise CertificateMismatchException(num_requests, cert_num,
                 'Request and certificate received mismatch')
-
-        # print 'The number of requests made was ', num_requests
-        # print 'The number of certificates received is ', cert_num
-        # sys.exit('Request and certificate received mismatch')
-
     return
 
 
@@ -516,9 +500,6 @@ def create_certificate_request(line, reqid, config_items):
 
     print 'Generating certificate...'
     try:
-
-        # line = u"//?/" + os.getcwd() + u"/" + line
-
         keyname = line + '-key.pem'
         if os.path.exists(keyname):
             charlimit_textwrap('The key file %s already exists'
@@ -529,14 +510,8 @@ def create_certificate_request(line, reqid, config_items):
         charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
                             % e)
         raise e
-
-        # sys.exit(1)
-
     cert_obj = OSGPKIUtils.Cert()
     cert_obj.CreatePKey(keyname)
-
-    # os.chmod(keyname,0600)
-
     new_csr = cert_obj.CreateX509Request(**config_items)
     csr = \
         new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
@@ -594,8 +569,8 @@ def check_quota_limit(request_count, arguments):
         simplejson.loads(data)['quota_hostcert_year_max']
     if global_hostcert_year_max > global_hostcert_year_count \
         + request_count and count_hostcert_day + request_count \
-        < quota_hostcert_day_max and count_hostcert_year \
-        + request_count < quota_hostcert_year_max \
+        <= quota_hostcert_day_max and count_hostcert_year \
+        + request_count <= quota_hostcert_year_max \
         and quota_hostcert_day_max >= request_count:
         status = True
     else:
@@ -612,94 +587,23 @@ def process_csr(num_requests, bulk_csr, **arguments):
             raise BadCertificateException('Error connecting to server: %s.\nYour certificate is not trusted by the server'
                      % e)
         else:
-
-            # charlimit_textwrap("Error connecting to server: %s" % e)
-            # charlimit_textwrap("Your certificate is not trusted by the server")
-
             raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
                                     )
-
-        #    print traceback.format_exc()
-        #    charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
-        #                        )
-        # sys.exit(1)
 
     connect_approve(**arguments)
     connect_retrieve(num_requests, **arguments)
     return
 
-
-def check_bad_passphrase(e, **arguments):
-    if 'bad decrypt' in e or 'bad password read' in e:  # ## fix for incorrect password or carriage return ###
-        print 'Incorrect passphrase for %s.\nPlease try again' \
-            % arguments['userprivkey']
-        print 'Please enter the passphrase again:'
-        try:
-
-            def prompt_for_password(verify):
-                return getpass.getpass("Please enter the pass phrase for '%s':"
-                         % arguments['userprivkey'])
-
-            ssl_context = M2Crypto.SSL.Context('sslv3')
-            ssl_context.load_cert_chain(arguments['usercert'],
-                    arguments['userprivkey'],
-                    callback=prompt_for_password)
-        except Exception, e:
-            if 'bad decrypt' in e or 'bad password read' in e:
-                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
-                        )
-            else:
-
-                raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
-                        )
-    elif 'handshake failure' in e:
-
-                # UncaughtException
-                                   # ## fix for wrong key/certificate ###
-
-        raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
-                 % e)
-    elif 'sslv3 alert bad certificate' in e:
-
-        # charlimit_textwrap('''Failure : %s''' % e)
-        # charlimit_textwrap("Please check for valid certificate/key pairs.")
-        # sys.exit(1)
-
-        raise BadCertificateException('Error connecting to server: %s.\nYour certificate is not trusted by the server'
-                 % e)
-    else:
-
-        raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
-                                )
-
-        # raise UncaughtException
-
-    return ssl_context
-
-
 def print_uncaught_exception():
     print traceback.format_exc()
-
-
-    # charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
-    #                            )
-    # sys.exit(1)
 
 def check_bad_cert_exception(e):
     if 'sslv3 alert bad certificate' in e:
         raise BadCertificateException('Error connecting to server: %s\nYour certificate is not trusted by the server'
                  % e)
     else:
-
-                                # charlimit_textwrap("Error connecting to server: %s" % e)
-                                # charlimit_textwrap("Your certificate is not trusted by the server")
-                                # sys.exit(1)
-
         raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
                                 )
-
-
-            # raise UncaughtException("%s.\nAn uncaught exception has occured" %traceback.format_exc())
 
 def process_single_host_mode(**arguments):
     bulk_csr = list()
@@ -713,10 +617,6 @@ def process_single_host_mode(**arguments):
     else:
         raise QuotaException('Your request would exceed your quota. Aborting'
                              )
-
-        # charlimit_textwrap("Your request would exceed your quota. Aborting")
-        # sys.exit(1)
-
     hostname = arguments['hostname'].rstrip('\n')
     config_items.update({'CN': hostname})  # ### New CN for every host#######
     num_requests = 1
@@ -741,10 +641,6 @@ def process_hostfile_mode(**arguments):
     else:
         raise QuotaException('Your request would exceed your quota. Aborting'
                              )
-
-        # charlimit_textwrap("Your request would exceed your quota. Aborting")
-        # sys.exit(1)
-
     for line in hosts:
         line = line.strip(' \n')
         if not line in host_set:
@@ -766,9 +662,6 @@ def process_hostfile_mode(**arguments):
 Skipping process for %s
 '''
                                % (line, line))
-
-#####################################################################################################################################
-
     if count != 0 and count != 50:
         process_csr(request_count, bulk_csr, **arguments)
     hosts.close()
@@ -800,7 +693,6 @@ def get_ssl_context(**arguments):
                 raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
                         )
                 break
-            #check_bad_passphrase(e, **arguments)
     else:
         if 'handshake failure' in e:
             raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
@@ -818,22 +710,11 @@ if __name__ == '__main__':
 
         if not arguments.has_key('ssl_context'):
             arguments = get_ssl_context(**arguments)
-        #except Exception, e:
-        #
-        #    # ssl_context = M2Crypto.SSL.Context('sslv3')
-        #    # ssl_context.load_cert_chain(arguments['usercert'],
-        #    #                        arguments['userprivkey'],
-        #    #                        callback=prompt_for_password)
-        #
-        #    check_bad_passphrase(e, **arguments)
         if not arguments.has_key('hostname'):
             process_hostfile_mode(**arguments)
         else:
             process_single_host_mode(**arguments)
     except SystemExit, e:
-
-                          # ## fix for weird error on help for python2.4 ###
-
         raise
     except ssl.SSLError, s:
         print s
@@ -889,9 +770,6 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message)
         sys.exit(1)
     except Exception, e:
-
-        # check_bad_cert_exception(e)
-
         print_uncaught_exception()
         charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
                            )

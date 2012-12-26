@@ -12,6 +12,7 @@ import os
 import time
 import sys
 import textwrap
+import simplejson
 
 from ExceptionDefinitions import *
 
@@ -27,11 +28,6 @@ def check_response_500(response):
 
     if response.status == 500:
         raise Exception_500response(response.status, reponse.reason)
-
-
-    # charlimit_textwrap("Request Failed. Status %s" %response.status)
-        # charlimit_textwrap("Reason for failure %s" %response.reason)
-        # sys.exit(1)
 
 def check_failed_response(data):
     """ This function checks if the response is failed"""
@@ -64,13 +60,6 @@ def check_for_pending(data, iterations, **arguments):
         print '.',
         sys.stdout.flush()
     check_timeout(iterations, arguments['timeout'])
-
-    # if iterations > arguments['timeout']*12:
-    #    raise TimeoutException(arguments['timeout'])
-    #    #charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % arguments['timeout'] )
-        # charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
-        # sys.exit(1)
-
     return iterations
 
 
@@ -123,7 +112,6 @@ def extractHostname(certString):
         if '/CN=' in subStr:
             if not 'DigiCert' in subStr.split('/CN=')[1].split('\n')[0]:
                 hostname = subStr.split('/CN=')[1].split('\n')[0]
-
     if hostname == '':
         raise UnexpectedBehaviourException('Unexpected behaviour by OIM retrive API. EEC certificate not found'
                 )

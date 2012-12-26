@@ -177,10 +177,6 @@ def parse_args():
         raise ValidationException("Phone number should contain \
                                   only numbers and/or '-'\n"
                                   )
-
-        # sys.exit("Phone number should contain only numbers and/or '-'\n"
-         #        )
-
     if args.prikey == 'genprivate.key':
         pass
     elif not os.path.exists(args.prikey):
@@ -255,12 +251,6 @@ def connect(arguments):
         charlimit_textwrap('Error during request to %s. Reason %s'
                            % (arguments['requrl'], repr(e)))
     check_response_500(response)
-
-    # if response.status==500:
-    #    charlimit_textwrap("Request Failed. Status %s" %response.status)
-    #    charlimit_textwrap("Reason for failure %s" %response.reason)
-    #    sys.exit(1)
-
     data = response.read()
     check_failed_response(data)
     conn.close()
@@ -404,9 +394,6 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message)
         sys.exit(1)
     except Exception, e:
-
-        # check_bad_cert_exception(e)
-
         print_uncaught_exception()
         charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
                            )
