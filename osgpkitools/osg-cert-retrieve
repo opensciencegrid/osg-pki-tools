@@ -46,7 +46,7 @@ from ExceptionDefinitions import *
 #
 
 def parse_args():
-    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
+    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout in the script.\n"""
 
     usage = \
         'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
@@ -56,7 +56,7 @@ def parse_args():
         '--id',
         action='store',
         dest='id',
-        help='Specify ID# of certificate to retrieve[Required]',
+        help='Specify ID# of certificate to be retrieved[Required]',
         metavar='ID',
         )
     parser.add_option(
@@ -161,13 +161,9 @@ def parse_args():
 # A WHILE loop exists to keep trying to retrieve the certificate if there
 # is a delay in issuing
 #
-# Then we use a regexp to fix the munged up new lines that get returned
-# and put the cert into the proper format, clipping of the extraneous
-# JSON formatting and write the certificate file out
-#
 
 def connect_issue(arguments):
-    """This function accepts a dictionary of parameters and issues the request if the requets is in Approved state."""
+    """This function accepts a dictionary of parameters and issues the request if the request is in Approved state."""
 
     params = urllib.urlencode({'host_request_id': arguments['id']})
     headers = {'Content-type': arguments['content_type'],
@@ -190,7 +186,6 @@ def connect_issue(arguments):
     return
 
 
-# Here's where things have gotten dicey during the testing phase -
 # We retrieve the certificate from OIM after it has retrieved it from the CA
 # This is where things tend to fall apart - if the delay is to long and the
 # request to the CA times out, the whole script operation fails. I'm not
@@ -200,7 +195,9 @@ def connect_issue(arguments):
 #
 
 def connect_retrieve(arguments):
-    """This function checks if the request is in Issues state.\nIf its is in the issued state, it then retrieves the certificate.\nIt accepts a dictionary that consist of all the parameters and tehir value."""
+    """This function checks if the request is in Issues state.\n
+    If its is in the issued state, it then retrieves the certificate.\n
+    It accepts a dictionary that consist of all the parameters and tehir value."""
 
     iterations = 1
     print 'Connecting server to retrieve certificate...'
@@ -219,10 +216,10 @@ def connect_retrieve(arguments):
     data = response.read()
     if simplejson.loads(data).has_key('request_status'):
         if simplejson.loads(data)['request_status'] == 'REQUESTED':
-            raise NotApprovedException('Certificate request in Requested state.Needs to be Approved first. Please contact GA to approve this certificate\n'
+            raise NotApprovedException('Certificate request is in Requested state.Needs to be Approved first. Please contact GA to approve this certificate\n'
                     )
         else:
-            charlimit_textwrap('Certificate request in Approved state. Needs to be issued first\n'
+            charlimit_textwrap('Certificate request is in Approved state. Needs to be issued first\n'
                                )
             connect_issue(arguments)
     try:
