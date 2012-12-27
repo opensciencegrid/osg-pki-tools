@@ -196,8 +196,8 @@ def connect_issue(arguments):
 
 def connect_retrieve(arguments):
     """This function checks if the request is in Issues state.\n
-    If its is in the issued state, it then retrieves the certificate.\n
-    It accepts a dictionary that consist of all the parameters and tehir value."""
+    If it is in the issued state, it then retrieves the certificate.\n
+    It accepts a dictionary that consists of all the parameters and their value."""
 
     iterations = 1
     print 'Connecting server to retrieve certificate...'

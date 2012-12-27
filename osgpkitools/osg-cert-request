@@ -33,7 +33,7 @@ from ExceptionDefinitions import *
 
 def parse_args():
     """This function parses all the arguments, validates them and then stores\
-    them in a dictionary that is used throughout the script.\n"""
+    them in a dictionary that is used throughout in the script.\n"""
 
     parser = OptionParser()
     parser.add_option(
@@ -222,11 +222,14 @@ def parse_args():
     #
 
 def print_uncaught_exception():
+    """This function prints the stack trace of the failure to
+    aid the debugging of the error."""
     print traceback.format_exc()
 
 
 def connect(arguments):
-    """This function accepts a dictionary consisting of all parameters and their values.\nIt submites the request to the OIM server and returns the request details."""
+    """This function accepts a dictionary consisting of all parameters and their values.\n
+    It submits the request to the OIM server and returns the request details."""
 
     print '\nConnecting to server...'
     params = urllib.urlencode({
