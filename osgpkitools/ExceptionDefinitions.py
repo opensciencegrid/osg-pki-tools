@@ -45,7 +45,7 @@ class NotOKException(Exception):
 
 class UnexpectedBehaviourException(Exception):
     """Exception raised when and unexpected behaviour of the CLI script is encountered.\
-    This is different from Uncaought Exception. Here we expect for example a string like OK\
+    This is different from Uncaught Exception. Here we expect for example a string like OK\
     and is not present.
     
     Attributes:

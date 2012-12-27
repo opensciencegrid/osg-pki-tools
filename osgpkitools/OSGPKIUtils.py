@@ -82,7 +82,7 @@ def charlimit_textwrap(string):
 
 
 def get_request_count(filename):
-    '''Returns the number of hostname requested in the file supplied as -f furing bulk certificate request'''
+    '''Returns the number of hostname requested in the file supplied as -f during bulk certificate request'''
 
     hostfile = open(filename, 'rb')
     name_set = set()
@@ -124,6 +124,8 @@ def extractHostname(certString):
 ### Here we rely on OPenSSL -printcert output format. If it changes our output might be affected
 
 def extractEEC(certString, hostname):
+    """This function extracts the EEC certificate from the printcerts output that
+    contains EEC certificate and CA certificates"""
     certArray = certString.split('''
 
 ''')
@@ -133,6 +135,8 @@ def extractEEC(certString, hostname):
 
 
 def CreateOIMConfig(isITB, **OIMConfig):
+    """This function is used to centralized the fetching of config file
+    It fetches the config file and updates the dictionary of variables"""
     Config = ConfigParser.ConfigParser()
     if os.path.exists(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini'
                       ):
