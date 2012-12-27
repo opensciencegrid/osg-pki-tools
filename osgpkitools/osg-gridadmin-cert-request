@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-This script is used to submit multiple certifcate requests and the intended user for the script is the GridAdmin.
-This script requests certificates and then approves as well as issues them in bulk (limit of 50 at a time).
+This script is used to submit multiple certifcate requests and
+the intended user for the script is the GridAdmin.
+This script requests certificates and then approves as well as issues them
+in bulk (limit of 50 at a time).
 This script works in two modes:
 1) Requesting single host certificate with -H option
-2) Request multple host certificates with hostnames stored in a file
+2) Request multiple host certificates with hostnames stored in a file -f option
 """
 
 import pdb
@@ -49,7 +51,8 @@ from ExceptionDefinitions import *
 #
 
 def parse_args():
-    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout the script.\n"""
+    """This function parses all the arguments, validates them and then stores them
+    in a dictionary that is used throughout the script.\n"""
 
     usage = \
         'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
@@ -63,7 +66,8 @@ or specify from a file using -f/--hostfile.''')
         '--pkey',
         action='store',
         dest='userprivkey',
-        help="Specify Requestor's private key (PEM Format).\n If not specified will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+        help="Specify Requestor's private key (PEM Format).\n If not specified\
+             will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
             ,
         metavar='PKEY',
         default='',
@@ -73,7 +77,8 @@ or specify from a file using -f/--hostfile.''')
         '--cert',
         action='store',
         dest='usercert',
-        help="Specify Requestor's certificate (PEM Format).\n If not specified will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
+        help="Specify Requestor's certificate (PEM Format).\n If not specified\
+             will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
             ,
         default='',
         metavar='CERT',
@@ -83,7 +88,8 @@ or specify from a file using -f/--hostfile.''')
         '--hostname',
         action='store',
         dest='hostname',
-        help='Specify the hostname or service/hostname for which you want to request the certificate for.\n If specified -f/--hostfile will be ignored'
+        help='Specify the hostname or service/hostname for which you want to request\
+             the certificate for.\n If specified -f/--hostfile will be ignored'
             ,
         metavar='HOSTNAME',
         )
@@ -137,9 +143,6 @@ or specify from a file using -f/--hostfile.''')
     except ValueError:
         raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n'
                          )
-
-        # sys.exit(1)
-
     print 'Using timeout of %d minutes' % timeout
 
     certdir = './'
@@ -168,10 +171,6 @@ or specify from a file using -f/--hostfile.''')
         raise FileNotFoundException(userprivkey,
                                     'Could not locate the private key file'
                                     )
-
-        # charlimit_textwrap('Unable to locate the private key file:' + userprivkey)
-        # sys.exit(1)
-
     if args.usercert == '':
         try:
             usercert = os.environ['X509_USER_CERT']
@@ -185,10 +184,6 @@ or specify from a file using -f/--hostfile.''')
                 raise FileNotFoundException('Certificate File',
                         'Could not locate the certificate file')
     else:
-
-                # charlimit_textwrap("Could not locate the key file")
-                # sys.exit(1)
-
         usercert = args.usercert
 
     if os.path.exists(usercert):
@@ -197,21 +192,12 @@ or specify from a file using -f/--hostfile.''')
         raise FileNotFoundException(usercert,
                                     'Could not locate the certificate file'
                                     )
-
-        # charlimit_textwrap('Unable to locate the user certificate file:'
-        #         + usercert)
-        # sys.exit(1)
-
     if not args.hostname:
         if os.path.exists(hostfile):
             pass
         else:
             raise FileNotFoundException(hostfile,
                     'Could not locate the hostfile')
-
-            # charlimit_textwrap('Unable to locate the hostfile:' + hostfile)
-            # sys.exit(1)
-
     if args.test:
         OIM = True
     else:
@@ -251,8 +237,8 @@ or specify from a file using -f/--hostfile.''')
 
 def connect_request(bulk_csr, **arguments):
     """This function accepts a an ssl_context instance which contains information about the established ssl connection,
-    the csr string(base64 encoded) and adictionary consisting of all parameters and their values,
-    It submites the request to the OIM server and returns the request details.
+    the csr string(base64 encoded) and a dictionary consisting of all parameters and their values,
+    It submits the request to the OIM server and returns the request details.
     """
 
     print 'Connecting to server to request certificate...'
@@ -288,7 +274,7 @@ def connect_request(bulk_csr, **arguments):
 #
 
 def connect_approve(**arguments):
-    """This function accepts a an ssl_context instance which contains information about the established ssl connection
+    """This function accepts an ssl_context instance which contains information about the established ssl connection
     and a dictionary consisting of all parameters and their values,
     It approves the request that is submitted to the OIM by connect_request.
     """
@@ -310,11 +296,6 @@ def connect_approve(**arguments):
     check_response_500(response)
     if not 'OK' in response.reason:
         raise NotOKException(response.status, response.reason)
-
-        # charlimit_textwrap("Request Failed. Status %s" %response.status)
-        # charlimit_textwrap("Reason for failure %s" %response.reason)
-        # sys.exit(1)
-
     data = response.read()
     conn.close()
     issurl = arguments['issurl']
@@ -346,7 +327,8 @@ def connect_approve(**arguments):
 #
 
 def extract_certs(pkcs7raw, arguments):
-    """This function accepts the hostname, pkcs7raw dump of the certificate and a dictionary that consists variables and the value against them.
+    """This function accepts the hostname, pkcs7raw dump of the certificate and
+    a dictionary that consists variables and their value against them.
     It write the certificates to file system by calling write_certificate function"""
 
     pkcs7raw = str(pkcs7raw)
@@ -371,9 +353,6 @@ def extract_certs(pkcs7raw, arguments):
         temp_file,
         ])
     os.remove(filename)
-
-    # os.chmod(temp_file,0777)
-
     certString = open(temp_file, 'rb').read()
 
     # ## Extracting the hostname ###
@@ -383,9 +362,6 @@ def extract_certs(pkcs7raw, arguments):
     # ## Extracting the EEC certificate ###
 
     eecString = extractEEC(certString, hostname)
-
-    # ## replaceing new line and space . As ell as replacing '/' with -'-' in the file name ###
-    # ## so that file system doesnt mistake it for path ###
     arguments.update({'hostname': hostname})
     arguments.update({'eecString': eecString})
     write_certificate(**arguments)
@@ -417,9 +393,6 @@ def write_certificate(**arguments):
     %s''',
                            arguments['certdir'], e)
         raise OSError
-
-        # sys.exit(1)
-
     os.chdir(cwd)
     charlimit_textwrap('''Certificate written to %s%s 
     '''
@@ -580,11 +553,14 @@ def check_quota_limit(request_count, arguments):
 
 
 def process_csr(num_requests, bulk_csr, **arguments):
+    """This function handles the entire processing of the request i.e.
+    requesting. checking for quota limit, approving and then retrieving in sequence"""
     try:
         arguments = connect_request(bulk_csr, **arguments)
     except Exception, e:
         if 'sslv3 alert bad certificate' in e:
-            raise BadCertificateException('Error connecting to server: %s.\nYour certificate is not trusted by the server'
+            raise BadCertificateException('Error connecting to server: %s.\n\
+                                          Your certificate is not trusted by the server'
                      % e)
         else:
             raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
@@ -595,17 +571,15 @@ def process_csr(num_requests, bulk_csr, **arguments):
     return
 
 def print_uncaught_exception():
+    """This function prints the stack trace of a failure to aid
+    debugging"""
     print traceback.format_exc()
 
-def check_bad_cert_exception(e):
-    if 'sslv3 alert bad certificate' in e:
-        raise BadCertificateException('Error connecting to server: %s\nYour certificate is not trusted by the server'
-                 % e)
-    else:
-        raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
-                                )
-
 def process_single_host_mode(**arguments):
+    """The processing is split into two parts depending upon
+    the mode of the request i.e. using a single host request or
+    using a file mode. This function handles the processing of a
+    single host mode"""
     bulk_csr = list()
     count = 0
     num_requests = 0
@@ -628,6 +602,11 @@ def process_single_host_mode(**arguments):
 
 
 def process_hostfile_mode(**arguments):
+    """The processing is split into two parts depending upon
+    the mode of the request i.e. using a single host request or
+    using a file mode. This function handles the processing of a
+    hostfile mode"""
+    
     bulk_csr = list()
     count = 0
     num_requests = 0
@@ -669,6 +648,8 @@ Skipping process for %s
 
 
 def get_ssl_context(**arguments):
+    """ This function sets the ssl context by accepting the passphrase
+    and validating it for user private key and his certificate"""
     first = True
     count = 0
     e = 'bad decrypt'
@@ -698,7 +679,8 @@ def get_ssl_context(**arguments):
             raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
                  % e)
         elif 'sslv3 alert bad certificate' in e:
-            raise BadCertificateException('Error connecting to server: %s.\nYour certificate is not trusted by the server'
+            raise BadCertificateException('Error connecting to server: %s.\n\
+                                          Your certificate is not trusted by the server'
                  % e)
     return arguments
 
