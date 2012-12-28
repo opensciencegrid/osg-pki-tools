@@ -262,15 +262,9 @@ def connect_retrieve(arguments):
     pkcs7raw = pkcs7raw.split('[')[1]
     pkcs7raw = pkcs7raw.split('"')[1]
     temp_filename = tempfile.NamedTemporaryFile()
-    #temp_filename = '%s.%s.%s' % (arguments['filetype'], arguments['id'
-    #                              ], arguments['fileext'])
-
     try:
         temp_filename.write(pkcs7raw)
         temp_filename.flush()
-        #certfile = open(temp_filename, 'w+')
-        #certfile.write(pkcs7raw)
-        #certfile.close()
         subprocess.call([
             'openssl',
             'pkcs7',
@@ -281,7 +275,6 @@ def connect_retrieve(arguments):
             arguments['pem_filename'],
             ])
         temp_filename.close()
-        #os.remove(temp_filename)
         certString = open(arguments['pem_filename'], 'rb').read()
         hostname = extractHostname(certString)
         extractedEEC = extractEEC(certString, hostname)
