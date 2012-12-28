@@ -33,6 +33,7 @@ import textwrap
 import traceback
 import subprocess
 import ssl
+import tempfile
 
 from osgpkitools import OSGPKIUtils
 from OSGPKIUtils import CreateOIMConfig
@@ -330,31 +331,25 @@ def extract_certs(pkcs7raw, arguments):
     """This function accepts the hostname, pkcs7raw dump of the certificate and
     a dictionary that consists variables and their value against them.
     It write the certificates to file system by calling write_certificate function"""
-
-    pkcs7raw = str(pkcs7raw)
-    filetype = 'pkcs7-cert'
-    fileext = 'pem'
-    filename = '%s.%s.%s' % (filetype, arguments['reqid'], fileext)
-    temp_file = 'temp-cert.pem'
+    pkcs7_file = tempfile.NamedTemporaryFile()
+    pkcs7_file.write(str(pkcs7raw))
+    pkcs7_file.flush()
+    temp_file = tempfile.NamedTemporaryFile()
     print ''
-    certfile = open(filename, 'w+')
-    certfile.write(pkcs7raw)
-    certfile.close()
 
     # ### printing our all the certificates received from OIM to a temporrary file###
-
     subprocess.call([
         'openssl',
         'pkcs7',
         '-print_certs',
         '-in',
-        filename,
+        os.path.abspath(pkcs7_file.name),
         '-out',
-        temp_file,
+        os.path.abspath(temp_file.name),
         ])
-    os.remove(filename)
-    certString = open(temp_file, 'rb').read()
-
+    pkcs7_file.close()
+    certString = temp_file.read()
+    temp_file.close()
     # ## Extracting the hostname ###
 
     hostname = extractHostname(certString)
@@ -370,19 +365,18 @@ def extract_certs(pkcs7raw, arguments):
 
 def write_certificate(**arguments):
     """ This function writes the extracted EEC certificate"""
-    temp_file = 'temp-cert.pem'
     hostname = arguments['hostname']
     eecString = arguments['eecString']
     hostname = hostname.strip(' \n').replace('/', '-')
     pem_filename = hostname + '.pem'
-    os.remove(temp_file)
-    writeCert = open(temp_file, 'w+')
-    writeCert.write(eecString)
+    temp_file = tempfile.NamedTemporaryFile()
+    temp_file.write(eecString)
+    temp_file.flush()
     if os.path.exists(pem_filename):
         charlimit_textwrap('The file %s already exists.' % pem_filename)
         pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem'
                 )
-    subprocess.call(['mv', temp_file, pem_filename])  # ## fix for move the file to desired name ###
+    subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename])  # ## fix for move the file to desired name ###
     os.chmod(pem_filename, 0644)
     cwd = os.getcwd()
     try:
@@ -397,6 +391,7 @@ def write_certificate(**arguments):
     charlimit_textwrap('''Certificate written to %s%s 
     '''
                        % (arguments['certdir'], pem_filename))
+    temp_file.close()
     return
 
 
