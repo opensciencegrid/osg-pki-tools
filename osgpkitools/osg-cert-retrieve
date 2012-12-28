@@ -29,6 +29,7 @@ import textwrap
 import traceback
 import subprocess
 import ssl
+import tempfile
 
 from OSGPKIUtils import charlimit_textwrap
 from osgpkitools import OSGPKIUtils
@@ -260,23 +261,27 @@ def connect_retrieve(arguments):
     pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
     pkcs7raw = pkcs7raw.split('[')[1]
     pkcs7raw = pkcs7raw.split('"')[1]
-    temp_filename = '%s.%s.%s' % (arguments['filetype'], arguments['id'
-                                  ], arguments['fileext'])
+    temp_filename = tempfile.NamedTemporaryFile()
+    #temp_filename = '%s.%s.%s' % (arguments['filetype'], arguments['id'
+    #                              ], arguments['fileext'])
 
     try:
-        certfile = open(temp_filename, 'w+')
-        certfile.write(pkcs7raw)
-        certfile.close()
+        temp_filename.write(pkcs7raw)
+        temp_filename.flush()
+        #certfile = open(temp_filename, 'w+')
+        #certfile.write(pkcs7raw)
+        #certfile.close()
         subprocess.call([
             'openssl',
             'pkcs7',
             '-print_certs',
             '-in',
-            temp_filename,
+            os.path.abspath(temp_filename.name),
             '-out',
             arguments['pem_filename'],
             ])
-        os.remove(temp_filename)
+        temp_filename.close()
+        #os.remove(temp_filename)
         certString = open(arguments['pem_filename'], 'rb').read()
         hostname = extractHostname(certString)
         extractedEEC = extractEEC(certString, hostname)
