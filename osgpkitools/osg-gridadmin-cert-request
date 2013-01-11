@@ -140,7 +140,7 @@ or specify from a file using -f/--hostfile.''')
         if not timeout >= 0:
             charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now'
                                )
-            sys.exit(1)
+            raise ValueError
     except ValueError:
         raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n'
                          )
@@ -440,9 +440,7 @@ def connect_retrieve(num_requests, **arguments):
     # happens here - the problem is that the new lines are getting all screwy
     # in the output from OIM. We stringify the data, replace all the text
     # newline characters with actual new lines and the strip off the
-    # extra data. There's probably a more efficient way to do this, but this
-    # was the quick and dirty solution.
-    #
+    # extra data.
 
     pkcs7raw = str(pkcs7raw)
     pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
