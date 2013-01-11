@@ -46,15 +46,6 @@ def parse_args():
         metavar='CSR',
         )
     parser.add_option(
-        '-k',
-        '--key',
-        action='store',
-        dest='prikey',
-        default='genprivate.key',
-        help='Specify Private Key Name (default=genprivate.key)',
-        metavar='PRIKEY',
-        )
-    parser.add_option(
         '-o',
         '--outkeyfile',
         action='store',
@@ -145,28 +136,29 @@ def parse_args():
         parser.error('-t/--hostname argument required')
 
                         # , config_items
-
-    if os.path.exists(args.keyfile):
-        opt = \
-            raw_input('%s already exists. Do you want to overwrite it?\
-                      Y/N : \n'
-                       % args.keyfile)
-        if opt == 'y' or opt == 'Y':
-            pem_filename = args.keyfile
-        elif opt == 'n' or opt == 'N':
-            pem_filename = \
-                raw_input('Please enter a different file name\n')
+    if args.csr == "gennew.csr":
+        if os.path.exists(args.keyfile):
+            opt = \
+                raw_input('%s already exists. Do you want to overwrite it?\
+                          Y/N : \n'
+                           % args.keyfile)
+            if opt == 'y' or opt == 'Y':
+                pem_filename = args.keyfile
+            elif opt == 'n' or opt == 'N':
+                pem_filename = \
+                    raw_input('Please enter a different file name\n')
+            else:
+                raise InvalidOptionException("Invalid Option")
         else:
-            raise InvalidOptionException("Invalid Option")
+            pem_filename = args.keyfile
     else:
-        pem_filename = args.keyfile
+        charlimit_textwrap('CSR input found. Skipping creation of the primary key\n')
 
     hostname = args.hostname
     email = args.email
     name = args.name
     phone = args.phone
     csr = args.csr
-    prikey = args.prikey
 
     cc_list = args.cc_list
 
@@ -177,12 +169,6 @@ def parse_args():
         raise ValidationException("Phone number should contain \
                                   only numbers and/or '-'\n"
                                   )
-    if args.prikey == 'genprivate.key':
-        pass
-    elif not os.path.exists(args.prikey):
-        raise FileNotFoundException(args.prikey,
-                                    'The file %s does not exist'
-                                    % args.prikey)
     if args.csr == 'gennew.csr':
         pass
     elif not os.path.exists(args.csr):
@@ -209,8 +195,6 @@ def parse_args():
     arguments.update({'hostname': hostname})
     if vars().has_key('csr'):
         arguments.update({'csr': csr})
-    if vars().has_key('prikey'):
-        arguments.update({'prikey': prikey})
     return arguments
 
 
@@ -264,38 +248,6 @@ def connect(arguments):
         print 'Request Id#: %s' % ticket
     return
 
-def get_ssl_context(new_csr, **arguments):
-    first = True
-    count = 0
-    e = 'bad decrypt'
-    pass_str = 'Please enter the pass phrase for'
-    while('bad decrypt' in e or 'bad password read' in e):
-        try:
-            def prompt_for_password(verify):
-                return getpass.getpass(pass_str+" '%s':"
-                                       % arguments['prikey'])
-            ssl_context = M2Crypto.SSL.Context('sslv3')
-            new_csr.PKey = M2Crypto.RSA.load_key(arguments['prikey'],
-                                 callback=prompt_for_password)
-            arguments.update({'ssl_context': ssl_context})
-            arguments.update({'new_csr': new_csr})
-            break
-        except Exception, e:
-            first = False
-            count = count + 1
-            pass_str = 'Incorrect password. Please enter the password again for'
-            if count > 2:
-                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
-                        )
-                break
-    else:
-        if 'handshake failure' in e:
-            raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
-                 % e)
-        elif 'sslv3 alert bad certificate' in e:
-            raise BadCertificateException('Error connecting to server: %s.\nYour certificate is not trusted by the server'
-                 % e)
-    return arguments
 
 if __name__ == '__main__':
     try:
@@ -309,30 +261,20 @@ if __name__ == '__main__':
         config_items = {'CN': arguments['hostname'],
                         'emailAddress': arguments['email']}
 
-        #
-        # Three options for the CSR request
-        # 1. User provides neither private key nor CSR
-        # 2. User provides private key but need to create the CSR
-        # 3. User provides both private key and CSR and we just need to
-        #    dump it and strip the text lines for the server
-        #
+        # The two modes in which the script is run are
+        # 1. The user doesn't provide a csr:
+        # Here we generate a private key for the user and also a
+        # certificate signing request for the user and submit it
+        # it to the OIM
+        # 2. The user provides a csr
+        # Here we simply get rid of the end and begin certificate
+        # lines of the csr and submit the request to the OIM
 
-        if arguments['prikey'] == 'genprivate.key' and arguments['csr'] \
-            == 'gennew.csr':
+        if arguments['csr'] == 'gennew.csr':
             cert_obj = OSGPKIUtils.Cert()
             cert_obj.CreatePKey(arguments['pem_filename'])
             print 'Writing key to %s' % arguments['pem_filename']
             new_csr = cert_obj.CreateX509Request(**config_items)
-            arguments['csr'] = \
-                new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
-                    , '').replace('-----END CERTIFICATE REQUEST-----\n'
-                                  , '')
-            connect(arguments)
-        elif arguments['prikey'] != 'genprivate.key' and arguments['csr'] == 'gennew.csr':
-            new_csr = OSGPKIUtils.Cert()
-            arguments = get_ssl_context(new_csr, **arguments)
-            new_csr = arguments['new_csr']
-            new_csr = new_csr.CreateX509Request(**config_items)
             arguments['csr'] = \
                 new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
                     , '').replace('-----END CERTIFICATE REQUEST-----\n'

@@ -13,6 +13,7 @@ import time
 import sys
 import textwrap
 import simplejson
+import getpass
 
 from ExceptionDefinitions import *
 
@@ -28,6 +29,7 @@ def check_response_500(response):
 
     if response.status == 500:
         raise Exception_500response(response.status, reponse.reason)
+
 
 def check_failed_response(data):
     """ This function checks if the response is failed"""
@@ -126,6 +128,7 @@ def extractHostname(certString):
 def extractEEC(certString, hostname):
     """This function extracts the EEC certificate from the printcerts output that
     contains EEC certificate and CA certificates"""
+
     certArray = certString.split('''
 
 ''')
@@ -137,6 +140,7 @@ def extractEEC(certString, hostname):
 def CreateOIMConfig(isITB, **OIMConfig):
     """This function is used to centralized the fetching of config file
     It fetches the config file and updates the dictionary of variables"""
+
     Config = ConfigParser.ConfigParser()
     if os.path.exists(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini'
                       ):
@@ -196,6 +200,8 @@ class Cert:
         self.KeyPair.save_key(filename, cipher=None)
         self.PKey = M2Crypto.EVP.PKey(md='sha1')
         self.PKey.assign_rsa(self.KeyPair)
+        return
+
 
     def CreateX509Request(self, **config_items):
         """This function accepts a dctionary that contains information regarding the CSR.
