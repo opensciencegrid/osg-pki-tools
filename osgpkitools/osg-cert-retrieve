@@ -290,6 +290,10 @@ def connect_retrieve(arguments):
                        % arguments['pem_filename'])
     return
 
+def print_uncaught_exception():
+    """This function prints the stack trace of the failure to
+    aid the debugging of the error."""
+    print traceback.format_exc()
 
 if __name__ == '__main__':
     try:
