@@ -237,6 +237,7 @@ def connect(arguments):
     except Exception, e:
         charlimit_textwrap('Error during request to %s. Reason %s'
                            % (arguments['requrl'], repr(e)))
+        raise e
     check_response_500(response)
     data = response.read()
     check_failed_response(data)
@@ -246,6 +247,8 @@ def connect(arguments):
         ticket = simplejson.loads(data)['host_request_id']
         print 'Succesfully submitted'
         print 'Request Id#: %s' % ticket
+    else:
+        raise UnexpectedBehaviourEception("Unexpected Behaviour encountered\nData received is %s" %data)
     return
 
 
