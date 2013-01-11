@@ -533,7 +533,7 @@ def check_quota_limit(request_count, arguments):
     count_hostcert_year = simplejson.loads(data)['count_hostcert_year']
     quota_hostcert_year_max = \
         simplejson.loads(data)['quota_hostcert_year_max']
-    if global_hostcert_year_max > global_hostcert_year_count \
+    if global_hostcert_year_max >= global_hostcert_year_count \
         + request_count and count_hostcert_day + request_count \
         <= quota_hostcert_day_max and count_hostcert_year \
         + request_count <= quota_hostcert_year_max \
