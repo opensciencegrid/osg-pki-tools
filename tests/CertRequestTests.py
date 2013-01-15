@@ -27,7 +27,9 @@ class CertRequestTests(PKIClientTestCase.PKIClientTestCase):
                                  "--hostname", fqdn,
                                  "-e", self.email,
                                  "-n", self.name,
-                                 "-p", self.phone)
+                                 "-p", self.phone,
+                                 "-m", "This is a comment",
+                                 "-y", "test@example.com,test2@example.com")
         err_msg = self.run_error_msg(result)
         self.assertEqual(result.returncode, 0, err_msg)
         match = re.search("^Request Id#: (\d+)\s*$",
