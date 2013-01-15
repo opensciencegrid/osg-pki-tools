@@ -32,10 +32,6 @@ class BasicTests(PKIClientTestCase.PKIClientTestCase):
 	self.assertEqual(self._get_cert_modulus(),
 			 self._get_key_modulus())
 
-    def test_pyOpenSSL(self):
-	"""Test that pyOpenSSL seems to work"""
-	import OpenSSL
-
     def test_json(self):
 	"""Test we can import json or simplejson"""
 	try:
