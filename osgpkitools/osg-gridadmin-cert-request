@@ -160,10 +160,6 @@ or specify from a file using -f/--hostfile.''')
                 raise FileNotFoundException('Key file',
                         'Could not locate the private key file')
     else:
-
-                # charlimit_textwrap("Could not locate the key file")
-                # sys.exit(1)
-
         userprivkey = args.userprivkey
 
     if os.path.exists(userprivkey):
