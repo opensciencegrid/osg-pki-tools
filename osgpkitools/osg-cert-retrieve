@@ -47,7 +47,7 @@ from ExceptionDefinitions import *
 #
 
 def parse_args():
-    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout in the script.\n"""
+    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout in the script."""
 
     usage = \
         'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
@@ -196,8 +196,8 @@ def connect_issue(arguments):
 #
 
 def connect_retrieve(arguments):
-    """This function checks if the request is in Issues state.\n
-    If it is in the issued state, it then retrieves the certificate.\n
+    """This function checks if the request is in Issues state.
+    If it is in the issued state, it then retrieves the certificate.
     It accepts a dictionary that consists of all the parameters and their value."""
 
     iterations = 1
