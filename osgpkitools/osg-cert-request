@@ -255,12 +255,7 @@ def connect(arguments):
 if __name__ == '__main__':
     try:
         os.umask(0177)
-        try:
-            arguments = parse_args()
-        except EOFError, e:
-            charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
-                                % e)
-            sys.exit(1)
+        arguments = parse_args()
         config_items = {'CN': arguments['hostname'],
                         'emailAddress': arguments['email']}
 
@@ -290,6 +285,10 @@ if __name__ == '__main__':
                     , '')
             arguments.update({'csr': csr})
             connect(arguments)
+    except EOFError, e:
+            charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
+                                % e)
+            sys.exit(1)
     except KeyboardInterrupt, k:
         charlimit_textwrap(k)
         sys.exit('''Interrupted by user\n''')
