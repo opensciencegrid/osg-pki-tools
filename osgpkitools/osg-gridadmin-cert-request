@@ -292,6 +292,8 @@ def connect_approve(**arguments):
         charlimit_textwrap('Connection to %s failed: %s'
                            % (arguments['appurl'], repr(e)))
         raise e
+    except AttributeError, e:
+        raise e
     check_response_500(response)
     if not 'OK' in response.reason:
         raise NotOKException(response.status, response.reason)
@@ -502,6 +504,13 @@ def check_quota_limit(request_count, arguments):
         charlimit_textwrap('Connection to %s failed: %s'
                            % (arguments['quotaurl'], e))
         raise httplib.HTTPException
+    except Exception, e:
+        if "sslv3 alert bad certificate" in e:
+            raise BadCertificateException('Error connecting to server: %s.\n\
+                                          Your certificate is not trusted by the server'
+                 % e)
+        else:
+            raise UncaughtException
     check_response_500(response)
     data = response.read()
     if not 'PENDING' in response.reason:
@@ -660,6 +669,13 @@ def get_ssl_context(**arguments):
             arguments.update({'ssl_context': ssl_context})
             break
         except Exception, e:
+            if 'sslv3 alert bad certificate' in e:
+                raise BadCertificateException('Error connecting to server: %s.\n\
+                                          Your certificate is not trusted by the server'
+                 % e)
+            elif 'handshake failure' in e:
+                raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
+                 % e)
             first = False
             count = count + 1
             pass_str = 'Incorrect password. Please enter the password again for'
@@ -668,15 +684,15 @@ def get_ssl_context(**arguments):
                         )
                 break
     else:
-        if 'handshake failure' in e:
-            raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
-                 % e)
-        elif 'sslv3 alert bad certificate' in e:
-            raise BadCertificateException('Error connecting to server: %s.\n\
-                                          Your certificate is not trusted by the server'
-                 % e)
-        else:
-            raise UncaughtException
+        #if 'handshake failure' in e:
+        #    raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
+        #         % e)
+        #elif 'sslv3 alert bad certificate' in e:
+        #    raise BadCertificateException('Error connecting to server: %s.\n\
+        #                                  Your certificate is not trusted by the server'
+        #         % e)
+        #else:
+        raise UncaughtException
     return arguments
 
 
@@ -684,13 +700,15 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-
-        if not arguments.has_key('ssl_context'):
-            arguments = get_ssl_context(**arguments)
+        #if not arguments.has_key('ssl_context'):
+        arguments = get_ssl_context(**arguments)
         if not arguments.has_key('hostname'):
             process_hostfile_mode(**arguments)
         else:
             process_single_host_mode(**arguments)
+    except AttributeError, e:
+        print e
+        sys.exit()
     except SystemExit, e:
         raise
     except ssl.SSLError, s:
