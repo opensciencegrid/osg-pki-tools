@@ -71,7 +71,7 @@ or specify from a file using -f/--hostfile.''')
              will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
             ,
         metavar='PKEY',
-        default='',
+        default=None,
         )
     parser.add_option(
         '-c',
@@ -81,7 +81,7 @@ or specify from a file using -f/--hostfile.''')
         help="Specify Requestor's certificate (PEM Format).\n If not specified\
              will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
             ,
-        default='',
+        default=None,
         metavar='CERT',
         )
     group.add_option(
@@ -148,7 +148,7 @@ or specify from a file using -f/--hostfile.''')
 
     certdir = './'
 
-    if args.userprivkey == '':
+    if args.userprivkey is None:
         try:
             userprivkey = os.environ['X509_USER_KEY']
         except:
@@ -168,7 +168,7 @@ or specify from a file using -f/--hostfile.''')
         raise FileNotFoundException(userprivkey,
                                     'Could not locate the private key file'
                                     )
-    if args.usercert == '':
+    if args.usercert is None:
         try:
             usercert = os.environ['X509_USER_CERT']
         except:

@@ -41,7 +41,7 @@ def parse_args():
         '--csr',
         action='store',
         dest='csr',
-        default='gennew.csr',
+        default=None,
         help='Specify CSR name (default = gennew.csr)',
         metavar='CSR',
         )
@@ -136,7 +136,7 @@ def parse_args():
         parser.error('-t/--hostname argument required')
 
                         # , config_items
-    if args.csr == "gennew.csr":
+    if args.csr is None:
         if os.path.exists(args.keyfile):
             opt = \
                 raw_input('%s already exists. Do you want to overwrite it?\
@@ -169,7 +169,7 @@ def parse_args():
         raise ValidationException("Phone number should contain \
                                   only numbers and/or '-'\n"
                                   )
-    if args.csr == 'gennew.csr':
+    if args.csr is None:
         pass
     elif not os.path.exists(args.csr):
         raise FileNotFoundException(args.csr,
@@ -268,7 +268,7 @@ if __name__ == '__main__':
         # Here we simply get rid of the end and begin certificate
         # lines of the csr and submit the request to the OIM
 
-        if arguments['csr'] == 'gennew.csr':
+        if arguments['csr'] is None:
             cert_obj = OSGPKIUtils.Cert()
             cert_obj.CreatePKey(arguments['pem_filename'])
             print 'Writing key to %s' % arguments['pem_filename']
