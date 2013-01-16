@@ -44,8 +44,8 @@ class NotOKException(Exception):
         self.reason = reason
 
 class UnexpectedBehaviourException(Exception):
-    """Exception raised when and unexpected behaviour of the CLI script is encountered.\
-    This is different from Uncaught Exception. Here we expect for example a string like OK\
+    """Exception raised when and unexpected behaviour of the CLI script is encountered.
+    This is different from Uncaught Exception. Here we expect for example a string like OK
     and is not present.
     
     Attributes:
@@ -55,7 +55,7 @@ class UnexpectedBehaviourException(Exception):
         self.message = message
         
 class CertificateMismatchException(Exception):
-    """Exception occurs when the requested number of certificate does not match with the\
+    """Exception occurs when the requested number of certificate does not match with the
     retrieved number of certificates. Applicable for Bulk certificate request primarily.
     
     Attributes:
@@ -79,7 +79,7 @@ class BadCertificateException(Exception):
         self.message = message
         
 class BadPassphraseException(Exception):
-    """ This Exception occurs when the passphrase entered for the private key file\
+    """ This Exception occurs when the passphrase entered for the private key file
     does not match the stored passphrase of the key file.
     
     Attributes:
@@ -107,7 +107,7 @@ class UncaughtException(Exception):
         self.message = message
         
 class QuotaException(Exception):
-    """This exception occurs when the approval quota of the user is predicted to be exceeded\
+    """This exception occurs when the approval quota of the user is predicted to be exceeded
     in the current request.
     
     Attributes:
@@ -134,7 +134,7 @@ class InvalidOptionException(Exception):
         self.message = message
 
 class NotApprovedException(Exception):
-    """This exception occurs when the retrieval script tries to retrieve a certificate whose \
+    """This exception occurs when the retrieval script tries to retrieve a certificate whose 
     request is in Requested state and has not been Approved.
     
     Attributes:
