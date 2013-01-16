@@ -101,7 +101,7 @@ or specify from a file using -f/--hostfile.''')
         dest='hostfile',
         help='Filename with one hostname or service/hostname per line',
         metavar='HOSTFILE',
-        default='hosts.txt',
+        default=None,
         )
     parser.add_option(
         '-T',
@@ -131,7 +131,12 @@ or specify from a file using -f/--hostfile.''')
     (args, values) = parser.parse_args()
     arguments = dict()
     if not args.hostname:
-        hostfile = args.hostfile
+        if args.hostfile is None:
+            raise InsufficientArgumentException("InsufficientArgumentException: \
+                                                Please provide hostname(-H) or file name containing hosts(-f)\n\
+                               Use osg-gridadmin-cert-request -h for help")
+        else:
+            hostfile = args.hostfile
     else:
         hostname = args.hostname
 
@@ -762,6 +767,9 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message)
         sys.exit(1)
     except UnexpectedBehaviourException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except InsufficientArgumentException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
     except Exception, e:

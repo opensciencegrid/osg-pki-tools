@@ -142,3 +142,10 @@ class NotApprovedException(Exception):
         
     def __init__(self,message):
         self.message = message
+
+class InsufficientArgumentException(Exception):
+    """This exception is raised when insufficient number of arguments are passed to a script."""
+    
+    def __init__(self,message):
+        self.message = message
+    
