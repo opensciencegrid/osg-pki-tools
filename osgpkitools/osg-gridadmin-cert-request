@@ -53,7 +53,7 @@ from ExceptionDefinitions import *
 
 def parse_args():
     """This function parses all the arguments, validates them and then stores them
-    in a dictionary that is used throughout the script.\n"""
+    in a dictionary that is used throughout the script."""
 
     usage = \
         'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
@@ -251,6 +251,7 @@ def connect_request(bulk_csr, **arguments):
         charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
         raise e
     data = response.read()
+    #This if block is to catch failures and would exit the script
     if not 'OK' in response.reason:
         print_failure_reason_exit(data)
     conn.close()
@@ -260,6 +261,8 @@ def connect_request(bulk_csr, **arguments):
         if 'host_request_id' in key:
             reqid = value
             print 'Id is:', reqid
+    if not reqid:
+        raise UnexpectedBehaviourException("Request Id not found in data. Script will not exit")
     arguments.update({'reqid': reqid})
     return arguments
 
@@ -277,7 +280,6 @@ def connect_approve(**arguments):
     """
 
     print 'Connecting to server to approve certificate...'
-    action = 'approve'
     params = urllib.urlencode({'host_request_id': arguments['reqid']})
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
@@ -296,7 +298,7 @@ def connect_approve(**arguments):
     data = response.read()
     conn.close()
     issurl = arguments['issurl']
-    if action == 'approve' and 'OK' in data:
+    if 'OK' in data:
         print 'Contacting Server to initiate certificate issuance.'
         newrequrl = arguments['issurl']
         conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
@@ -311,8 +313,10 @@ def connect_approve(**arguments):
         data = response.read()
         conn.close()
         check_failed_response(data)
-    elif not 'OK' in data:
+    else:
         raise NotOKException('Failed', simplejson.loads(data)['detail'])
+    #elif not 'OK' in data:
+    #    raise NotOKException('Failed', simplejson.loads(data)['detail'])
 
 # Here's where things have gotten dicey during the testing phase -
 # We retrieve the certificate from OIM after it has retrieved it from the CA
@@ -671,6 +675,8 @@ def get_ssl_context(**arguments):
             raise BadCertificateException('Error connecting to server: %s.\n\
                                           Your certificate is not trusted by the server'
                  % e)
+        else:
+            raise UncaughtException
     return arguments
 
 
