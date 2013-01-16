@@ -659,9 +659,8 @@ def get_ssl_context(**arguments):
     and validating it for user private key and his certificate"""
     first = True
     count = 0
-    e = 'bad decrypt'
     pass_str = 'Please enter the pass phrase for'
-    while('bad decrypt' in e or 'bad password read' in e):
+    while(True):
         try:
             def prompt_for_password(verify):
                 return getpass.getpass(pass_str+" '%s':"
@@ -684,20 +683,10 @@ def get_ssl_context(**arguments):
             first = False
             count = count + 1
             pass_str = 'Incorrect password. Please enter the password again for'
-            if count > 2:
+            if count > 1:
                 raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
                         )
                 break
-    else:
-        #if 'handshake failure' in e:
-        #    raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
-        #         % e)
-        #elif 'sslv3 alert bad certificate' in e:
-        #    raise BadCertificateException('Error connecting to server: %s.\n\
-        #                                  Your certificate is not trusted by the server'
-        #         % e)
-        #else:
-        raise UncaughtException
     return arguments
 
 
