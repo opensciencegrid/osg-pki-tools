@@ -33,7 +33,7 @@ from ExceptionDefinitions import *
 
 def parse_args():
     """This function parses all the arguments, validates them and then stores\
-    them in a dictionary that is used throughout in the script.\n"""
+    them in a dictionary that is used throughout in the script."""
 
     parser = OptionParser()
     parser.add_option(
@@ -140,7 +140,7 @@ def parse_args():
         if os.path.exists(args.keyfile):
             opt = \
                 raw_input('%s already exists. Do you want to overwrite it?\
-                          Y/N : \n'
+                          Y/N : '
                            % args.keyfile)
             if opt == 'y' or opt == 'Y':
                 pem_filename = args.keyfile
@@ -212,7 +212,7 @@ def print_uncaught_exception():
 
 
 def connect(arguments):
-    """This function accepts a dictionary consisting of all parameters and their values.\n
+    """This function accepts a dictionary consisting of all parameters and their values.
     It submits the request to the OIM server and returns the request details."""
 
     print '\nConnecting to server...'
