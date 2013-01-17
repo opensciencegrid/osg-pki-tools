@@ -104,6 +104,16 @@ or specify from a file using -f/--hostfile.''')
         default=None,
         )
     parser.add_option(
+        '-v',
+        '--vo',
+        action='store',
+        dest='vo',
+        help='Specify the VO for the host request'
+            ,
+        metavar='VO name',
+        default=None,
+        )
+    parser.add_option(
         '-T',
         '--test',
         action='store_true',
@@ -204,6 +214,7 @@ or specify from a file using -f/--hostfile.''')
         OIM = True
     else:
         OIM = False
+    arguments.update({'vo' : args.vo})
     arguments.update({'mode': OIM})
     arguments = CreateOIMConfig(OIM, **arguments)
     if vars().has_key('args'):
@@ -244,7 +255,8 @@ def connect_request(bulk_csr, **arguments):
     """
 
     print 'Connecting to server to request certificate...'
-    params = urllib.urlencode({'csrs': bulk_csr}, doseq=True)
+    params = urllib.urlencode({'csrs': bulk_csr,
+                               'vo' : arguments['vo']}, doseq=True)
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],

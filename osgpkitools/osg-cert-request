@@ -57,6 +57,16 @@ def parse_args():
         default='./hostkey.pem',
         )
     parser.add_option(
+        '-v',
+        '--vo',
+        action='store',
+        dest='vo',
+        help='Specify the VO for the host request'
+            ,
+        metavar='VO name',
+        default=None,
+        )
+    parser.add_option(
         '-y',
         '--cc',
         action='store',
@@ -179,6 +189,9 @@ def parse_args():
 
     arguments = dict()
     arguments = CreateOIMConfig(OIM, **arguments)
+
+    arguments.update({'vo': args.vo})
+    
     if vars().has_key('args'):
         arguments.update({'args': args})
     if vars().has_key('values'):
@@ -223,6 +236,7 @@ def connect(arguments):
         'csrs': arguments['csr'],
         'request_comment': arguments['comment'],
         'request_ccs': arguments['cc_list'].split(','),
+        'vo' : arguments['vo'],
         })
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
@@ -240,6 +254,7 @@ def connect(arguments):
         raise e
     check_response_500(response)
     data = response.read()
+    print "data is %s " %data
     check_failed_response(data)
     conn.close()
     if simplejson.loads(data)['detail'] == 'Nothing to report' \
