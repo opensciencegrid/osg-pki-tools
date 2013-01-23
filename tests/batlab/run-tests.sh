@@ -6,7 +6,6 @@ status=0
 echo "Running BaTLab tests"
 /bin/date
 uname -a
-svn info
 
 export TESTS_PATH=$(cd `dirname $0`; pwd)
 echo "TESTS_PATH=${TESTS_PATH}"
@@ -15,6 +14,10 @@ echo "SCRIPTS_PATH=${SCRIPTS_PATH}"
 export PYTHON="python"
 echo "PYTHON=${PYTHON}"
 
+echo "SVN information:"
+(cd ${TESTS_PATH} && svn info)
+
+echo "Running individual tests:"
 shopt -s nullglob  # Returns empty string if nothing matches glob
 for test in ${TESTS_PATH}/test-*.sh ; do
     echo "Executing test: ${test}"
