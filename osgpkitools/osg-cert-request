@@ -42,7 +42,7 @@ def parse_args():
         action='store',
         dest='csr',
         default=None,
-        help='Specify CSR name (default = gennew.csr)',
+        help='Specify CSR file to use',
         metavar='CSR',
         )
     parser.add_option(
