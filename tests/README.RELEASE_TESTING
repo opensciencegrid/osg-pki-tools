@@ -1,0 +1,32 @@
+
+Testing for Releases
+
+1) Run tests/do-tests.sh which should exit without errors.
+
+2) Do 50 cert bulk issuance test.
+  2a) Clear daily quota for test credential:
+      https://oim-itb.grid.iu.edu/oim/contactedit?id=893
+  2b) tests/do-50-cert-test.sh
+  2c) Clear daily quota for test credential:
+      https://oim-itb.grid.iu.edu/oim/contactedit?id=893
+
+3) cd osgpkitools
+
+4) Do unauthenticated host certificate request:
+
+% python ./osg-cert-request -T -n "PKI Tester" -p 555-555-5555 -e pkitester@example.com -m "Doing release testing." -t host/test.pki-test.opensciencegrid.org
+
+And note request id number.
+
+5) Approve request.
+
+https://oim-itb.grid.iu.edu/oim/certificatehost?id=<id from request>
+
+6) Retrieve certificate:
+
+% python ./osg-cert-retrieve -T -i <id from request>
+
+and check certificate:
+
+% openssl x509 -in hostcert.pem -noout -text
+
