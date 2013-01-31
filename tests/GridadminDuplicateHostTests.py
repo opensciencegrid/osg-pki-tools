@@ -51,10 +51,10 @@ class GridadminDuplicateHostTests(PKIClientTestCase.PKIClientTestCase):
         for host in [1,2]:
             cert_file = cert_template % host
             self.assertTrue(result.files_created.has_key(cert_file),
-                            "Did not file certificate file %s\n" % cert_file  + result.stdout)
+                            "Did not find certificate file %s\n" % cert_file  + result.stdout)
             key_file = key_template % host
             self.assertTrue(result.files_created.has_key(key_file),
-                            "Did not file key file %s\n" % key_file + result.stdout)
+                            "Did not find key file %s\n" % key_file + result.stdout)
 
 if __name__ == '__main__':
     import unittest
