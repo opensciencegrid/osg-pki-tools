@@ -23,6 +23,12 @@ MBSTRING_FLAG = 0x1000
 MBSTRING_ASC = MBSTRING_FLAG | 1
 MBSTRING_BMP = MBSTRING_FLAG | 2
 
+# The variable for storing version number for the scripts
+Version_Number = 1.2
+
+def version_info():
+    """ Print the version number and exit"""
+    print "OSG CLI Scripts Version :", Version_Number
 
 def check_response_500(response):
     """ This functions handles the 500 error response from the server"""
