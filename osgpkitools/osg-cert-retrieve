@@ -40,6 +40,7 @@ from OSGPKIUtils import check_failed_response
 from OSGPKIUtils import check_response_500
 from OSGPKIUtils import print_failure_reason_exit
 from OSGPKIUtils import check_for_pending
+from OSGPKIUtils import version_info
 from ExceptionDefinitions import *
 
 
@@ -94,8 +95,20 @@ def parse_args():
         default=True,
         help="don't print status messages to stdout",
         )
+    parser.add_option(
+        '-V',
+        '--version',
+        action='store_true',
+        dest='version_info',
+        help="Print version information and exit",
+        )
 
     (args, values) = parser.parse_args()
+    
+    #print version info and exit.
+    if args.version_info:
+        version_info()
+        raise SystemExit
 
     if not args.id:
         parser.error('-i/--id argument required')
@@ -130,6 +143,7 @@ def parse_args():
         OIM = True
     else:
         OIM = False
+    
     filetype = 'hostcert'
     fileext = 'pkcs7'
     filename = '%s.%s.%s' % (filetype, reqid, fileext)
