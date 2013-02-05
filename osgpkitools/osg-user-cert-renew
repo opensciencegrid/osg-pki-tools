@@ -189,10 +189,9 @@ def parse_args():
 
 #################################################
 
-# We make the request here, causing the generation of the CSR and then
-# pass the ID returned from the server along. The ID is the key that OIM
-# uses for all certificate operations via the API
-#
+# We make the renew request here, and pass the serial number
+# of the certificate to be renews. It gets back the request ID
+# which can be used to retrieve the certificate
 
 def connect_renew(**arguments):
     """This function connects to the user renew API and passes the DN
@@ -223,77 +222,11 @@ def connect_renew(**arguments):
     check_failed_response(data)
     return_data = simplejson.loads(data)
     request_id = return_data['request_id']
-    #for (key, value) in return_data.iteritems():
-    #    if 'host_request_id' in key:
-    #        reqid = value
-    #        print 'Id is:', reqid
     if not reqid:
         raise UnexpectedBehaviourException("Request Id not found in data. Script will not exit")
     arguments.update({'reqid': reqid})
     return arguments
 
-
-# ID from the request is passed in here via secure connection and the request
-# gets approved automatically since it's a bulk request. We also issue the
-# certificate (i.e. OIM contacts the CA on our behalf to get the cert) in this
-# function
-#
-
-#def connect_approve(**arguments):
-#    """This function accepts an ssl_context instance which contains information about the established ssl connection
-#    and a dictionary consisting of all parameters and their values,
-#    It approves the request that is submitted to the OIM by connect_request.
-#    """
-#
-#    print 'Connecting to server to approve certificate...'
-#    params = urllib.urlencode({'host_request_id': arguments['reqid']})
-#    headers = {'Content-type': arguments['content_type'],
-#               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-#    conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
-#            ssl_context=arguments['ssl_context'])
-#    try:
-#        conn.request('POST', arguments['appurl'], params, headers)
-#        response = conn.getresponse()
-#    except httplib.HTTPException, e:
-#        charlimit_textwrap('Connection to %s failed: %s'
-#                           % (arguments['appurl'], repr(e)))
-#        raise e
-#    except AttributeError, e:
-#        raise e
-#    check_response_500(response)
-#    if not 'OK' in response.reason:
-#        raise NotOKException(response.status, response.reason)
-#    data = response.read()
-#    conn.close()
-#    issurl = arguments['issurl']
-#    if 'OK' in data:
-#        print 'Contacting Server to initiate certificate issuance.'
-#        newrequrl = arguments['issurl']
-#        conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
-#                ssl_context=arguments['ssl_context'])
-#        try:
-#            conn.request('POST', newrequrl, params, headers)
-#            response = conn.getresponse()
-#        except httplib.HTTPException, e:
-#            charlimit_textwrap('Connection to %s failed: %s'
-#                               % (newrequrl, e))
-#            raise e
-#        data = response.read()
-#        conn.close()
-#        check_failed_response(data)
-#    else:
-#        raise NotOKException('Failed', simplejson.loads(data)['detail'])
-#    #elif not 'OK' in data:
-#    #    raise NotOKException('Failed', simplejson.loads(data)['detail'])
-
-# Here's where things have gotten dicey during the testing phase -
-# We retrieve the certificate from OIM after it has retrieved it from the CA
-# This is where things tend to fall apart - if the delay is to long and the
-# request to the CA times out, the whole script operation fails. I'm not
-# terribly pleased with that at the moment, but it is out of my hands since
-# a GOC staffer has to reset the request to be able to retrieve the
-# certificate
-#
 
 def extract_certs(pkcs7raw, arguments):
     """This function accepts the hostname, pkcs7raw dump of the certificate and
@@ -400,8 +333,7 @@ def connect_retrieve(num_requests, **arguments):
         data = response.read()
         conn.close()
         iterations = check_for_pending(data, iterations, **arguments)
-    pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True,
-                                indent=2)
+    pkcs7raw = simplejson.loads(data)['pkcs7s']
     check_failed_response(data)
 
     # The slice and dice on the JSON output to get the certificate out
@@ -410,56 +342,20 @@ def connect_retrieve(num_requests, **arguments):
     # newline characters with actual new lines and the strip off the
     # extra data.
 
-    pkcs7raw = str(pkcs7raw)
-    pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
-    pkcs7raw = pkcs7raw.split('[')[1]
-    pkcs7raw = pkcs7raw.split(']')[0].split(',')
     i = 0
     cert_num = 0
-    while cert_num < num_requests and i < len(pkcs7raw):
-        certstring = str(pkcs7raw[i]).split('"')[1]
-        if 'PKCS7' in certstring:
-            extract_certs(certstring, arguments)
-            cert_num = cert_num + 1
+    for certstring in pkcs7raw:
+        extract_certs(certstring, arguments)
+        cert_num = cert_num + 1
         i = i + 1
     if cert_num != num_requests:
         raise CertificateMismatchException(num_requests, cert_num,
                 'Request and certificate received mismatch')
     return
 
-
-#def create_certificate_request(line, reqid, config_items):
-#    """This fucntion accepts hostname, request id and a dictionary of config_items for the CSR.
-#    It writes the key and creates the CSR."""
-#
-#    print 'Generating certificate...'
-#    try:
-#        keyname = line + '-key.pem'
-#        if os.path.exists(keyname):
-#            charlimit_textwrap('The key file %s already exists'
-#                               % keyname)
-#            keyname = line + '-' + str(reqid) + '-key.pem'
-#            charlimit_textwrap('Writing key to %s' % keyname)
-#    except EOFError, e:
-#        charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
-#                            % e)
-#        raise e
-#    cert_obj = OSGPKIUtils.Cert()
-#    cert_obj.CreatePKey(keyname)
-#    new_csr = cert_obj.CreateX509Request(**config_items)
-#    csr = \
-#        new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
-#                                 , ''
-#                                 ).replace('-----END CERTIFICATE REQUEST-----\n'
-#            , '')
-#
-#    return csr
-
-
-
 def process_csr(**arguments):
     """This function handles the entire processing of the request i.e.
-    requesting. checking for quota limit, approving and then retrieving in sequence"""
+    requesting and then retrieving in sequence"""
     try:
         arguments = connect_renew(**arguments)
     except Exception, e:
@@ -471,7 +367,6 @@ def process_csr(**arguments):
             raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
                                     )
 
-    #connect_approve(**arguments)
     connect_retrieve(1, **arguments)
     return
 
@@ -481,16 +376,9 @@ def print_uncaught_exception():
     print traceback.format_exc()
 
 def process_renew(**arguments):
-    """The processing is split into two parts depending upon
-    the mode of the request i.e. using a single host request or
-    using a file mode. This function handles the processing of a
-    single host mode"""
-    #config_items = {}
-    #config_items.update({'CN': hostname})  # ### New CN for every host#######
+    """This function would in turn call process csr function"""
     num_requests = 1
     charlimit_textwrap('Beginning request process for %s' % arguments['DN'])
-    #csr = create_certificate_request(1,hostname.replace('/', '-'),
-    #        config_items)
     process_csr(**arguments)
     return
 
@@ -531,19 +419,9 @@ def get_ssl_context(**arguments):
 
 def extract_info(**arguments):
     """ Extracts the DN from the certificate provided."""
-    #hostcert = arguments['hostcert']
     x509 = M2Crypto.X509.load_cert(arguments['usercert'])
     dec_sid = x509.get_serial_number()
     hex_sid = "%032X" % dec_sid
-    #print "serial number hex %s" %serial_number#.rstrip("L").lstrip("0x")
-    #serial_number = subprocess.check_output([
-    #    'openssl',
-    #    'x509',
-    #    '-in',
-    #    os.path.abspath(arguments['usercert']),
-    #    '-serial',
-    #    '-noout',
-    #    ])
     print "serial number" , hex_sid
     arguments.update({'serial_number':hex_sid})
     DN = x509.get_issuer()
@@ -555,10 +433,8 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-        print "Parse args"
         arguments = extract_info(**arguments)
         arguments = get_ssl_context(**arguments)
-        print "get ssl context done"
         process_renew(**arguments)
     except AttributeError, e:
         print e
