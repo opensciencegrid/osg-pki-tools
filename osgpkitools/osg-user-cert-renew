@@ -533,18 +533,19 @@ def extract_info(**arguments):
     """ Extracts the DN from the certificate provided."""
     #hostcert = arguments['hostcert']
     x509 = M2Crypto.X509.load_cert(arguments['usercert'])
-    #serial_number = float(x509.get_serial_number())
+    dec_sid = x509.get_serial_number()
+    hex_sid = "%032X" % dec_sid
     #print "serial number hex %s" %serial_number#.rstrip("L").lstrip("0x")
-    serial_number = subprocess.check_output([
-        'openssl',
-        'x509',
-        '-in',
-        os.path.abspath(arguments['usercert']),
-        '-serial',
-        '-noout',
-        ])
-    print "serial number" , serial_number
-    arguments.update({'serial_number':serial_number})
+    #serial_number = subprocess.check_output([
+    #    'openssl',
+    #    'x509',
+    #    '-in',
+    #    os.path.abspath(arguments['usercert']),
+    #    '-serial',
+    #    '-noout',
+    #    ])
+    print "serial number" , hex_sid
+    arguments.update({'serial_number':hex_sid})
     DN = x509.get_issuer()
     print "hostname",DN
     arguments.update({'DN':DN})

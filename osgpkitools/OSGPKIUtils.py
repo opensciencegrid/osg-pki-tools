@@ -176,7 +176,6 @@ def CreateOIMConfig(isITB, **OIMConfig):
     OIMConfig.update({'returl': Config.get(OIM, 'returl')})
     OIMConfig.update({'issurl': Config.get(OIM, 'issurl')})
     OIMConfig.update({'quotaurl': Config.get(OIM, 'quotaurl')})
-    OIMConfig.update({'renewurl': Config.get(OIM, 'renewurl')})
     OIMConfig.update({'content_type': Config.get(OIM, 'content_type')})
     return OIMConfig
 
