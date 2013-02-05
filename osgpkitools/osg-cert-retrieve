@@ -259,7 +259,8 @@ def connect_retrieve(arguments):
         data = response.read()
         conn.close()
         iterations = check_for_pending(data, iterations, **arguments)
-    pkcs7raw = simplejson.loads(data)['pkcs7s']
+    pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True,
+                                indent=2)
     check_failed_response(data)
 
     # The slice and dice on the JSON output to get the certificate out
@@ -270,13 +271,13 @@ def connect_retrieve(arguments):
     # was the quick and dirty solution.
     #
 
-    #pkcs7raw = str(pkcs7raw)
-    #pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
-    #pkcs7raw = pkcs7raw.split('[')[1]
-    #pkcs7raw = pkcs7raw.split('"')[1]
+    pkcs7raw = str(pkcs7raw)
+    pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
+    pkcs7raw = pkcs7raw.split('[')[1]
+    pkcs7raw = pkcs7raw.split('"')[1]
     temp_filename = tempfile.NamedTemporaryFile()
     try:
-        temp_filename.write(pkcs7raw[0])
+        temp_filename.write(pkcs7raw)
         temp_filename.flush()
         subprocess.call([
             'openssl',
