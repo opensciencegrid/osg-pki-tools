@@ -466,8 +466,8 @@ def connect_retrieve(num_requests, **arguments):
         data = response.read()
         conn.close()
         iterations = check_for_pending(data, iterations, **arguments)
-    pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True,
-                                indent=2)
+
+    pkcs7raw = simplejson.loads(data)['pkcs7s']
     check_failed_response(data)
 
     # The slice and dice on the JSON output to get the certificate out
@@ -476,18 +476,11 @@ def connect_retrieve(num_requests, **arguments):
     # newline characters with actual new lines and the strip off the
     # extra data.
 
-    pkcs7raw = str(pkcs7raw)
-    pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
-    pkcs7raw = pkcs7raw.split('[')[1]
-    pkcs7raw = pkcs7raw.split(']')[0].split(',')
-    i = 0
     cert_num = 0
-    while cert_num < num_requests and i < len(pkcs7raw):
-        certstring = str(pkcs7raw[i]).split('"')[1]
-        if 'PKCS7' in certstring:
-            extract_certs(certstring, arguments)
-            cert_num = cert_num + 1
-        i = i + 1
+    for certstring in pkcs7raw:
+        extract_certs(certstring, arguments)
+        cert_num = cert_num + 1
+
     if cert_num != num_requests:
         raise CertificateMismatchException(num_requests, cert_num,
                 'Request and certificate received mismatch')
