@@ -267,7 +267,6 @@ def connect(arguments):
         raise e
     check_response_500(response)
     data = response.read()
-    print "data is %s " %data
     check_failed_response(data)
     conn.close()
     if simplejson.loads(data)['detail'] == 'Nothing to report' \
