@@ -170,16 +170,6 @@ def parse_args():
 
     arguments.update({'mode': OIM})
     arguments = CreateOIMConfig(OIM, **arguments)
-    #if vars().has_key('args'):
-    #    arguments.update({'args': args})
-    #if vars().has_key('values'):
-    #    arguments.update({'values': values})
-    #if vars().has_key('hostname'):
-    #    arguments.update({'hostname': hostname})
-    #if vars().has_key('domain'):
-    #    arguments.update({'domain': domain})
-    #if vars().has_key('outkeyfile'):
-    #    arguments.update({'outkeyfile': outkeyfile})
     arguments.update({'timeout': timeout})
     arguments.update({'usercert': usercert})
     arguments.update({'userprivkey': userprivkey})
@@ -203,6 +193,7 @@ def connect_renew(**arguments):
                                }, doseq=True)
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+    print "Before connection"
     conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
             ssl_context=arguments['ssl_context'])
     try:
@@ -357,6 +348,7 @@ def process_csr(**arguments):
     """This function handles the entire processing of the request i.e.
     requesting and then retrieving in sequence"""
     try:
+        print "Before renew"
         arguments = connect_renew(**arguments)
     except Exception, e:
         if 'sslv3 alert bad certificate' in e:
@@ -365,7 +357,7 @@ def process_csr(**arguments):
                      % e)
         else:
             raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
-                                    )
+                                    % e)
 
     connect_retrieve(1, **arguments)
     return
@@ -378,7 +370,8 @@ def print_uncaught_exception():
 def process_renew(**arguments):
     """This function would in turn call process csr function"""
     num_requests = 1
-    charlimit_textwrap('Beginning request process for %s' % arguments['DN'])
+    #charlimit_textwrap('Beginning request process for %s' % arguments['DN'])
+    print "before csr"
     process_csr(**arguments)
     return
 
@@ -419,22 +412,25 @@ def get_ssl_context(**arguments):
 
 def extract_info(**arguments):
     """ Extracts the DN from the certificate provided."""
-    x509 = M2Crypto.X509.load_cert(arguments['usercert'])
-    dec_sid = x509.get_serial_number()
-    hex_sid = "%032X" % dec_sid
-    print "serial number" , hex_sid
+    #x509 = M2Crypto.X509.load_cert(arguments['usercert'])
+    #dec_sid = x509.get_serial_number()
+    #hex_sid = "%032X" % dec_sid
+    hex_sid = subprocess.check_output(['openssl','x509','-in',
+                             arguments['usercert'],'-serial','-noout'])
+    hex_sid = hex_sid.split('=')[1]
+    print "serial number %s" %hex_sid
     arguments.update({'serial_number':hex_sid})
-    DN = x509.get_issuer()
-    print "hostname",DN
-    arguments.update({'DN':DN})
+    #DN = x509.get_issuer()
+    #print "hostname",DN
+    #arguments.update({'DN':DN})
     return arguments
     
 if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-        arguments = extract_info(**arguments)
         arguments = get_ssl_context(**arguments)
+        arguments = extract_info(**arguments)
         process_renew(**arguments)
     except AttributeError, e:
         print e
