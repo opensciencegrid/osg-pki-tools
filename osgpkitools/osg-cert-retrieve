@@ -259,9 +259,9 @@ def connect_retrieve(arguments):
         data = response.read()
         conn.close()
         iterations = check_for_pending(data, iterations, **arguments)
-
-    pkcs7raw = simplejson.loads(data)['pkcs7s'][0]
     check_failed_response(data)
+    pkcs7raw = simplejson.loads(data)['pkcs7s'][0]
+
 
     # The slice and dice on the JSON output to get the certificate out
     # happens here - the problem is that the new lines are getting all screwy
