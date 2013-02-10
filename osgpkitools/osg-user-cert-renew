@@ -189,7 +189,7 @@ def connect_renew(**arguments):
     """ 
 
     print 'Connecting to server to renew certificate...'
-    params = urllib.urlencode({'serial_id': arguments['serial_number'],
+    params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
                                }, doseq=True)
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
@@ -213,9 +213,9 @@ def connect_renew(**arguments):
     check_failed_response(data)
     return_data = simplejson.loads(data)
     request_id = return_data['request_id']
-    if not reqid:
+    if not request_id:
         raise UnexpectedBehaviourException("Request Id not found in data. Script will not exit")
-    arguments.update({'reqid': reqid})
+    arguments.update({'reqid': request_id})
     return arguments
 
 
@@ -249,7 +249,7 @@ def extract_certs(pkcs7raw, arguments):
     # ## Extracting the EEC certificate ###
 
     eecString = extractEEC(certString, hostname)
-    #arguments.update({'hostname': hostname})
+    arguments.update({'hostname': hostname})
     arguments.update({'eecString': eecString})
     write_certificate(**arguments)
     return
@@ -296,7 +296,7 @@ def connect_retrieve(num_requests, **arguments):
     params = urllib.urlencode({'host_request_id': arguments['reqid']})
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = httplib.HTTPSConnection(arguments['host'])
+    conn = httplib.HTTPConnection(arguments['host'])
     try:
         conn.request('POST', arguments['returl'], params, headers)
         response = conn.getresponse()
@@ -324,8 +324,9 @@ def connect_retrieve(num_requests, **arguments):
         data = response.read()
         conn.close()
         iterations = check_for_pending(data, iterations, **arguments)
-    pkcs7raw = simplejson.loads(data)['pkcs7s']
     check_failed_response(data)
+    pkcs7raw = simplejson.loads(data)['pkcs7s']
+    
 
     # The slice and dice on the JSON output to get the certificate out
     # happens here - the problem is that the new lines are getting all screwy
@@ -348,7 +349,6 @@ def process_csr(**arguments):
     """This function handles the entire processing of the request i.e.
     requesting and then retrieving in sequence"""
     try:
-        print "Before renew"
         arguments = connect_renew(**arguments)
     except Exception, e:
         if 'sslv3 alert bad certificate' in e:
@@ -356,8 +356,9 @@ def process_csr(**arguments):
                                           Your certificate is not trusted by the server'
                      % e)
         else:
+            print_uncaught_exception()
             raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
-                                    % e)
+                                    )
 
     connect_retrieve(1, **arguments)
     return
@@ -371,7 +372,6 @@ def process_renew(**arguments):
     """This function would in turn call process csr function"""
     num_requests = 1
     #charlimit_textwrap('Beginning request process for %s' % arguments['DN'])
-    print "before csr"
     process_csr(**arguments)
     return
 
@@ -418,8 +418,7 @@ def extract_info(**arguments):
     hex_sid = subprocess.check_output(['openssl','x509','-in',
                              arguments['usercert'],'-serial','-noout'])
     hex_sid = hex_sid.split('=')[1]
-    print "serial number %s" %hex_sid
-    arguments.update({'serial_number':hex_sid})
+    arguments.update({'serial_number':hex_sid.strip()})
     #DN = x509.get_issuer()
     #print "hostname",DN
     #arguments.update({'DN':DN})
