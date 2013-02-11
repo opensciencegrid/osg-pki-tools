@@ -1,0 +1,42 @@
+NAME   = pki-cli-test
+VCPU    = 1
+MEMORY = 2048
+PUBLIC = YES
+
+#OS [ ARCH = x86_64 ]
+
+DISK = [ image = "SLF 5 Base",
+         save=yes,
+         target = vda ]
+
+DISK   = [
+  type     = swap,
+  size     = 4096,
+  target   = vdb ]
+
+NIC    = [ NETWORK = "FermiCloud",
+           MODEL = virtio ]
+
+FEATURES=[ acpi="yes" ]
+
+GRAPHICS = [
+  type    = "vnc",
+  listen  = "127.0.0.1",
+  port    = "-1",
+  autoport = "yes",
+  keymap = "en-us"]
+
+REQUIREMENTS = "HYPERVISOR=\"kvm\""
+RANK = "FREEMEMORY"
+
+CONTEXT = [
+    ip_public   = "$NIC[IP, NETWORK=\"FermiCloud\"]",
+    netmask     = "255.255.254.0",
+    gateway     = "131.225.154.1",
+    ns          = "131.225.8.120",
+    files      = "/cloud/images/OpenNebula/templates/init.sh /cloud/login/vwelch/OpenNebula/k5login",
+    target      = "hdc",
+    root_pubkey = "id_dsa.pub",
+    username    = "opennebula",
+    user_pubkey = "id_dsa.pub"
+]

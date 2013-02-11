@@ -1,6 +1,9 @@
 
 Testing for Releases
 
+Note that the following tests should be run, at a minimum, on Python 2.4 and
+2.6. See below for details on using the FermiCloud for running 2.4 tests.
+
 1) Run tests/do-tests.sh which should exit without errors.
 
 2) Do 50 cert bulk issuance test.
@@ -29,4 +32,34 @@ https://oim-itb.grid.iu.edu/oim/certificatehost?id=<id from request>
 and check certificate:
 
 % openssl x509 -in hostcert.pem -noout -text
+
+
+----------------------------------------------------------------------
+Setting up FermiClound system for testing
+
+Create a VM using tests/OpenNebula/pki-cli-test.one - note you need to
+change /cloud/login/vwelch/OpenNebula/k5login to use the path to your
+home directory.
+
+One the VM:
+
+1) svn checkout https://vdt.cs.wisc.edu/svn/software/osg-cert-scripts-v3/
+
+2) cd trunk/tests
+
+3) sudo OpenNebula/setup-fermi-cloud  # Sets up OSG RPM repos
+
+4) sudo yum install python-pip  # Note installs pip-python instead of pip
+
+3) sudo pip-python install scripttests unittest2  # Needed for testing
+
+4) sudo yum install --enablerepo=osg-development python-simplejson
+
+5) sudo yum install openssl-devel gcc python-devel  # Needed for pyton ssl
+
+6) sudo pip-python install ssl
+
+Now test as above.
+
+
 
