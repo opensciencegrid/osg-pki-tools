@@ -47,7 +47,7 @@ One the VM:
 
 2) cd trunk/tests
 
-3) sudo OpenNebula/setup-fermi-cloud  # Sets up OSG RPM repos
+3) sudo OpenNebula/setup-fermi-cloud.sh  # Sets up OSG RPM repos
 
 4) sudo yum install python-pip  # Note installs pip-python instead of pip
 
