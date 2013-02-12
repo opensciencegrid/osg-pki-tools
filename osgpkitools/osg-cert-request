@@ -21,11 +21,11 @@ import ssl
 from pprint import pprint
 
 from osgpkitools import OSGPKIUtils
-from OSGPKIUtils import CreateOIMConfig
-from OSGPKIUtils import check_response_500
-from OSGPKIUtils import charlimit_textwrap
-from OSGPKIUtils import check_failed_response
-from ExceptionDefinitions import *
+from osgpkitools.OSGPKIUtils import CreateOIMConfig
+from osgpkitools.OSGPKIUtils import check_response_500
+from osgpkitools.OSGPKIUtils import charlimit_textwrap
+from osgpkitools.OSGPKIUtils import check_failed_response
+from osgpkitools.ExceptionDefinitions import *
 
 
 # Set up Option Parser
