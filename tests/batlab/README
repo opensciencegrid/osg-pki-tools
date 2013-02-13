@@ -1,0 +1,15 @@
+BaTLab test scripts and specification files for BaTLab
+
+To use:
+
+1) Obtain a batlab account: https://www.batlab.org/
+
+2) Log into the submit host
+
+3) Make a copy of this svn repository:
+
+svn checkout https://vdt.cs.wisc.edu/svn/software/osg-cert-scripts-v3/
+
+4) Submit:
+
+nmi_submit osg-cert-scripts-v3/trunk/test/batlab/osg-pki-cli.run-spec

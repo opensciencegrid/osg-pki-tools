@@ -1,0 +1,14 @@
+CHANGES.txt
+README.txt
+setup.py
+docs/scripts-spec.txt
+osgpkitools/OSGPKIUtils.py
+osgpkitools/pki-clients.ini
+osgpkitools/__init__.py
+osgpkitools/osg-cert-request
+osgpkitools/osg-cert-retrieve
+osgpkitools/osg-gridadmin-cert-request
+tests/PKIClientTestCase.py
+tests/__init__.py
+tests/do-tests.py
+tests/*

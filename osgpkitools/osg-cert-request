@@ -1,0 +1,366 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+"""
+This script submits a host certificate request for an unauthenticated
+user.
+"""
+
+import urllib
+import httplib
+import sys
+import ConfigParser
+import simplejson
+import base64
+import os
+from optparse import OptionParser
+import M2Crypto
+import textwrap
+import traceback
+import ssl
+from pprint import pprint
+
+from osgpkitools import OSGPKIUtils
+from osgpkitools.OSGPKIUtils import CreateOIMConfig
+from osgpkitools.OSGPKIUtils import check_response_500
+from osgpkitools.OSGPKIUtils import charlimit_textwrap
+from osgpkitools.OSGPKIUtils import check_failed_response
+from osgpkitools.ExceptionDefinitions import *
+
+
+# Set up Option Parser
+#
+
+def parse_args():
+    """This function parses all the arguments, validates them and then stores\
+    them in a dictionary that is used throughout in the script."""
+
+    parser = OptionParser()
+    parser.add_option(
+        '-c',
+        '--csr',
+        action='store',
+        dest='csr',
+        default=None,
+        help='Specify CSR file to use',
+        metavar='CSR',
+        )
+    parser.add_option(
+        '-o',
+        '--outkeyfile',
+        action='store',
+        dest='keyfile',
+        help='Specify the output filename for the retrieved user certificate.\
+             \nDefault is ./hostkey.pem'
+            ,
+        metavar='Output Keyfile',
+        default='./hostkey.pem',
+        )
+    parser.add_option(
+        '-v',
+        '--vo',
+        action='store',
+        dest='vo',
+        help='Specify the VO for the host request'
+            ,
+        metavar='VO name',
+        default=None,
+        )
+    parser.add_option(
+        '-y',
+        '--cc',
+        action='store',
+        dest='cc_list',
+        help='Specify the CC list(the email id\'s to be CCed). \
+             Separate values by \',\''
+            ,
+        metavar='CC List',
+        default='',
+        )
+    parser.add_option(
+        '-m',
+        '--comment',
+        action='store',
+        dest='comment',
+        help='The comment to be added to the request',
+        metavar='Comment',
+        default='',
+        )
+    parser.add_option(
+        '-t',
+        '--hostname',
+        action='store',
+        dest='hostname',
+        help='Specify hostname for CSR (FQDN)',
+        metavar='CN',
+        )
+    parser.add_option(
+        '-e',
+        '--email',
+        action='store',
+        dest='email',
+        help='Email address to receive certificate',
+        metavar='EMAIL',
+        )
+    parser.add_option(
+        '-n',
+        '--name',
+        action='store',
+        dest='name',
+        help='Name of user receiving certificate',
+        metavar='NAME',
+        )
+    parser.add_option(
+        '-p',
+        '--phone',
+        action='store',
+        dest='phone',
+        help='Phone number of user receiving certificate',
+        metavar='PHONE',
+        )
+    parser.add_option(
+        '-T',
+        '--test',
+        action='store_true',
+        dest='test',
+        help='Run in test mode',
+        default=False,
+        )
+    parser.add_option(
+        '-q',
+        '--quiet',
+        action='store_false',
+        dest='verbose',
+        default=True,
+        help="don't print status messages to stdout",
+        )
+    (args, values) = parser.parse_args()
+
+    if not args.phone:
+        parser.error('-p/--phone argument required')
+    if not args.name:
+        parser.error('-n/--name argument required')
+    if not args.email:
+        parser.error('-e/--email argument required')
+    if not args.hostname:
+        parser.error('-t/--hostname argument required')
+
+                        # , config_items
+    if args.csr is None:
+        if os.path.exists(args.keyfile):
+            opt = \
+                raw_input('%s already exists. Do you want to overwrite it?\
+                          Y/N : '
+                           % args.keyfile)
+            if opt == 'y' or opt == 'Y':
+                pem_filename = args.keyfile
+            elif opt == 'n' or opt == 'N':
+                pem_filename = \
+                    raw_input('Please enter a different file name\n')
+            else:
+                raise InvalidOptionException("Invalid Option")
+        else:
+            pem_filename = args.keyfile
+    else:
+        charlimit_textwrap('CSR input found. Skipping creation of the primary key\n')
+
+    hostname = args.hostname
+    email = args.email
+    name = args.name
+    phone = args.phone
+    csr = args.csr
+
+    cc_list = args.cc_list
+
+    comment = args.comment
+
+    phone_num = phone.replace('-', '')
+    if not phone_num.isdigit():
+        raise ValidationException("Phone number should contain \
+                                  only numbers and/or '-'\n"
+                                  )
+    if args.csr is None:
+        pass
+    elif not os.path.exists(args.csr):
+        raise FileNotFoundException(args.csr,
+                                    'The file %s does not exist'
+                                    % args.csr)
+    OIM = args.test
+
+    arguments = dict()
+    arguments = CreateOIMConfig(OIM, **arguments)
+
+    arguments.update({'vo': args.vo})
+    
+    if vars().has_key('args'):
+        arguments.update({'args': args})
+    if vars().has_key('values'):
+        arguments.update({'values': values})
+    if vars().has_key('cc_list'):
+        arguments.update({'cc_list': cc_list})
+    if vars().has_key('comment'):
+        arguments.update({'comment': comment})
+    if vars().has_key('pem_filename'):
+        arguments.update({'pem_filename': pem_filename})
+    arguments.update({'email': email})
+    arguments.update({'name': name})
+    arguments.update({'phone': phone})
+    arguments.update({'hostname': hostname})
+    if vars().has_key('csr'):
+        arguments.update({'csr': csr})
+    return arguments
+
+
+    # Build the connection to the web server - the request header, the parameters
+    # needed and then pass them into the server
+    #
+    # The data returned is in JSON format so to make it a little more human
+    # readable we pass it through the json module to pretty print it
+    #
+
+def print_uncaught_exception():
+    """This function prints the stack trace of the failure to
+    aid the debugging of the error."""
+    print traceback.format_exc()
+
+
+def connect(arguments):
+    """This function accepts a dictionary consisting of all parameters and their values.
+    It submits the request to the OIM server and returns the request details."""
+
+    print '\nConnecting to server...'
+    params = urllib.urlencode({
+        'name': arguments['name'],
+        'email': arguments['email'],
+        'phone': arguments['phone'],
+        'csrs': arguments['csr'],
+        'request_comment': arguments['comment'],
+        'request_ccs': arguments['cc_list'].split(','),
+        'vo' : arguments['vo'],
+        })
+    headers = {'Content-type': arguments['content_type'],
+               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+    conn = httplib.HTTPConnection(arguments['host'])
+    try:
+        conn.request('POST', arguments['requrl'], params, headers)
+        response = conn.getresponse()
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed: %s'
+                           % (arguments['requrl'], repr(e)))
+        raise e
+    except Exception, e:
+        charlimit_textwrap('Error during request to %s. Reason %s'
+                           % (arguments['requrl'], repr(e)))
+        raise e
+    check_response_500(response)
+    data = response.read()
+    check_failed_response(data)
+    conn.close()
+    if simplejson.loads(data)['detail'] == 'Nothing to report' \
+        and simplejson.loads(data)['status'] == 'OK' in data:
+        ticket = simplejson.loads(data)['host_request_id']
+        print 'Succesfully submitted'
+        print 'Request Id#: %s' % ticket
+    else:
+        raise UnexpectedBehaviourEception("Unexpected Behaviour encountered\nData received is %s" %data)
+    return
+
+
+if __name__ == '__main__':
+    try:
+        os.umask(0177)
+        arguments = parse_args()
+        config_items = {'CN': arguments['hostname'],
+                        'emailAddress': arguments['email']}
+
+        # The two modes in which the script is run are
+        # 1. The user doesn't provide a csr:
+        # Here we generate a private key for the user and also a
+        # certificate signing request for the user and submit it
+        # it to the OIM
+        # 2. The user provides a csr
+        # Here we simply get rid of the end and begin certificate
+        # lines of the csr and submit the request to the OIM
+
+        if arguments['csr'] is None:
+            cert_obj = OSGPKIUtils.Cert()
+            cert_obj.CreatePKey(arguments['pem_filename'])
+            print 'Writing key to %s' % arguments['pem_filename']
+            new_csr = cert_obj.CreateX509Request(**config_items)
+            arguments['csr'] = \
+                new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
+                    , '').replace('-----END CERTIFICATE REQUEST-----\n'
+                                  , '')
+            connect(arguments)
+        else:
+            csr = open(arguments['csr'], 'rb').read().replace('-----BEGIN CERTIFICATE REQUEST-----\n',
+                              ''
+                              ).replace('-----END CERTIFICATE REQUEST-----\n'
+                    , '')
+            arguments.update({'csr': csr})
+            connect(arguments)
+    except EOFError, e:
+            charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
+                                % e)
+            sys.exit(1)
+    except KeyboardInterrupt, k:
+        charlimit_textwrap(k)
+        sys.exit('''Interrupted by user\n''')
+    except SystemExit, e:
+        raise
+    except ssl.SSLError, s:
+        print s
+        sys.exit('Please check for valid certificate.\n')
+    except OSError, e:
+        sys.exit(1)
+    except Exception_500response, e:
+        charlimit_textwrap('Request Failed. Status %s' % e.status)
+        charlimit_textwrap('Reason for failure %s' % e.message)
+        sys.exit(1)
+    except TimeoutException, e:
+        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.'
+                            % e.timeout)
+        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
+                           )
+        sys.exit(1)
+    except FileNotFoundException, e:
+        charlimit_textwrap(e.message + ':' + e.filename)
+        sys.exit(1)
+    except ValueError, e:
+        sys.exit(1)
+    except NotOKException, e:
+        charlimit_textwrap('Request Failed. Status %s' % e.status)
+        charlimit_textwrap('Reason for failure %s' % e.message)
+        sys.exit(1)
+    except CertificateMismatchException, e:
+        print 'The number of requests made was ', e.request_num
+        print 'The number of certificates received is ', e.retrieve_num
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except EOFError, e:
+        sys.exit(1)
+    except BadCertificateException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except BadPassphraseException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except HandshakeFailureException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except UncaughtException, e:
+        print_uncaught_exception()
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except UnexpectedBehaviourException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except InvalidOptionException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except Exception, e:
+        print_uncaught_exception()
+        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                           )
+        sys.exit(1)
+    sys.exit(0)

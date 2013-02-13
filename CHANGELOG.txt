@@ -1,0 +1,18 @@
+Enhancements in version 1.1:
+
+* Extracted only EEC certificates and not the CA certs as per JIRA issue #251
+* Adding quota status check beforehand as per https://jira.opensciencegrid.org/browse/OSGPKI-218#comment-17613
+* Adding additional parameters for cc and request comment as per https://jira.opensciencegrid.org/browse/OSGPKI-222#comment-17615
+* Adding provision to override the INI file with ~//.osg-pki/OSG_PKI.ini as per JIRA# 193
+* Adding parameter --vo to specify the VO for a host certificate request JIRA#298
+
+Bug Fixes in version 1.1:
+
+* Fix for multiple hostname SSL error JIRA #210
+* Fixing the path of /etc/pki-clients.ini as per JIRA#197
+* fixing a broken test for keyword arguments error and confirming to pep8 standards as per JIRA#289
+* Fixing quota logic for osg-gridadmin and removing commented code JIRA#283
+
+Modifications to version 1.1:
+
+* Adding the patch by Mat Selmicki as described in JIRA#931
