@@ -191,6 +191,10 @@ def connect_renew(**arguments):
     print 'Connecting to server to renew certificate...'
     params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
                                }, doseq=True)
+    ### For testing purpose only###
+    #params = urllib.urlencode({'user_request_id': '115',
+    #                           }, doseq=True)
+    ####
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     print "Before connection"
@@ -298,7 +302,7 @@ def connect_retrieve(num_requests, **arguments):
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = httplib.HTTPConnection(arguments['host'])
     try:
-        conn.request('POST', arguments['returl'], params, headers)
+        conn.request('POST', arguments['userreturl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
         charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
@@ -313,7 +317,7 @@ def connect_retrieve(num_requests, **arguments):
                        )
     iterations = 0
     while 'PENDING' in data:
-        conn.request('POST', arguments['returl'], params, headers)
+        conn.request('POST', arguments['userreturl'], params, headers)
         try:
             response = conn.getresponse()
         except httplib.HTTPException, e:
