@@ -29,6 +29,14 @@ Version_Number = 1.2
 def version_info():
     """ Print the version number and exit"""
     print "OSG CLI Scripts Version :", Version_Number
+    
+def check_permissions(path):
+    """The function checks for write permissions for the given path to verify if the user has write permissions   
+    """
+    if(os.access(path, os.W_OK)):
+        return
+    else:
+        raise FileWriteException("User does not have appropriate permissions for writing to current directory.")
 
 def check_response_500(response):
     """ This functions handles the 500 error response from the server"""

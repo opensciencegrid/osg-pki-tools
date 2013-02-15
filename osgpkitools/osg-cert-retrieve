@@ -41,6 +41,7 @@ from OSGPKIUtils import check_response_500
 from OSGPKIUtils import print_failure_reason_exit
 from OSGPKIUtils import check_for_pending
 from OSGPKIUtils import version_info
+from OSGPKIUtils import check_permissions
 from ExceptionDefinitions import *
 
 
@@ -309,6 +310,8 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
+        path = os.getcwd()
+        check_permissions(path)
         connect_retrieve(arguments)
     except EOFError, e:
         charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
@@ -331,6 +334,10 @@ if __name__ == '__main__':
                             % e.timeout)
         charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
                            )
+        sys.exit(1)
+    except FileWriteException, e:
+        charlimit_textwrap(e.message)
+        charlimit_textwrap("The script will exit now\n")
         sys.exit(1)
     except FileNotFoundException, e:
         charlimit_textwrap(e.message + ':' + e.filename)
