@@ -45,7 +45,6 @@ from osgpkitools.OSGPKIUtils import check_failed_response
 from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import check_for_pending
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
-from osgpkitools.OSGPKIUtils import check_permissions
 from osgpkitools.ExceptionDefinitions import *
 
 
@@ -708,8 +707,6 @@ if __name__ == '__main__':
         os.umask(0177)
         arguments = parse_args()
         #if not arguments.has_key('ssl_context'):
-        path = os.getcwd()
-        check_permissions(path)
         arguments = get_ssl_context(**arguments)
         if not arguments.has_key('hostname'):
             process_hostfile_mode(**arguments)
@@ -727,10 +724,6 @@ if __name__ == '__main__':
         print k
         sys.exit('''Interrupted by user\n''')
     except OSError, e:
-        sys.exit(1)
-    except FileWriteException, e:
-        charlimit_textwrap(e.message)
-        charlimit_textwrap("The script will exit now\n")
         sys.exit(1)
     except Exception_500response, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
