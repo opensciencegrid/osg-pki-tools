@@ -16,4 +16,3 @@ Bug Fixes in version 1.1:
 Modifications to version 1.1:
 
 * Adding the patch by Mat Selmicki as described in JIRA#931
-* Adding Check to verify if the user has write access to write the certificate. JIRA#324
