@@ -149,5 +149,9 @@ class InsufficientArgumentException(Exception):
     def __init__(self,message):
         self.message = message
 
-
+class FileWriteException(Exception):
+    """This exception is raised when the user does not have permission to write in the current directory"""
+    
+    def __init__(self, message):
+        self.message = message
     

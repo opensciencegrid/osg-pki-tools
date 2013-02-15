@@ -24,6 +24,14 @@ MBSTRING_ASC = MBSTRING_FLAG | 1
 MBSTRING_BMP = MBSTRING_FLAG | 2
 
 
+def check_permissions(path):
+    """The function checks for write permissions for the given path to verify if the user has write permissions   
+    """
+    if(os.access(path, os.W_OK)):
+        return
+    else:
+        raise FileWriteException("User does not have appropriate permissions for writing to current directory.")
+
 def check_response_500(response):
     """ This functions handles the 500 error response from the server"""
 
