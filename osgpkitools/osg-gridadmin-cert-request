@@ -45,6 +45,7 @@ from osgpkitools.OSGPKIUtils import check_failed_response
 from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import check_for_pending
 from osgpkitools.OSGPKIUtils import version_info
+from osgpkitools.OSGPKIUtils import check_permissions
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.ExceptionDefinitions import *
 
