@@ -31,18 +31,17 @@ import subprocess
 import ssl
 import tempfile
 
-from OSGPKIUtils import charlimit_textwrap
 from osgpkitools import OSGPKIUtils
-from OSGPKIUtils import CreateOIMConfig
-from OSGPKIUtils import extractEEC
-from OSGPKIUtils import extractHostname
-from OSGPKIUtils import check_failed_response
-from OSGPKIUtils import check_response_500
-from OSGPKIUtils import print_failure_reason_exit
-from OSGPKIUtils import check_for_pending
-from OSGPKIUtils import version_info
-from OSGPKIUtils import check_permissions
-from ExceptionDefinitions import *
+from osgpkitools.OSGPKIUtils import charlimit_textwrap
+from osgpkitools.OSGPKIUtils import CreateOIMConfig
+from osgpkitools.OSGPKIUtils import extractEEC
+from osgpkitools.OSGPKIUtils import extractHostname
+from osgpkitools.OSGPKIUtils import check_failed_response
+from osgpkitools.OSGPKIUtils import check_response_500
+from osgpkitools.OSGPKIUtils import print_failure_reason_exit
+from osgpkitools.OSGPKIUtils import check_for_pending
+from osgpkitools.OSGPKIUtils import version_info
+from osgpkitools.ExceptionDefinitions import *
 
 
 # Set up Option Parser
