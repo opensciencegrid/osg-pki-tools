@@ -192,24 +192,24 @@ def connect_renew(**arguments):
     params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
                                }, doseq=True)
     ### For testing purpose only###
-    #params = urllib.urlencode({'user_request_id': '119'
+    #params = urllib.urlencode({'user_request_id': '214'
     #                           }, doseq=True)
     ####
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    print "Before connection"
+    #print "Before connection"
     conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
             ssl_context=arguments['ssl_context'])
     try:
         conn.request('POST', arguments['renewurl'], params, headers)
-        print "Conn request succeeded"
+        #print "Conn request succeeded"
         #conn.request('POST', arguments['renewurl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
         charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
         raise e
     data = response.read()
-    print "data is ",data
+    #print "data is ",data
     #This if block is to catch failures and would exit the script
     if not 'OK' in response.reason:
         print_failure_reason_exit(data)
@@ -309,6 +309,7 @@ def connect_retrieve(num_requests, **arguments):
         raise httplib.HTTPException
     check_response_500(response)
     data = response.read()
+    #print "data is ret %s" %data
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
             print_failure_reason_exit(data)
@@ -329,7 +330,7 @@ def connect_retrieve(num_requests, **arguments):
         conn.close()
         iterations = check_for_pending(data, iterations, **arguments)
     check_failed_response(data)
-    pkcs7raw = simplejson.loads(data)['pkcs7s']
+    pkcs7raw = simplejson.loads(data)['pkcs7']
     
 
     # The slice and dice on the JSON output to get the certificate out
@@ -337,13 +338,13 @@ def connect_retrieve(num_requests, **arguments):
     # in the output from OIM. We stringify the data, replace all the text
     # newline characters with actual new lines and the strip off the
     # extra data.
-
+    #print "pkcs7 raw is %s" %pkcs7raw
     i = 0
     cert_num = 0
-    for certstring in pkcs7raw:
-        extract_certs(certstring, arguments)
-        cert_num = cert_num + 1
-        i = i + 1
+    #for certstring in pkcs7raw:
+    extract_certs(pkcs7raw.strip(), arguments)
+    cert_num = cert_num + 1
+    i = i + 1
     if cert_num != num_requests:
         raise CertificateMismatchException(num_requests, cert_num,
                 'Request and certificate received mismatch')
@@ -408,7 +409,7 @@ def get_ssl_context(**arguments):
             first = False
             count = count + 1
             print_uncaught_exception()
-            print "Trace %s" % e
+            #print "Trace %s" % e
             pass_str = 'Incorrect password. Please enter the password again for'
             if count > 1:
                 raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
@@ -418,16 +419,17 @@ def get_ssl_context(**arguments):
 
 def extract_info(**arguments):
     """ Extracts the DN from the certificate provided."""
-    #x509 = M2Crypto.X509.load_cert(arguments['usercert'])
-    #dec_sid = x509.get_serial_number()
-    #hex_sid = "%032X" % dec_sid
-    hex_sid = subprocess.check_output(['openssl','x509','-in',
-                             arguments['usercert'],'-serial','-noout'])
-    hex_sid = hex_sid.split('=')[1]
-    arguments.update({'serial_number':hex_sid.strip()})
-    #DN = x509.get_issuer()
+    x509 = M2Crypto.X509.load_cert(arguments['usercert'])
+    dec_sid = x509.get_serial_number()
+    hex_sid = "%032X" % dec_sid
+    #print "sid %s" %hex_sid
+    #hex_sid = subprocess.check_output(['openssl','x509','-in',
+    #                         arguments['usercert'],'-serial','-noout'])
+    #hex_sid = hex_sid.split('=')[1]
+    arguments.update({'serial_number':hex_sid})
+    DN = x509.get_issuer()
     #print "hostname",DN
-    #arguments.update({'DN':DN})
+    arguments.update({'DN':DN})
     return arguments
     
 if __name__ == '__main__':
