@@ -192,7 +192,7 @@ def connect_renew(**arguments):
     params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
                                }, doseq=True)
     ### For testing purpose only###
-    #params = urllib.urlencode({'user_request_id': '115',
+    #params = urllib.urlencode({'user_request_id': '119'
     #                           }, doseq=True)
     ####
     headers = {'Content-type': arguments['content_type'],
@@ -218,7 +218,7 @@ def connect_renew(**arguments):
     return_data = simplejson.loads(data)
     request_id = return_data['request_id']
     if not request_id:
-        raise UnexpectedBehaviourException("Request Id not found in data. Script will not exit")
+        raise UnexpectedBehaviourException("Request Id not found in data. Script will now exit")
     arguments.update({'reqid': request_id})
     return arguments
 
@@ -297,7 +297,7 @@ def connect_retrieve(num_requests, **arguments):
 
     iterations = 1
     print 'Issuing certificate...'
-    params = urllib.urlencode({'host_request_id': arguments['reqid']})
+    params = urllib.urlencode({'user_request_id': arguments['reqid']}, True)
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = httplib.HTTPConnection(arguments['host'])
@@ -407,6 +407,8 @@ def get_ssl_context(**arguments):
                  % e)
             first = False
             count = count + 1
+            print_uncaught_exception()
+            print "Trace %s" % e
             pass_str = 'Incorrect password. Please enter the password again for'
             if count > 1:
                 raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
