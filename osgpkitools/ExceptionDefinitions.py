@@ -39,7 +39,7 @@ class NotOKException(Exception):
         status -- Status of the response
         reason -- reason of the failure reponse
         """
-    def __init (self,status,reason):
+    def __init__ (self,status,reason):
         self.status = status
         self.reason = reason
 
