@@ -189,7 +189,7 @@ def connect_issue(arguments):
     conn = httplib.HTTPConnection(arguments['host'])
     try:
         conn.request('POST', newrequrl, params, headers)
-        time.sleep(10)
+        time.sleep(10)  #Refer to JIRA-321 for discussion on this.
         response = conn.getresponse()
     except Exception, e:
         charlimit_textwrap('Connection to %s failed: %s' % (newrequrl,
