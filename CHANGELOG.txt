@@ -1,2 +1,3 @@
 * Adding check for Write access. JIRA-324
 * Merged Branch 1.1 with trunk. JIRA-325
+* Merged ConnectAPI with trunk. JIRA-322

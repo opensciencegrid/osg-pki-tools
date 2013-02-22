@@ -48,6 +48,7 @@ from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import check_permissions
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.ExceptionDefinitions import *
+from osgpkitools import ConnectAPI
 
 
 # Set up Option Parser
@@ -92,7 +93,7 @@ or specify from a file using -f/--hostfile.''')
         action='store',
         dest='hostname',
         help='Specify the hostname or service/hostname for which you want to request\
-             the certificate for.\n If specified -f/--hostfile will be ignored'
+              the certificate for.\n If specified -f/--hostfile will be ignored'
             ,
         metavar='HOSTNAME',
         )
@@ -150,7 +151,6 @@ or specify from a file using -f/--hostfile.''')
     (args, values) = parser.parse_args()
     arguments = dict()
     
-    #print version info and exit.
     if args.version_info:
         version_info()
         raise SystemExit
@@ -259,110 +259,9 @@ or specify from a file using -f/--hostfile.''')
 
 #################################################
 
-# We make the request here, causing the generation of the CSR and then
-# pass the ID returned from the server along. The ID is the key that OIM
-# uses for all certificate operations via the API
-#
-
-def connect_request(bulk_csr, **arguments):
-    """This function accepts a an ssl_context instance which contains information about the established ssl connection,
-    the csr string(base64 encoded) and a dictionary consisting of all parameters and their values,
-    It submits the request to the OIM server and returns the request details.
-    """
-
-    print 'Connecting to server to request certificate...'
-    params = urllib.urlencode({'csrs': bulk_csr,
-                               'vo' : arguments['vo']}, doseq=True)
-    headers = {'Content-type': arguments['content_type'],
-               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
-            ssl_context=arguments['ssl_context'])
-    try:
-        conn.request('POST', arguments['requrl'], params, headers)
-        response = conn.getresponse()
-    except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
-        raise e
-    data = response.read()
-    #This if block is to catch failures and would exit the script
-    if not 'OK' in response.reason:
-        print_failure_reason_exit(data)
-    conn.close()
-    check_failed_response(data)
-    return_data = simplejson.loads(data)
-    for (key, value) in return_data.iteritems():
-        if 'host_request_id' in key:
-            reqid = value
-            print 'Id is:', reqid
-    if not reqid:
-        raise UnexpectedBehaviourException("Request Id not found in data. Script will not exit")
-    arguments.update({'reqid': reqid})
-    return arguments
 
 
-# ID from the request is passed in here via secure connection and the request
-# gets approved automatically since it's a bulk request. We also issue the
-# certificate (i.e. OIM contacts the CA on our behalf to get the cert) in this
-# function
-#
-
-def connect_approve(**arguments):
-    """This function accepts an ssl_context instance which contains information about the established ssl connection
-    and a dictionary consisting of all parameters and their values,
-    It approves the request that is submitted to the OIM by connect_request.
-    """
-
-    print 'Connecting to server to approve certificate...'
-    params = urllib.urlencode({'host_request_id': arguments['reqid']})
-    headers = {'Content-type': arguments['content_type'],
-               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
-            ssl_context=arguments['ssl_context'])
-    try:
-        conn.request('POST', arguments['appurl'], params, headers)
-        response = conn.getresponse()
-    except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s'
-                           % (arguments['appurl'], repr(e)))
-        raise e
-    except AttributeError, e:
-        raise e
-    check_response_500(response)
-    if not 'OK' in response.reason:
-        raise NotOKException(response.status, response.reason)
-    data = response.read()
-    conn.close()
-    issurl = arguments['issurl']
-    if 'OK' in data:
-        print 'Contacting Server to initiate certificate issuance.'
-        newrequrl = arguments['issurl']
-        conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
-                ssl_context=arguments['ssl_context'])
-        try:
-            conn.request('POST', newrequrl, params, headers)
-            response = conn.getresponse()
-        except httplib.HTTPException, e:
-            charlimit_textwrap('Connection to %s failed: %s'
-                               % (newrequrl, e))
-            raise e
-        data = response.read()
-        conn.close()
-        check_failed_response(data)
-    else:
-        raise NotOKException('Failed', simplejson.loads(data)['detail'])
-    #elif not 'OK' in data:
-    #    raise NotOKException('Failed', simplejson.loads(data)['detail'])
-
-# Here's where things have gotten dicey during the testing phase -
-# We retrieve the certificate from OIM after it has retrieved it from the CA
-# This is where things tend to fall apart - if the delay is to long and the
-# request to the CA times out, the whole script operation fails. I'm not
-# terribly pleased with that at the moment, but it is out of my hands since
-# a GOC staffer has to reset the request to be able to retrieve the
-# certificate
-#
-
-def extract_certs(pkcs7raw, arguments):
+def extract_certs(pkcs7raw, **arguments):
     """This function accepts the hostname, pkcs7raw dump of the certificate and
     a dictionary that consists variables and their value against them.
     It write the certificates to file system by calling write_certificate function"""
@@ -372,7 +271,7 @@ def extract_certs(pkcs7raw, arguments):
     temp_file = tempfile.NamedTemporaryFile()
     print ''
 
-    # ### printing our all the certificates received from OIM to a temporrary file###
+    # ### printing our all the certificates received from OIM to a temporary file###
     subprocess.call([
         'openssl',
         'pkcs7',
@@ -385,11 +284,11 @@ def extract_certs(pkcs7raw, arguments):
     pkcs7_file.close()
     certString = temp_file.read()
     temp_file.close()
-    # ## Extracting the hostname ###
+    ### Extracting the hostname ###
 
     hostname = extractHostname(certString)
 
-    # ## Extracting the EEC certificate ###
+    ### Extracting the EEC certificate ###
 
     eecString = extractEEC(certString, hostname)
     arguments.update({'hostname': hostname})
@@ -411,7 +310,7 @@ def write_certificate(**arguments):
         charlimit_textwrap('The file %s already exists.' % pem_filename)
         pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem'
                 )
-    subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename])  # ## fix for move the file to desired name ###
+    subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename])  ### fix for move the file to desired name ###
     os.chmod(pem_filename, 0644)
     cwd = os.getcwd()
     try:
@@ -429,57 +328,17 @@ def write_certificate(**arguments):
     temp_file.close()
     return
 
-
-def connect_retrieve(num_requests, **arguments):
-    """This fucntion accepts a dictionary consisting of variables and their values against it.
-    It retrieves the certificate from the OIM."""
-
-    iterations = 1
-    print 'Issuing certificate...'
-    params = urllib.urlencode({'host_request_id': arguments['reqid']})
-    headers = {'Content-type': arguments['content_type'],
-               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = httplib.HTTPSConnection(arguments['host'])
-    try:
-        conn.request('POST', arguments['returl'], params, headers)
-        response = conn.getresponse()
-    except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s' % (newurl, e))
-        raise httplib.HTTPException
-    check_response_500(response)
-    data = response.read()
-    if not 'PENDING' in response.reason:
-        if not 'OK' in response.reason:
-            print_failure_reason_exit(data)
-    conn.close()
-    charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.'
-                       )
-    iterations = 0
-    while 'PENDING' in data:
-        conn.request('POST', arguments['returl'], params, headers)
-        try:
-            response = conn.getresponse()
-        except httplib.HTTPException, e:
-            charlimit_textwrap('Connection to %s failed: %s' % (newurl,
-                               e))
-            raise httplib.HTTPException
-        check_response_500(response)
-        data = response.read()
-        conn.close()
-        iterations = check_for_pending(data, iterations, **arguments)
-    check_failed_response(data)
-    pkcs7raw = simplejson.loads(data)['pkcs7s']
-    
-
     # The slice and dice on the JSON output to get the certificate out
     # happens here - the problem is that the new lines are getting all screwy
     # in the output from OIM. We stringify the data, replace all the text
     # newline characters with actual new lines and the strip off the
     # extra data.
 
+def process_pkcs7(pkcs7, num_requests, **arguments):
+    """Method to seperate the processing of pkcs7 string from the certificate retrieval logic"""
     cert_num = 0
-    for certstring in pkcs7raw:
-        extract_certs(certstring, arguments)
+    for certstring in pkcs7:
+        extract_certs(certstring, **arguments)
         cert_num = cert_num + 1
 
     if cert_num != num_requests:
@@ -489,7 +348,7 @@ def connect_retrieve(num_requests, **arguments):
 
 
 def create_certificate_request(line, reqid, config_items):
-    """This fucntion accepts hostname, request id and a dictionary of config_items for the CSR.
+    """This function accepts hostname, request id and a dictionary of config_items for the CSR.
     It writes the key and creates the CSR."""
 
     print 'Generating certificate...'
@@ -583,8 +442,20 @@ def check_quota_limit(request_count, arguments):
 def process_csr(num_requests, bulk_csr, **arguments):
     """This function handles the entire processing of the request i.e.
     requesting. checking for quota limit, approving and then retrieving in sequence"""
+    capi = ConnectAPI.ConnectAPI()
+    
     try:
-        arguments = connect_request(bulk_csr, **arguments)
+        reqid = capi.request_authenticated( bulk_csr, **arguments)
+    except KeyError, e:
+        raise
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
+        raise e
+    except Exception_500response, e:
+        raise e
+    except NotOKException, e:
+        raise e
+    
     except Exception, e:
         if 'sslv3 alert bad certificate' in e:
             raise BadCertificateException('Error connecting to server: %s.\n\
@@ -593,9 +464,38 @@ def process_csr(num_requests, bulk_csr, **arguments):
         else:
             raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
                                     )
-
-    connect_approve(**arguments)
-    connect_retrieve(num_requests, **arguments)
+                                    
+    print 'Id is:', reqid
+    arguments.update({'reqid':reqid})
+   
+    try:
+        
+        print 'Connecting to server to approve certificate...'
+        capi.approve(**arguments)
+        
+        print 'Issuing certificate...'
+        pkcs7raw = capi.retrieve_authenticated( **arguments)
+        process_pkcs7(pkcs7raw, num_requests, **arguments)
+    
+    except KeyError, e:
+        raise
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed: %s'% (newrequrl, e))
+        raise e
+    except Exception_500response, e:
+        raise e
+    except NotOKException, e:
+        raise e
+    except CertificateMismatchException, e:
+        raise e
+    except Exception, e:
+        if 'sslv3 alert bad certificate' in e:
+            raise BadCertificateException('Error connecting to server: %s.\n\
+                                          Your certificate is not trusted by the server'
+                     % e)
+        else:
+            raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                                    )
     return
 
 def print_uncaught_exception():
@@ -746,6 +646,10 @@ if __name__ == '__main__':
         charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
                            )
         sys.exit(1)
+    except KeyError, e:
+        charlimit_textwrap('Key %s not found' % e)
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection failed: %s' % ( e))
     except FileWriteException, e:
         charlimit_textwrap(e.message)
         charlimit_textwrap("The script will exit now\n")
@@ -769,6 +673,10 @@ if __name__ == '__main__':
     except BadCertificateException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
+    except Exception_500response:
+        sys.exit(1)
+    except NotOKException:
+        raise
     except BadPassphraseException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)

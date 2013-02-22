@@ -31,6 +31,7 @@ import subprocess
 import ssl
 import tempfile
 
+import ConnectAPI
 from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
@@ -168,110 +169,12 @@ def parse_args():
     return arguments
 
 
-# Build the connection to the web server - the request header, the parameters
-# needed and then pass them into the server
-#
-# The data returned is in JSON format so to make it a little more human
-# readable we pass it through the json module to pretty print it
-#
-# A WHILE loop exists to keep trying to retrieve the certificate if there
-# is a delay in issuing
-#
-
-def connect_issue(arguments):
-    """This function accepts a dictionary of parameters and issues the request if the request is in Approved state."""
-
-    params = urllib.urlencode({'host_request_id': arguments['id']})
-    headers = {'Content-type': arguments['content_type'],
-               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    print 'Contacting Server to initiate certificate issuance. Please wait\n'
-    newrequrl = arguments['issurl']
-    conn = httplib.HTTPConnection(arguments['host'])
-    try:
-        conn.request('POST', newrequrl, params, headers)
-        time.sleep(10)  #Refer to JIRA-321 for discussion on this.
-        response = conn.getresponse()
-    except Exception, e:
-        charlimit_textwrap('Connection to %s failed: %s' % (newrequrl,
-                           e))
-        raise e
-    data = response.read()
-    conn.close()
-    if not 'OK' in data:
-        print_failure_reason_exit(data)
-    return
-
-
-# We retrieve the certificate from OIM after it has retrieved it from the CA
-# This is where things tend to fall apart - if the delay is to long and the
-# request to the CA times out, the whole script operation fails. I'm not
-# terribly pleased with that at the moment, but it is out of my hands since
-# a GOC staffer has to reset the request to be able to retrieve the
-# certificate
-#
-
-def connect_retrieve(arguments):
-    """This function checks if the request is in Issues state.
-    If it is in the issued state, it then retrieves the certificate.
-    It accepts a dictionary that consists of all the parameters and their value."""
-
-    iterations = 1
-    print 'Connecting server to retrieve certificate...'
-    params = urllib.urlencode({'host_request_id': arguments['id']})
-    headers = {'Content-type': arguments['content_type'],
-               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = httplib.HTTPConnection(arguments['host'])
-    try:
-        conn.request('POST', arguments['returl'], params, headers)
-        response = conn.getresponse()
-    except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s'
-                           % (arguments['requrl'], e))
-        raise httplib.HTTPException
-    check_response_500(response)
-    data = response.read()
-    if simplejson.loads(data).has_key('request_status'):
-        if simplejson.loads(data)['request_status'] == 'REQUESTED':
-            raise NotApprovedException('Certificate request is in Requested state.Needs to be Approved first. Please contact GA to approve this certificate\n'
-                    )
-        else:
-            charlimit_textwrap('Certificate request is in Approved state. Needs to be issued first\n'
-                               )
-            connect_issue(arguments)
-    try:
-        conn.request('POST', arguments['returl'], params, headers)
-        response = conn.getresponse()
-    except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s'
-                           % (arguments['returl'], e))
-        raise httplib.HTTPException
-    check_response_500(response)
-    data = response.read()
-    iterations = 0
-    while 'PENDING' in data:
-        conn.request('POST', arguments['returl'], params, headers)
-        try:
-            response = conn.getresponse()
-        except httplib.HTTPException, e:
-            charlimit_textwrap('Connection to %s failed: %s'
-                               % (arguments['returl'], e))
-            raise httplib.HTTPException
-        check_response_500(response)
-        data = response.read()
-        conn.close()
-        iterations = check_for_pending(data, iterations, **arguments)
-    check_failed_response(data)
-    pkcs7raw = simplejson.loads(data)['pkcs7s'][0]
-
-
-    # The slice and dice on the JSON output to get the certificate out
-    # happens here - the problem is that the new lines are getting all screwy
-    # in the output from OIM. We stringify the data, replace all the text
-    # newline characters with actual new lines and the strip off the
-    # extra data. There's probably a more efficient way to do this, but this
-    # was the quick and dirty solution.
-    #
-
+def write_certificate(pkcs7raw):
+    """Separating the writing logic for user certificate and process the pkcs7raw string."""
+    #pkcs7raw = str(pkcs7raw)
+    #pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
+    #pkcs7raw = pkcs7raw.split('[')[1]
+    #pkcs7raw = pkcs7raw.split('"')[1]    
     temp_filename = tempfile.NamedTemporaryFile()
     try:
         temp_filename.write(pkcs7raw)
@@ -312,7 +215,10 @@ if __name__ == '__main__':
         arguments = parse_args()
         path = os.getcwd()
         check_permissions(path)
-        connect_retrieve(arguments)
+        capi = ConnectAPI.ConnectAPI()
+        print 'Connecting server to retrieve certificate...'
+        pkcs7raw = capi.retrieve_unauthenticated(**arguments)
+        write_certificate(pkcs7raw)
     except EOFError, e:
         charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
                             % e)
@@ -344,6 +250,10 @@ if __name__ == '__main__':
         sys.exit(1)
     except ValueError, e:
         sys.exit(1)
+    except KeyError, e:
+        charlimit_textwrap('Key %s not found' % e)
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed: %s' % (returl, e))
     except NotOKException, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)

@@ -20,12 +20,14 @@ import traceback
 import ssl
 from pprint import pprint
 
+import ConnectAPI
 from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import check_failed_response
+from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.ExceptionDefinitions import *
 
 
@@ -33,7 +35,7 @@ from osgpkitools.ExceptionDefinitions import *
 #
 
 def parse_args():
-    """This function parses all the arguments, validates them and then stores\
+    """This function parses all the arguments, validates them and then stores
     them in a dictionary that is used throughout in the script."""
 
     parser = OptionParser()
@@ -311,7 +313,11 @@ if __name__ == '__main__':
                               ).replace('-----END CERTIFICATE REQUEST-----\n'
                     , '')
             arguments.update({'csr': csr})
-            connect(arguments)
+            capi = ConnectAPI.ConnectAPI()
+            id = capi.request_unauthenticated(**arguments)
+            print 'Request Id#: %s' % id
+            arguments.update({'id':id})
+
     except EOFError, e:
             charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
                                 % e)
@@ -326,6 +332,10 @@ if __name__ == '__main__':
         sys.exit('Please check for valid certificate.\n')
     except OSError, e:
         sys.exit(1)
+    except KeyError, e:
+        charlimit_textwrap('Key %s not found ' %(e))
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed: %s' % (arguments['requrl'], repr(e)))
     except Exception_500response, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
