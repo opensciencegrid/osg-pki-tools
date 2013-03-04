@@ -34,6 +34,7 @@ import traceback
 import subprocess
 import ssl
 import tempfile
+import shutil
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
@@ -141,6 +142,13 @@ or specify from a file using -f/--hostfile.''')
         help="don't print status messages to stdout",
         )
     parser.add_option(
+        '-d',
+        '--directory',
+        action='store',
+        dest='write_directory',
+        help="Write the output files to this directory",
+        )
+    parser.add_option(
         '-V',
         '--version',
         action='store_true',
@@ -176,7 +184,11 @@ or specify from a file using -f/--hostfile.''')
                          )
     print 'Using timeout of %d minutes' % timeout
 
-    certdir = './'
+    if args.write_directory:
+        certdir = args.write_directory
+        print certdir
+    else:
+        certdir = './'
 
     if args.userprivkey is None:
         try:
@@ -299,6 +311,16 @@ def extract_certs(pkcs7raw, **arguments):
 
 def write_certificate(**arguments):
     """ This function writes the extracted EEC certificate"""
+    cwd = os.getcwd()
+    try:
+        os.chdir(arguments['certdir'])
+        os.getcwd()
+    except OSError, e:
+        charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
+    .Please report the bug to goc@opensciencegrid.org.a
+    %s''',
+                           arguments['certdir'], e)
+        raise OSError
     hostname = arguments['hostname']
     eecString = arguments['eecString']
     hostname = hostname.strip(' \n').replace('/', '-')
@@ -312,15 +334,7 @@ def write_certificate(**arguments):
                 )
     subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename])  ### fix for move the file to desired name ###
     os.chmod(pem_filename, 0644)
-    cwd = os.getcwd()
-    try:
-        os.chdir(arguments['certdir'])
-    except OSError, e:
-        charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
-    .Please report the bug to goc@opensciencegrid.org.a
-    %s''',
-                           arguments['certdir'], e)
-        raise OSError
+
     os.chdir(cwd)
     charlimit_textwrap('''Certificate written to %s%s 
     '''
@@ -358,13 +372,25 @@ def create_certificate_request(line, reqid, config_items):
             charlimit_textwrap('The key file %s already exists'
                                % keyname)
             keyname = line + '-' + str(reqid) + '-key.pem'
-            charlimit_textwrap('Writing key to %s' % keyname)
+            charlimit_textwrap('Writing key to %s '% (keyname))
     except EOFError, e:
         charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
                             % e)
         raise e
     cert_obj = OSGPKIUtils.Cert()
+    cwd = os.getcwd()
+    try:
+        os.chdir(arguments['certdir'])
+        os.getcwd()
+    except OSError, e:
+        charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
+    .Please report the bug to goc@opensciencegrid.org.a
+    %s''',
+                           arguments['certdir'], e)
+        raise OSError
     cert_obj.CreatePKey(keyname)
+    charlimit_textwrap('Writing key to %s%s '% (arguments['certdir'],keyname))
+    os.chdir(cwd)
     new_csr = cert_obj.CreateX509Request(**config_items)
     csr = \
         new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
@@ -616,8 +642,7 @@ if __name__ == '__main__':
         os.umask(0177)
         arguments = parse_args()
         #if not arguments.has_key('ssl_context'):
-        path = os.getcwd()
-        check_permissions(path)
+        check_permissions(arguments['certdir'])
         arguments = get_ssl_context(**arguments)
         if not arguments.has_key('hostname'):
             process_hostfile_mode(**arguments)

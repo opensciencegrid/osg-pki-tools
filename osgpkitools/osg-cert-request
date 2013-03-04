@@ -57,7 +57,7 @@ def parse_args():
              \nDefault is ./hostkey.pem'
             ,
         metavar='Output Keyfile',
-        default='./hostkey.pem',
+        default='hostkey.pem',
         )
     parser.add_option(
         '-v',
@@ -138,6 +138,14 @@ def parse_args():
         help="don't print status messages to stdout",
         )
     parser.add_option(
+        '-d',
+        '--directory',
+        action='store',
+        dest='write_directory',
+        default='./',
+        help="Write the output files to this directory",
+        )
+    parser.add_option(
         '-V',
         '--version',
         action='store_true',
@@ -200,6 +208,13 @@ def parse_args():
         raise FileNotFoundException(args.csr,
                                     'The file %s does not exist'
                                     % args.csr)
+    if args.write_directory:
+        if args.write_directory[-1] != '/':
+            args.write_directory = args.write_directory + '/'
+        certdir = args.write_directory
+    else:
+        certdir = "./"
+    
     OIM = args.test
 
     arguments = dict()
@@ -221,6 +236,7 @@ def parse_args():
     arguments.update({'name': name})
     arguments.update({'phone': phone})
     arguments.update({'hostname': hostname})
+    arguments.update({'certdir':certdir})
     if vars().has_key('csr'):
         arguments.update({'csr': csr})
     return arguments
@@ -296,16 +312,24 @@ if __name__ == '__main__':
         # 2. The user provides a csr
         # Here we simply get rid of the end and begin certificate
         # lines of the csr and submit the request to the OIM
-
+        cwd = None
         if arguments['csr'] is None:
+            if (arguments['certdir'] != "./"):
+                cwd = os.getcwd()
+            
+            if cwd != None:
+                os.chdir(arguments['certdir'])
+                
             cert_obj = OSGPKIUtils.Cert()
             cert_obj.CreatePKey(arguments['pem_filename'])
-            print 'Writing key to %s' % arguments['pem_filename']
+            print 'Writing key to %s%s' %(arguments['certdir'], arguments['pem_filename'])
             new_csr = cert_obj.CreateX509Request(**config_items)
             arguments['csr'] = \
                 new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
                     , '').replace('-----END CERTIFICATE REQUEST-----\n'
                                   , '')
+            if cwd != None:
+                os.chdir(cwd)
             connect(arguments)
         else:
             csr = open(arguments['csr'], 'rb').read().replace('-----BEGIN CERTIFICATE REQUEST-----\n',

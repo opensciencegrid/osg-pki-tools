@@ -71,7 +71,7 @@ def parse_args():
         help='Specify the output filename for the retrieved user certificate\n. Default is ./hostcert.pem'
             ,
         metavar='ID',
-        default='./hostcert.pem',
+        default='hostcert.pem',
         )
     parser.add_option(
         '-T',
@@ -96,6 +96,14 @@ def parse_args():
         dest='verbose',
         default=True,
         help="don't print status messages to stdout",
+        )
+    parser.add_option(
+        '-d',
+        '--directory',
+        action='store',
+        dest='write_directory',
+        default='./',
+        help="Write the output files to this directory",
         )
     parser.add_option(
         '-V',
@@ -141,6 +149,14 @@ def parse_args():
             raise InvalidOptionException('Invalid Option')
     else:
         pem_filename = args.certfile
+    
+    if args.write_directory:
+        if args.write_directory[-1] != '/':
+            args.write_directory = args.write_directory + '/'
+        certdir = args.write_directory
+    else:
+        certdir = "./"
+    
     if args.test:
         OIM = True
     else:
@@ -166,6 +182,8 @@ def parse_args():
     arguments.update({'filetype': filetype})
     arguments.update({'fileext': fileext})
     arguments.update({'filename': filename})
+    arguments.update({'certdir':certdir})
+    
     return arguments
 
 
@@ -176,9 +194,14 @@ def write_certificate(pkcs7raw):
     #pkcs7raw = pkcs7raw.split('[')[1]
     #pkcs7raw = pkcs7raw.split('"')[1]    
     temp_filename = tempfile.NamedTemporaryFile()
+    cwd = None
+    if (arguments['certdir'] != "./"):
+        cwd = os.getcwd()
     try:
         temp_filename.write(pkcs7raw)
         temp_filename.flush()
+        if cwd != None: #if the variable is set, i.e. the output path is not ./
+            os.chdir(arguments['certdir'])
         subprocess.call([
             'openssl',
             'pkcs7',
@@ -196,12 +219,14 @@ def write_certificate(pkcs7raw):
         fileWrite = open(arguments['pem_filename'], 'wb')
         fileWrite.write(extractedEEC)
         os.chmod(arguments['pem_filename'], 0644)
+        if cwd != None:
+            os.chdir(cwd)
     except OSError, e:
         charlimit_textwrap('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org.'
                            )
         raise e
-    charlimit_textwrap('Certificate written to %s \n'
-                       % arguments['pem_filename'])
+    charlimit_textwrap('Certificate written to %s%s \n'
+                       %( arguments['certdir'],arguments['pem_filename']))
     return
 
 def print_uncaught_exception():
