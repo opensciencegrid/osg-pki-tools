@@ -1,0 +1,126 @@
+#! /usr/bin/python
+
+
+import sys
+import urllib
+import httplib
+import ConfigParser
+
+from optparse import OptionParser
+
+from OSGPKIUtils import charlimit_textwrap
+from osgpkitools import OSGPKIUtils
+from OSGPKIUtils import CreateOIMConfig
+from OSGPKIUtils import extractEEC
+from OSGPKIUtils import extractHostname
+from OSGPKIUtils import check_failed_response
+from OSGPKIUtils import check_response_500
+from OSGPKIUtils import print_failure_reason_exit
+from OSGPKIUtils import check_for_pending
+from OSGPKIUtils import version_info
+from ExceptionDefinitions import *
+
+def parse_args():
+    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout in the script."""
+
+    usage = \
+        'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
+    parser = OptionParser(usage)
+    parser.add_option(
+        '-i',
+        '--id',
+        action='store',
+        dest='id',
+        help='Specify ID# of certificate to be revoked ',
+        metavar='Request ID'
+        )
+    parser.add_option(
+        '-c',
+        '--certid',
+        action='store',
+        dest='certid',
+        help='Specify the certificate ID# for the certificate to be revoked ',
+        metavar='Certificate ID'
+        )
+    parser.add_option(
+        '-T',
+        '--test',
+        action='store_true',
+        dest='test',
+        help='Run in test mode',
+        default=False,
+        )
+    parser.add_option(
+        '-q',
+        '--quiet',
+        action='store_false',
+        dest='verbose',
+        default=True,
+        help="don't print status messages to stdout",
+        )
+    parser.add_option(
+        '-V',
+        '--version',
+        action='store_true',
+        dest='version_info',
+        help="Print version information and exit",
+        )
+
+    (args, values) = parser.parse_args()
+    if args.version_info:
+        version_info()
+        raise SystemExit
+
+    if (not args.id and not args.certid):
+        parser.error('-i/--id or -c/--certid argument required')
+
+    reqid = args.id
+    certid = args.certid
+
+    if args.test:
+        OIM = True
+    else:
+        OIM = False
+
+    arguments = dict()
+    arguments = CreateOIMConfig(OIM, **arguments)
+
+    if args.id:
+        arguments.update({'id': reqid})
+    elif args.certid:
+        arguments.update({'certid': certid})
+        
+    return arguments  
+    
+def connect_revoke(**arguments):
+    if arguments["id"]:
+        params = urllib.urlencode({'user_request_id': arguments['id']})
+    else:
+        params = urllib.urlencode({'serial_id': arguments['certid']})
+        
+    headers = {'Content-type': arguments['content_type'],
+               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+    print 'Contacting Server to revoke the certificate request\n'
+    newrequrl = arguments['userrevurl']
+    conn = httplib.HTTPConnection(arguments['host'])
+    try:
+        conn.request('POST', newrequrl, params, headers)
+        response = conn.getresponse()
+    except Exception, e:
+        charlimit_textwrap('Connection to %s failed: %s' % (newrequrl,
+                           e))
+        raise e
+    data = response.read()
+    print data
+    conn.close()
+    if not 'OK' in data:
+        print_failure_reason_exit(data)
+    return
+    
+if __name__ == "__main__":
+  try:
+    arguments = parse_args()
+    connect_revoke(**arguments)
+
+  except SystemExit, e:
+    raise e
