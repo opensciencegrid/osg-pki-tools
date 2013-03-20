@@ -606,33 +606,49 @@ if __name__ == '__main__':
                 if not line in host_set:
                     host_set.add(line)
                     count += 1 ### as a check for number of request and certs retrieved ###
+
+                else:
+                    charlimit_textwrap("Duplicate Hostname entry for %s.\nSkipping process for %s\n" % (line, line))
+    # ####################################################################################################################################
+            # Fix for JIRA-360
+            if (len(host_set) > 50):
+                charlimit_textwrap("Your request would exceed your daily quota of 50 Certificates. Aborting")
+                raise SystemExit
+        
+            if (len(host_set) == 50): ### Processing max of 50 requests in bulk ###
+                while(len(host_set) != 0):
+                    line = host_set.pop()
                     config_items.update({'CN': line})  # ### New Config item list for every host#######
                     charlimit_textwrap('Beginning request process for %s' % line)
                     csr = create_certificate(line.replace('/','-'), count, config_items)
                     bulk_csr.append(csr)
                     num_requests = num_requests + 1 ### as a check for number of request and certs retrieved ###
-                    if count == 50: ### Processing max of 50 requests in bulk ###
-                        try:
-                            connect_request(ssl_context, bulk_csr, arguments)
-                        except Exception, e:
-                            if 'sslv3 alert bad certificate' in e:
-                                charlimit_textwrap("Error connecting to server: %s" % e)
-                                charlimit_textwrap("Your certificate is not trusted by the server")
-                                sys.exit(1)
-                            else:
-                                print traceback.format_exc()
-                                charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
-                                     )
-                                sys.exit(1)
-                        connect_approve(ssl_context, arguments)
-                        connect_retrieve(arguments)
-                        bulk_csr = ''
-                        count = 0
-                else:
-                    charlimit_textwrap("Duplicate Hostname entry for %s.\nSkipping process for %s\n" % (line, line))
-    # ####################################################################################################################################
-
-            if count != 0 and count != 50:
+                try:
+                    connect_request(ssl_context, bulk_csr, arguments)
+                except Exception, e:
+                    if 'sslv3 alert bad certificate' in e:
+                        charlimit_textwrap("Error connecting to server: %s" % e)
+                        charlimit_textwrap("Your certificate is not trusted by the server")
+                        sys.exit(1)
+                    else:
+                        print traceback.format_exc()
+                        charlimit_textwrap("Uncaught Exception : Please report the bug to goc@opensciencegrid.org."
+                             )
+                        sys.exit(1)
+                connect_approve(ssl_context, arguments)
+                connect_retrieve(arguments)
+                bulk_csr = ''
+                count = 0
+            
+            
+            if count > 0 and count < 50:
+                while(len(host_set) != 0):
+                    line = host_set.pop()
+                    config_items.update({'CN': line})  # ### New Config item list for every host#######
+                    charlimit_textwrap('Beginning request process for %s' % line)
+                    csr = create_certificate(line.replace('/','-'), count, config_items)
+                    bulk_csr.append(csr)
+                    num_requests = num_requests + 1
                 try:
                     connect_request(ssl_context, bulk_csr, arguments)
                 except Exception, e:
