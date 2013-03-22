@@ -118,7 +118,7 @@ def get_request_count(filename):
 
 def extractHostname(certString):
     """Extracts hostname from the string of certifcate file
-....We take the whole certificate data as a stirng input
+....We take the whole certificate data as a string input
 ....Checking for /CN= in every line and extracting the term after that if not Digicert i.e. CA would be the hostname
 ....Here we rely on OPenSSL -printcert output format. If it changes our output might be affected"""
 
@@ -184,6 +184,7 @@ def CreateOIMConfig(isITB, **OIMConfig):
     OIMConfig.update({'returl': Config.get(OIM, 'returl')})
     OIMConfig.update({'renewurl': Config.get(OIM, 'renewurl')})
     OIMConfig.update({'userreturl': Config.get(OIM, 'userreturl')})
+    OIMConfig.update({'userrevurl': Config.get(OIM, 'userrevurl')})
     OIMConfig.update({'issurl': Config.get(OIM, 'issurl')})
     OIMConfig.update({'quotaurl': Config.get(OIM, 'quotaurl')})
     OIMConfig.update({'content_type': Config.get(OIM, 'content_type')})

@@ -1,0 +1,238 @@
+#!/usr/bin/env python
+
+import sys
+import urllib
+import httplib
+import optparse
+import M2Crypto
+import simplejson
+import traceback
+from pprint import pprint
+from optparse import OptionParser
+
+from OSGPKIUtils import *
+
+##TODO : no message is being displayed on webUI check if sending correct parameters.
+
+def parse_args():
+    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout in the script."""
+
+    usage = \
+        'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
+    parser = OptionParser(usage)
+    parser.add_option(
+        '-i',
+        '--id',
+        action='store',
+        dest='id',
+        help='Specify ID# of certificate to be revoked ',
+        #metavar='Request ID'
+        )
+    parser.add_option(
+        '-k',
+        '--pkey',
+        action='store',
+        dest='userprivkey',
+        help="Specify Requestor's private key (PEM Format).\n If not specified\
+             will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+            ,
+        metavar='PKEY',
+        default=None,
+        )
+    parser.add_option(
+        '-c',
+        '--cert',
+        action='store',
+        dest='usercert',
+        help="Specify Requestor's certificate (PEM Format).\n If not specified\
+             will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
+            ,
+        default=None,
+        metavar='CERT',
+        )
+    parser.add_option(
+        '-T',
+        '--test',
+        action='store_true',
+        dest='test',
+        help='Run in test mode',
+        default=False,
+        )
+    parser.add_option(
+        '-q',
+        '--quiet',
+        action='store_false',
+        dest='verbose',
+        default=True,
+        help="don't print status messages to stdout",
+        )
+    parser.add_option(
+        '-m',
+        '--message',
+        action='store',
+        dest='message',
+        help="Specify the reason for requesting certificate revocation."
+            ,
+        default=None,
+        metavar='REASON',
+        )
+    parser.add_option(
+        '-V',
+        '--version',
+        action='store_true',
+        dest='version_info',
+        help="Print version information and exit",
+        )
+
+    (args, values) = parser.parse_args()
+    if args.version_info:
+        version_info()
+        raise SystemExit
+
+    if (not args.id):
+        parser.error('-i/--id argument required')
+    
+    if not args.message:
+        parser.error('-m/--message argument required, need reason for certificate revocation')
+    
+    reqid = args.id
+
+    if args.test:
+        OIM = True
+    else:
+        OIM = False
+
+    arguments = dict()
+    arguments = CreateOIMConfig(OIM, **arguments)
+    
+    if args.userprivkey is None:
+        try:
+            userprivkey = os.environ['X509_USER_KEY']
+        except:
+            if os.path.exists(str(os.environ['HOME'])
+                                + '/.globus/userkey.pem'):
+                userprivkey = str(os.environ['HOME']) \
+                    + '/.globus/userkey.pem'
+            else:
+                raise FileNotFoundException('Key file',
+                        'Could not locate the private key file')
+    else:
+        userprivkey = args.userprivkey
+
+    if os.path.exists(userprivkey):
+        pass
+    else:
+        raise FileNotFoundException(userprivkey,
+                                    'Could not locate the private key file'
+                                    )
+    if args.usercert is None:
+        try:
+            usercert = os.environ['X509_USER_CERT']
+        except:
+            usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
+            if os.path.exists(str(os.environ['HOME'])
+                              + '/.globus/usercert.pem'):
+                usercert = str(os.environ['HOME']) \
+                    + '/.globus/usercert.pem'
+            else:
+                raise FileNotFoundException('Certificate File',
+                        'Could not locate the certificate file')
+    else:
+        usercert = args.usercert
+
+    if os.path.exists(usercert):
+        pass
+    else:
+        raise FileNotFoundException(usercert,
+                                    'Could not locate the certificate file'
+                                    )
+    
+    arguments.update({'id': reqid})
+    arguments.update({'usercert': usercert})
+    arguments.update({'userprivkey': userprivkey})
+    arguments.update({'message':args.message})
+    #pprint(arguments)
+        
+    return arguments
+    
+def connect_revoke(**arguments):
+    """This function accepts an ssl_context instance which contains 
+    information about the established ssl connection and a dictionary consisting
+    of all parameters and their values,
+    it returns the response from the OIM server for the user request.
+    """
+
+    print 'Connecting to server to revoke certificate...'
+    params = urllib.urlencode({'host_request_id': arguments['id'],
+                               'request_comment':arguments['message']})
+    headers = {'Content-type': arguments['content_type'],
+               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+    conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
+            ssl_context=arguments['ssl_context'])
+    try:
+        conn.request('POST', arguments['revurl'], params, headers)
+        response = conn.getresponse()
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed: %s'
+                           % (arguments['revurl'], repr(e)))
+        raise e
+    except AttributeError, e:
+        raise e
+    check_response_500(response)
+    if not 'OK' in response.reason:
+        raise NotOKException(response.status, response.reason)
+    data = response.read()
+    print data
+    if (simplejson.loads('status') == 'OK'):
+        print "Sucessfully revoked certificate " + str(arguments['id'])
+    conn.close()
+
+def get_ssl_context(**arguments):
+    """ This function sets the ssl context by accepting the passphrase
+    and validating it for user private key and his certificate"""
+    first = True
+    count = 0
+    pass_str = 'Please enter the pass phrase for'
+    while(True):
+        try:
+            def prompt_for_password(verify):
+                return getpass.getpass(pass_str+" '%s':"
+                                       % arguments['userprivkey'])
+        
+            ssl_context = M2Crypto.SSL.Context('sslv3')
+            ssl_context.load_cert_chain(arguments['usercert'],
+                                        arguments['userprivkey'],
+                                        callback=prompt_for_password)
+            arguments.update({'ssl_context': ssl_context})
+            break
+        except Exception, e:
+            if 'sslv3 alert bad certificate' in e:
+                raise BadCertificateException('Error connecting to server: %s.\n\
+                                          Your certificate is not trusted by the server'
+                 % e)
+            elif 'handshake failure' in e:
+                raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
+                 % e)
+            first = False
+            count = count + 1
+            pass_str = 'Incorrect password. Please enter the password again for'
+            if count > 1:
+                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
+                        )
+                break
+    return arguments
+    
+if __name__ == "__main__":
+    try:
+        arguments = parse_args()
+        arguments = get_ssl_context(**arguments)
+        connect_revoke(**arguments)
+    
+    except BadPassphraseException, e:
+        print "Got a bad passphrase "
+    except KeyError, e:
+        print e
+        sys.exit()
+    except Exception, e:
+        print type(e)
+        print traceback.print_exc(e)
