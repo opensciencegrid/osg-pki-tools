@@ -149,8 +149,8 @@ def CreateOIMConfig(isITB, **OIMConfig):
         Config.read(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini')
     elif os.path.exists('pki-clients.ini'):
         Config.read('pki-clients.ini')
-    elif os.path.exists('/etc/pki-clients.ini'):
-        Config.read('/etc/pki-clients.ini')
+    elif os.path.exists('/etc/osg/pki-clients.ini'):
+        Config.read('/etc/osg/pki-clients.ini')
     else:
         raise FileNotFoundException('pki-clients.ini',
                                     'Could not locate the file')
