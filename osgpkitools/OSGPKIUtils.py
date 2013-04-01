@@ -38,6 +38,30 @@ def check_permissions(path):
     else:
         raise FileWriteException("User does not have appropriate permissions for writing to current directory.")
 
+def find_existing_file_count(filename):
+    temp_name = filename.split(".")[-2]
+    trimmed_name = temp_name
+    version_count = 0
+    if(os.path.exists(filename)):
+        while(os.path.exists(temp_name + '.pem')):
+            if (version_count == 0):
+                temp_name = temp_name +'-'+str(version_count)
+            else:
+                temp_name = trimmed_name
+                temp_name = temp_name + '-' + str(version_count)
+            version_count = version_count + 1
+
+    if (version_count > 0):
+        version_count -= 1
+        new_file = trimmed_name + '-' +str(version_count) + '.pem'
+        return new_file
+    else:
+        return filename
+ 
+#    os.rename(filename, new_file)
+#    subprocess.call(["touch", filename])
+#    print new_file
+
 def check_response_500(response):
     """ This functions handles the 500 error response from the server"""
 

@@ -43,6 +43,7 @@ from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import check_for_pending
 from osgpkitools.OSGPKIUtils import check_permissions
 from osgpkitools.OSGPKIUtils import version_info
+from osgpkitools.OSGPKIUtils import find_existing_file_count
 from osgpkitools.ExceptionDefinitions import *
 
 
@@ -136,19 +137,19 @@ def parse_args():
         raise e
     print 'Using timeout of %d minutes' % timeout
 
-    if os.path.exists(args.certfile):
-        opt = \
-            raw_input('The file %s already exists. Do you want to overwrite it? Y/N : \n'
-                       % args.certfile)
-        if opt == 'y' or opt == 'Y':
-            pem_filename = args.certfile
-        elif opt == 'n' or opt == 'N':
-            pem_filename = \
-                raw_input('Please enter a different file name\n')
-        else:
-            raise InvalidOptionException('Invalid Option')
-    else:
-        pem_filename = args.certfile
+#    if os.path.exists(args.certfile):
+#        opt = \
+#            raw_input('The file %s already exists. Do you want to overwrite it? Y/N : \n'
+#                       % args.certfile)
+#        if opt == 'y' or opt == 'Y':
+#            pem_filename = args.certfile
+#        elif opt == 'n' or opt == 'N':
+#            pem_filename = \
+#                raw_input('Please enter a different file name\n')
+#        else:
+#            raise InvalidOptionException('Invalid Option')
+#    else:
+    pem_filename = args.certfile
     
     if args.write_directory:
         if args.write_directory[-1] != '/':
@@ -243,6 +244,14 @@ if __name__ == '__main__':
         capi = ConnectAPI.ConnectAPI()
         print 'Connecting server to retrieve certificate...'
         pkcs7raw = capi.retrieve_unauthenticated(**arguments)
+        new_file_name = find_existing_file_count(arguments['pem_filename'])
+        if new_file_name != arguments['pem_filename']:
+            subprocess.call([
+            'mv',
+            arguments['pem_filename'],
+            new_file_name
+            ])
+        print 'Moving existing file ' + arguments['pem_filename'] + ' to ' + new_file_name
         write_certificate(pkcs7raw)
         
     except EOFError, e:
