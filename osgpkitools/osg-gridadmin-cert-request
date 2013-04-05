@@ -422,9 +422,9 @@ def check_quota_limit(request_count, arguments):
         charlimit_textwrap('Connection to %s failed: %s'
                            % (arguments['quotaurl'], e))
         raise httplib.HTTPException
-    except M2Crypto.SSL.SSLError:
+    except M2Crypto.SSL.SSLError, e:
         #print "Getting SSL Error"
-        raise M2Crypto.SSL.SSLError
+        raise M2Crypto.SSL.SSLError, e
     
     except Exception, e:
         if "sslv3 alert bad certificate" in e:
@@ -435,7 +435,6 @@ def check_quota_limit(request_count, arguments):
             print type(e)
             raise UncaughtException, e
     check_response_500(response)
-    data = response.read()
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
             print_failure_reason_exit(data)
@@ -727,8 +726,6 @@ if __name__ == '__main__':
         sys.exit(1)
     except UncaughtException, e:
         print_uncaught_exception()
-        #charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
-            #)
         charlimit_textwrap(e.message)
         sys.exit(1)
     except M2Crypto.SSL.SSLError, e:
