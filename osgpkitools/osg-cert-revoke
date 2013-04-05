@@ -183,7 +183,7 @@ def connect_revoke(**arguments):
         raise NotOKException(response.status, response.reason)
     data = response.read()
     print data
-    if (simplejson.loads('status') == 'OK'):
+    if (simplejson.loads(data)['status'] == 'OK'):
         print "Sucessfully revoked certificate " + str(arguments['id'])
     conn.close()
 

@@ -59,6 +59,16 @@ def parse_args():
         help="don't print status messages to stdout",
         )
     parser.add_option(
+        '-m',
+        '--message',
+        action='store',
+        dest='message',
+        help="Specify the reason for requesting certificate revocation."
+            ,
+        default=None,
+        metavar='REASON',
+        )
+    parser.add_option(
         '-V',
         '--version',
         action='store_true',
@@ -73,9 +83,13 @@ def parse_args():
 
     if (not args.id and not args.certid):
         parser.error('-i/--id or -c/--certid argument required')
+    
+    if not args.message:
+        parser.error('-m/--message argument required, need reason for certificate revocation')
 
     reqid = args.id
     certid = args.certid
+    message = args.message
 
     if args.test:
         OIM = True
@@ -89,14 +103,18 @@ def parse_args():
         arguments.update({'id': reqid})
     elif args.certid:
         arguments.update({'certid': certid})
-        
+    
+    arguments.update({'message': message})
+    
     return arguments  
     
 def connect_revoke(**arguments):
     if arguments["id"]:
-        params = urllib.urlencode({'user_request_id': arguments['id']})
+        params = urllib.urlencode({'user_request_id': arguments['id'], 
+                                   'request_comment':arguments['message']})
     else:
-        params = urllib.urlencode({'serial_id': arguments['certid']})
+        params = urllib.urlencode({'serial_id': arguments['certid'],
+                                   'request_comment':arguments['message']})
         
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
