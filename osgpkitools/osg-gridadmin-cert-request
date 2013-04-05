@@ -47,6 +47,7 @@ from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import check_for_pending
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import check_permissions
+from osgpkitools.OSGPKIUtils import find_existing_file_count
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.ExceptionDefinitions import *
 from osgpkitools import ConnectAPI
@@ -186,7 +187,8 @@ or specify from a file using -f/--hostfile.''')
 
     if args.write_directory:
         certdir = args.write_directory
-        print certdir
+        charlimit_textwrap("Writing certificate to %s" %certdir)
+        
     else:
         certdir = './'
 
@@ -423,7 +425,6 @@ def check_quota_limit(request_count, arguments):
                            % (arguments['quotaurl'], e))
         raise httplib.HTTPException
     except M2Crypto.SSL.SSLError, e:
-        #print "Getting SSL Error"
         raise M2Crypto.SSL.SSLError, e
     
     except Exception, e:
@@ -435,6 +436,7 @@ def check_quota_limit(request_count, arguments):
             print type(e)
             raise UncaughtException, e
     check_response_500(response)
+    data = response.read()
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
             print_failure_reason_exit(data)
