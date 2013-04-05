@@ -500,8 +500,7 @@ def process_csr(num_requests, bulk_csr, **arguments):
                                           Your certificate is not trusted by the server'
                      % e)
         else:
-            raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
-                                    )
+            raise UncaughtException , e
                                     
     print 'Id is:', reqid
     arguments.update({'reqid':reqid})
@@ -532,8 +531,7 @@ def process_csr(num_requests, bulk_csr, **arguments):
                                           Your certificate is not trusted by the server'
                      % e)
         else:
-            raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
-                                    )
+            raise UncaughtException, e
     return
 
 def print_uncaught_exception():
@@ -729,9 +727,9 @@ if __name__ == '__main__':
         sys.exit(1)
     except UncaughtException, e:
         print_uncaught_exception()
-        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
-            )
-        #charlimit_textwrap(e.message)
+        #charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+            #)
+        charlimit_textwrap(e.message)
         sys.exit(1)
     except M2Crypto.SSL.SSLError, e:
         charlimit_textwrap(e.message)
