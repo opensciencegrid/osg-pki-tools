@@ -137,24 +137,13 @@ def parse_args():
         raise e
     print 'Using timeout of %d minutes' % timeout
 
-#    if os.path.exists(args.certfile):
-#        opt = \
-#            raw_input('The file %s already exists. Do you want to overwrite it? Y/N : \n'
-#                       % args.certfile)
-#        if opt == 'y' or opt == 'Y':
-#            pem_filename = args.certfile
-#        elif opt == 'n' or opt == 'N':
-#            pem_filename = \
-#                raw_input('Please enter a different file name\n')
-#        else:
-#            raise InvalidOptionException('Invalid Option')
-#    else:
     pem_filename = args.certfile
     
     if args.write_directory:
         if args.write_directory[-1] != '/':
             args.write_directory = args.write_directory + '/'
         certdir = args.write_directory
+        charlimit_textwrap("Writing certificate to %s" %certdir)
     else:
         certdir = "./"
     
@@ -190,10 +179,6 @@ def parse_args():
 
 def write_certificate(pkcs7raw):
     """Separating the writing logic for user certificate and process the pkcs7raw string."""
-    #pkcs7raw = str(pkcs7raw)
-    #pkcs7raw = re.sub('\\\\n', '\n', pkcs7raw)
-    #pkcs7raw = pkcs7raw.split('[')[1]
-    #pkcs7raw = pkcs7raw.split('"')[1]    
     temp_filename = tempfile.NamedTemporaryFile()
     cwd = None
     if (arguments['certdir'] != "./"):
@@ -251,7 +236,7 @@ if __name__ == '__main__':
             arguments['pem_filename'],
             new_file_name
             ])
-        print 'Moving existing file ' + arguments['pem_filename'] + ' to ' + new_file_name
+            print 'Moving existing file ' + arguments['pem_filename'] + ' to ' + new_file_name
         write_certificate(pkcs7raw)
         
     except EOFError, e:
@@ -306,6 +291,7 @@ if __name__ == '__main__':
     except NotApprovedException, e:
         charlimit_textwrap(e.message)
     except OSError, e:
+        charlimit_textwrap(e.message)
         sys.exit(1)
     except UnexpectedBehaviourException, e:
         charlimit_textwrap(e.message)
