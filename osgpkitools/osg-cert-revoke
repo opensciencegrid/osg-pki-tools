@@ -15,7 +15,8 @@ from OSGPKIUtils import *
 ##TODO : no message is being displayed on webUI check if sending correct parameters.
 
 def parse_args():
-    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout in the script."""
+    """This function parses all the arguments, validates them and then 
+    stores them in a dictionary that is used throughout in the script."""
 
     usage = \
         'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
@@ -25,8 +26,8 @@ def parse_args():
         '--id',
         action='store',
         dest='id',
-        help='Specify ID# of certificate to be revoked ',
-        #metavar='Request ID'
+        help='Specify ID# of the Host certificate to be revoked ',
+        metavar='Request_ID'
         )
     parser.add_option(
         '-k',
@@ -71,7 +72,7 @@ def parse_args():
         '--message',
         action='store',
         dest='message',
-        help="Specify the reason for requesting certificate revocation."
+        help="Specify the reason for requesting the host certificate revocation."
             ,
         default=None,
         metavar='REASON',
@@ -151,7 +152,6 @@ def parse_args():
     arguments.update({'usercert': usercert})
     arguments.update({'userprivkey': userprivkey})
     arguments.update({'message':args.message})
-    #pprint(arguments)
         
     return arguments
     
@@ -160,6 +160,18 @@ def connect_revoke(**arguments):
     information about the established ssl connection and a dictionary consisting
     of all parameters and their values,
     it returns the response from the OIM server for the user request.
+    
+    INPUTS: 
+        arguments: A dict containing,
+    hostsec     - URL of the OIM server using HTTPS
+    ssl_context - Context for the ssl connection for current session.
+    revurl      - URL for requesting revocation of the host certificate.
+    content_type- Content type for the data to be sent.
+    id          - Request ID for the host certificate. 
+    message     - Message to be sent on the OIM server as reason for revocation.
+    
+    OUTPUT:
+        Returns nothing, printing if the revocation was successful or not on the terminal.
     """
 
     print 'Connecting to server to revoke certificate...'
@@ -182,14 +194,26 @@ def connect_revoke(**arguments):
     if not 'OK' in response.reason:
         raise NotOKException(response.status, response.reason)
     data = response.read()
-    print data
-    if (simplejson.loads(data)['status'] == 'OK'):
-        print "Sucessfully revoked certificate " + str(arguments['id'])
     conn.close()
+    
+    if (simplejson.loads(data)['status'] == 'OK'):
+        charlimit_textwrap( "Sucessfully revoked certificate with request id %s" + str(arguments['id']))
+    else:
+        charlimit_textwrap("Failure, could not revoke certificate.")
+        raise SystemExit
 
 def get_ssl_context(**arguments):
     """ This function sets the ssl context by accepting the passphrase
-    and validating it for user private key and his certificate"""
+    and validating it for user private key and his certificate
+    INPUT : 
+        arguments - A dict containing
+    userprivkey - Filename for private key of user.
+    usercert    - Filename for user certificate.
+    
+    OUTPUT :
+    ssl_context - ssl context for the HTTPS connection.
+    
+    """
     first = True
     count = 0
     pass_str = 'Please enter the pass phrase for'
@@ -203,7 +227,6 @@ def get_ssl_context(**arguments):
             ssl_context.load_cert_chain(arguments['usercert'],
                                         arguments['userprivkey'],
                                         callback=prompt_for_password)
-            arguments.update({'ssl_context': ssl_context})
             break
         except Exception, e:
             if 'sslv3 alert bad certificate' in e:
@@ -211,7 +234,7 @@ def get_ssl_context(**arguments):
                                           Your certificate is not trusted by the server'
                  % e)
             elif 'handshake failure' in e:
-                raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
+                raise HandshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
                  % e)
             first = False
             count = count + 1
@@ -220,19 +243,44 @@ def get_ssl_context(**arguments):
                 raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
                         )
                 break
-    return arguments
+    return ssl_context
     
 if __name__ == "__main__":
     try:
         arguments = parse_args()
-        arguments = get_ssl_context(**arguments)
+        ssl_context = get_ssl_context(**arguments)
+        arguments.update({'ssl_context': ssl_context})
         connect_revoke(**arguments)
-    
+
+    except FileNotFoundException, e:
+        charlimit_textwrap(e.message)
+    except BadCertificateException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except HandshakeFailureException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)    
     except BadPassphraseException, e:
-        print "Got a bad passphrase "
+        charlimit_textwrap("Invalid passphrase entered, please try again.")
     except KeyError, e:
-        print e
-        sys.exit()
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except httplib.HTTPException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except AttributeError, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except NotOKException, e:
+        charlimit_textwrap('Request Failed. Status %s' % e.status)
+        charlimit_textwrap('Reason for failure %s' % e.message)
+        sys.exit(1)
+    except SystemExit, e:
+        raise e
     except Exception, e:
-        print type(e)
         print traceback.print_exc(e)
+    except UncaughtException, e:
+        print_uncaught_exception()
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    sys.exit(0)
