@@ -116,7 +116,6 @@ def parse_args():
 
     (args, values) = parser.parse_args()
     
-    #print version info and exit.
     if args.version_info:
         version_info()
         raise SystemExit
