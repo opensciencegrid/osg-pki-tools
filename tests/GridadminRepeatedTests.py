@@ -15,13 +15,13 @@ class GridadminRepeatedTests(PKIClientTestCase.PKIClientTestCase):
 
 	For keys:
 	Check if the key is already present as fqdn-key.pem
-	If present then add '-<request id>' to prevent overwriting.
+	
+	If present then add '-old.pem' to the existing private key file.
 
 	For certificates:
 	Check if the certificate is present as fqdn.pem
-	If present add '-<certificate number>' to prevent overwriting,
-        where <certificate number> is the index of the certificate in the
-        current batch we are requesting.
+	
+	If present add '-old.pem' to existing cert file.
 
 	See:
 	https://jira.opensciencegrid.org/browse/OSGPKI-137
@@ -74,14 +74,14 @@ class GridadminRepeatedTests(PKIClientTestCase.PKIClientTestCase):
 	id = int(match.group(1))
 	for cert_num in xrange(num_requests):
 	    # Check output certificate
-	    cert_file = host_template % cert_num + "-%d.pem" % id
+	    cert_file = host_template % cert_num + "-old.pem"
 	    self.assertTrue(result.files_created.has_key(cert_file),
 			    "Did not find certificate file %s: %s\n%s"
                             % (cert_file,
                                err_msg,
                                result.stdout))
 	    # Check output key
-	    key_file = host_template % cert_num + "-%d-key.pem" % (cert_num+1)
+	    key_file = host_template % cert_num + "-key-old.pem"
 	    self.assertTrue(result.files_created.has_key(key_file),
 			    "Did not find key file %s\n%s"
                             % (key_file, result.stdout))
