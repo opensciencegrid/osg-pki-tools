@@ -1,4 +1,5 @@
 """Test osg-gridadmin-cert-request script"""
+### FIXING test for JIRA 332.
 
 import os.path
 import re
