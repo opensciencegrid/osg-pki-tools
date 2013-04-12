@@ -49,6 +49,8 @@ from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import check_permissions
 from osgpkitools.OSGPKIUtils import find_existing_file_count
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
+from osgpkitools.OSGPKIUtils import handle_empty_exceptions
+from osgpkitools.OSGPKIUtils import print_exception_message
 from osgpkitools.ExceptionDefinitions import *
 from osgpkitools import ConnectAPI
 
@@ -332,10 +334,10 @@ def write_certificate(**arguments):
     temp_file.flush()
     if os.path.exists(pem_filename): ###Fix for already existing cert file ###
         
-        charlimit_textwrap('The file %s already exists.' % pem_filename)
+        #charlimit_textwrap('The file %s already exists.' % pem_filename)
         old_pem_filename = hostname + "-old.pem" 
         subprocess.call(['mv', pem_filename, old_pem_filename])
-        print("Old file is in " + old_pem_filename)
+        print("Renaming existing file to " + old_pem_filename)
         #pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem'
                 #)
     subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename])  ### fix for move the file to desired name ###
@@ -375,11 +377,10 @@ def create_certificate_request(line, reqid, config_items):
     try:
         keyname = line + '-key.pem'
         if os.path.exists(keyname):  ### Fix for already existing key file ###
-            charlimit_textwrap('The key file %s already exists'
-                               % keyname)
+
             old_keyname = line + "-key-old.pem"
             subprocess.call(['mv', keyname, old_keyname])
-            print("Old key moved in " + old_keyname)
+            print("Renaming existing key to " + old_keyname)
             #keyname = line + '-' + str(reqid) + '-key.pem'
             #charlimit_textwrap('Writing key to %s '% (keyname))
     except EOFError, e:
@@ -614,7 +615,7 @@ Skipping process for %s
         process_csr(request_count, bulk_csr, **arguments)
     hosts.close()
     return
-
+        
 
 def get_ssl_context(**arguments):
     """ This function sets the ssl context by accepting the passphrase
@@ -640,7 +641,7 @@ def get_ssl_context(**arguments):
                                           Your certificate is not trusted by the server'
                  % e)
             elif 'handshake failure' in e:
-                raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
+                raise HandshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
                  % e)
             first = False
             count = count + 1
@@ -656,7 +657,6 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-        #if not arguments.has_key('ssl_context'):
         check_permissions(arguments['certdir'])
         arguments = get_ssl_context(**arguments)
         if not arguments.has_key('hostname'):
@@ -664,17 +664,21 @@ if __name__ == '__main__':
         else:
             process_single_host_mode(**arguments)
     except AttributeError, e:
-        print e
-        sys.exit()
+        print_exception_message(e)
+        sys.exit(1)
+
     except SystemExit, e:
-        raise
-    except ssl.SSLError, s:
-        print s
+        print_exception_message(e)
+        raise e
+    except ssl.SSLError, e:
+        print_exception_message(e)
         sys.exit('Please check for valid certificate.\n')
+        
     except KeyboardInterrupt, k:
-        print k
+        print_exception_message(e)
         sys.exit('''Interrupted by user\n''')
     except OSError, e:
+        print_exception_message(e)
         sys.exit(1)
     except Exception_500response, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
@@ -687,8 +691,10 @@ if __name__ == '__main__':
                            )
         sys.exit(1)
     except KeyError, e:
+        print_exception_message(e)
         charlimit_textwrap('Key %s not found' % e)
     except httplib.HTTPException, e:
+        print_exception_message(e)
         charlimit_textwrap('Connection failed: %s' % ( e))
     except FileWriteException, e:
         charlimit_textwrap(e.message)
@@ -698,6 +704,7 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message + ':' + e.filename)
         sys.exit(1)
     except ValueError, e:
+        print_exception_message(e)
         sys.exit(1)
     except NotOKException, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
@@ -709,14 +716,17 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message)
         sys.exit(1)
     except EOFError, e:
+        print_exception_message(e)
         sys.exit(1)
     except BadCertificateException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except Exception_500response:
+    except Exception_500response, e:
+        charlimit_textwrap(e.message)
         sys.exit(1)
-    except NotOKException:
-        raise
+    except NotOKException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
     except BadPassphraseException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
@@ -727,16 +737,16 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message)
         sys.exit(1)
     except UncaughtException, e:
-        print_uncaught_exception()
-        charlimit_textwrap(e.message)
+        print_exception_message(e)
         sys.exit(1)
     except M2Crypto.SSL.SSLError, e:
-        charlimit_textwrap(e.message)
+        print_exception_message(e)
+        sys.exit(1)
     except UnexpectedBehaviourException, e:
-        charlimit_textwrap(e.message)
+        print_exception_message(e)
         sys.exit(1)
     except InsufficientArgumentException, e:
-        charlimit_textwrap(e.message)
+        print_exception_message(e)
         sys.exit(1)
     except Exception, e:
         print_uncaught_exception()

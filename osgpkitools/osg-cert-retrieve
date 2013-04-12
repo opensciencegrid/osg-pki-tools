@@ -44,7 +44,12 @@ from osgpkitools.OSGPKIUtils import check_for_pending
 from osgpkitools.OSGPKIUtils import check_permissions
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import find_existing_file_count
+from osgpkitools.OSGPKIUtils import handle_empty_exceptions
+from osgpkitools.OSGPKIUtils import print_exception_message
+
 from osgpkitools.ExceptionDefinitions import *
+
+
 
 
 # Set up Option Parser
@@ -239,16 +244,15 @@ if __name__ == '__main__':
         write_certificate(pkcs7raw)
         
     except EOFError, e:
-        charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
-                            % e)
+        print_exception_message(e)
         sys.exit(1)
     except SystemExit, e:
         raise
-    except KeyboardInterrupt, k:
-        charlimit_textwrap(k)
+    except KeyboardInterrupt, e:
+        print_exception_message(e)
         sys.exit('''Interrupted by user\n''')
-    except ssl.SSLError, s:
-        print s
+    except ssl.SSLError, e:
+        print_exception_message(e)
         sys.exit('Please check for valid certificate.\n')
     except Exception_500response, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
@@ -268,9 +272,10 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message + ':' + e.filename)
         sys.exit(1)
     except ValueError, e:
+        print_exception_message(e)
         sys.exit(1)
     except KeyError, e:
-        charlimit_textwrap('Key %s not found' % e)
+        print_exception_message(e)
     except httplib.HTTPException, e:
         charlimit_textwrap('Connection to %s failed: %s' % (returl, e))
     except NotOKException, e:

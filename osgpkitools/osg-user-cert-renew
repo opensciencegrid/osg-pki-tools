@@ -1,16 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-"""
-This script is used to submit multiple certifcate requests and
-the intended user for the script is the GridAdmin.
-This script requests certificates and then approves as well as issues them
-in bulk (limit of 50 at a time).
-This script works in two modes:
-1) Requesting single host certificate with -H option
-2) Request multiple host certificates with hostnames stored in a file -f option
-"""
-
 import pdb
 import urllib
 import httplib
@@ -36,20 +26,21 @@ import ssl
 import tempfile
 
 from osgpkitools import OSGPKIUtils
-from OSGPKIUtils import CreateOIMConfig
-from OSGPKIUtils import extractHostname
-from OSGPKIUtils import extractEEC
-from OSGPKIUtils import get_request_count
-from OSGPKIUtils import check_response_500
-from OSGPKIUtils import check_failed_response
-from OSGPKIUtils import print_failure_reason_exit
-from OSGPKIUtils import check_for_pending
-from OSGPKIUtils import charlimit_textwrap
+from osgpkitools.OSGPKIUtils import CreateOIMConfig
+from osgpkitools.OSGPKIUtils import extractHostname
+from osgpkitools.OSGPKIUtils import extractEEC
+from osgpkitools.OSGPKIUtils import get_request_count
+from osgpkitools.OSGPKIUtils import check_response_500
+from osgpkitools.OSGPKIUtils import check_failed_response
+from osgpkitools.OSGPKIUtils import print_failure_reason_exit
+from osgpkitools.OSGPKIUtils import check_for_pending
+from osgpkitools.OSGPKIUtils import charlimit_textwrap
+from osgpkitools.OSGPKIUtils import handle_empty_exceptions
+from osgpkitools.OSGPKIUtils import print_exception_message
 from ExceptionDefinitions import *
 
 
 # Set up Option Parser
-#
 
 def parse_args():
     """This function parses all the arguments, validates them and then stores them
@@ -292,10 +283,9 @@ def write_certificate(**arguments):
 
 
 def connect_retrieve(num_requests, **arguments):
-    """This fucntion accepts a dictionary consisting of variables and their values against it.
+    """This function accepts a dictionary consisting of variables and their values against it.
     It retrieves the certificate from the OIM."""
 
-    iterations = 1
     print 'Issuing certificate...'
     params = urllib.urlencode({'user_request_id': arguments['reqid']}, True)
     headers = {'Content-type': arguments['content_type'],
@@ -341,7 +331,6 @@ def connect_retrieve(num_requests, **arguments):
     #print "pkcs7 raw is %s" %pkcs7raw
     i = 0
     cert_num = 0
-    #for certstring in pkcs7raw:
     extract_certs(pkcs7raw.strip(), arguments)
     cert_num = cert_num + 1
     i = i + 1
@@ -440,17 +429,18 @@ if __name__ == '__main__':
         arguments = extract_info(**arguments)
         process_renew(**arguments)
     except AttributeError, e:
-        print e
-        sys.exit()
+        print_exception_message(e)
+        sys.exit(1)
     except SystemExit, e:
         raise
-    except ssl.SSLError, s:
-        print s
+    except ssl.SSLError, e:
+        print_exception_message(e)
         sys.exit('Please check for valid certificate.\n')
-    except KeyboardInterrupt, k:
-        print k
+    except KeyboardInterrupt, e:
+        print_exception_message(e)
         sys.exit('''Interrupted by user\n''')
     except OSError, e:
+        print_exception_message(e)
         sys.exit(1)
     except Exception_500response, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
@@ -466,6 +456,7 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message + ':' + e.filename)
         sys.exit(1)
     except ValueError, e:
+        print_exception_message(e)
         sys.exit(1)
     except NotOKException, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
@@ -477,6 +468,7 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message)
         sys.exit(1)
     except EOFError, e:
+        print_exception_message(e)
         sys.exit(1)
     except BadCertificateException, e:
         charlimit_textwrap(e.message)

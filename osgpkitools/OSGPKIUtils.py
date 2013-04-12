@@ -13,6 +13,7 @@ import time
 import sys
 import textwrap
 import simplejson
+import traceback
 import getpass
 
 from ExceptionDefinitions import *
@@ -26,6 +27,26 @@ MBSTRING_BMP = MBSTRING_FLAG | 2
 # The variable for storing version number for the scripts
 Version_Number = 1.2
 
+def print_exception_message(e):
+    """Checks if the str representation of the exception is empty or not
+    if empty, it prints an generic error message stating the type of exception
+    and traceback.
+    """
+    
+    if(str(e) != ""):
+        charlimit_textwrap(e.message)
+    else:
+        print_uncaught_exception()
+        handle_empty_exceptions(e)
+
+def handle_empty_exceptions(e):
+    """The method handles all empty exceptions and displays a meaningful message and 
+    traceback for such exceptions."""
+    
+    charlimit_textwrap('Encountered exception of type %s' % type(e))
+    charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
+    #print traceback.format_exc()
+    
 def version_info():
     """ Print the version number and exit"""
     print "OSG CLI Scripts Version :", Version_Number
@@ -113,7 +134,7 @@ def check_timeout(iterations, timeout):
 
 
 def charlimit_textwrap(string):
-    """This function wraps up tht output to 80 characters. Accepts string and print the wrapped output"""
+    """This function wraps up the output to 80 characters. Accepts string and print the wrapped output"""
 
     list_string = textwrap.wrap(str(string))
     for line in list_string:
@@ -136,7 +157,7 @@ def get_request_count(filename):
     return count
 
 
-### We take the whole certificate data as a stirng input
+### We take the whole certificate data as a string input
 ### Checking for /CN= in every line and extracting the term after that if not Digicert i.e. CA would be the hostname
 ### Here we rely on OPenSSL -printcert output format. If it changes our output might be affected
 

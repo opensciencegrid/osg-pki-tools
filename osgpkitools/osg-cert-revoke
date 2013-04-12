@@ -7,12 +7,15 @@ import optparse
 import M2Crypto
 import simplejson
 import traceback
+import getpass
 from pprint import pprint
 from optparse import OptionParser
 
 from OSGPKIUtils import *
+from osgpkitools.OSGPKIUtils import CreateOIMConfig
+from osgpkitools.OSGPKIUtils import handle_empty_exceptions
+from osgpkitools.OSGPKIUtils import print_exception_message
 
-##TODO : no message is being displayed on webUI check if sending correct parameters.
 
 def parse_args():
     """This function parses all the arguments, validates them and then 
@@ -174,7 +177,7 @@ def connect_revoke(**arguments):
         Returns nothing, printing if the revocation was successful or not on the terminal.
     """
 
-    print 'Connecting to server to revoke certificate...'
+    print 'Connecting to server to revoke host certificate...'
     params = urllib.urlencode({'host_request_id': arguments['id'],
                                'request_comment':arguments['message']})
     headers = {'Content-type': arguments['content_type'],
@@ -197,7 +200,7 @@ def connect_revoke(**arguments):
     conn.close()
     
     if (simplejson.loads(data)['status'] == 'OK'):
-        charlimit_textwrap( "Sucessfully revoked certificate with request id %s" + str(arguments['id']))
+        charlimit_textwrap( "Sucessfully revoked certificate with request ID %s" %str(arguments['id']))
     else:
         charlimit_textwrap("Failure, could not revoke certificate.")
         raise SystemExit
@@ -253,34 +256,38 @@ if __name__ == "__main__":
         connect_revoke(**arguments)
 
     except FileNotFoundException, e:
-        charlimit_textwrap(e.message)
+        print_exception_message(e)
+        
     except BadCertificateException, e:
-        charlimit_textwrap(e.message)
+        print_exception_message(e)
         sys.exit(1)
     except HandshakeFailureException, e:
-        charlimit_textwrap(e.message)
+        print_exception_message(e)
         sys.exit(1)    
     except BadPassphraseException, e:
-        charlimit_textwrap("Invalid passphrase entered, please try again.")
+        charlimit_textwrap("Invalid passphrase entered, please try running the script again.")
+        
     except KeyError, e:
-        charlimit_textwrap(e.message)
+        print_exception_message(e)
         sys.exit(1)
     except httplib.HTTPException, e:
-        charlimit_textwrap(e.message)
+        print_exception_message(e)
         sys.exit(1)
     except AttributeError, e:
-        charlimit_textwrap(e.message)
+        print_exception_message(e)
         sys.exit(1)
     except NotOKException, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
-    except SystemExit, e:
-        raise e
     except Exception, e:
         print traceback.print_exc(e)
+        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                           )
     except UncaughtException, e:
         print_uncaught_exception()
         charlimit_textwrap(e.message)
         sys.exit(1)
+    except SystemExit, e:
+        raise e
     sys.exit(0)
