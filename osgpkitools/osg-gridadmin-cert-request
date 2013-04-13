@@ -51,6 +51,7 @@ from osgpkitools.OSGPKIUtils import find_existing_file_count
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
+from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.ExceptionDefinitions import *
 from osgpkitools import ConnectAPI
 
@@ -535,11 +536,6 @@ def process_csr(num_requests, bulk_csr, **arguments):
         else:
             raise UncaughtException, e
     return
-
-def print_uncaught_exception():
-    """This function prints the stack trace of a failure to aid
-    debugging"""
-    print traceback.format_exc()
 
 def process_single_host_mode(**arguments):
     """The processing is split into two parts depending upon

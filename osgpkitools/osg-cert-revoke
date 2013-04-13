@@ -15,7 +15,7 @@ from OSGPKIUtils import *
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
-
+from osgpkitools.OSGPKIUtils import print_uncaught_exception
 
 def parse_args():
     """This function parses all the arguments, validates them and then 

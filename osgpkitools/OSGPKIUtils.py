@@ -38,6 +38,11 @@ def print_exception_message(e):
     else:
         print_uncaught_exception()
         handle_empty_exceptions(e)
+        
+def print_uncaught_exception():
+    """This function prints the stack trace of a failure to aid
+    debugging"""
+    print traceback.format_exc()
 
 def handle_empty_exceptions(e):
     """The method handles all empty exceptions and displays a meaningful message and 

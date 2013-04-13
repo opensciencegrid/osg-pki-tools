@@ -46,6 +46,7 @@ from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import find_existing_file_count
 from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
+from osgpkitools.OSGPKIUtils import print_uncaught_exception
 
 from osgpkitools.ExceptionDefinitions import *
 
@@ -219,10 +220,6 @@ def write_certificate(pkcs7raw):
                        %( arguments['certdir'],arguments['pem_filename']))
     return
 
-def print_uncaught_exception():
-    """This function prints the stack trace of the failure to
-    aid the debugging of the error."""
-    print traceback.format_exc()
 
 if __name__ == '__main__':
     try:

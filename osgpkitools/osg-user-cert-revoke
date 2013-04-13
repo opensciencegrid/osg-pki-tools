@@ -18,7 +18,7 @@ from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
-
+from osgpkitools.OSGPKIUtils import print_uncaught_exception
 
 from ExceptionDefinitions import *
 

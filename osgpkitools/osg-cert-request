@@ -30,6 +30,7 @@ from osgpkitools.OSGPKIUtils import check_failed_response
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
+from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.ExceptionDefinitions import *
 
 
