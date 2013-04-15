@@ -38,6 +38,7 @@ from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
+from osgpkitools.OSGPKIUtils import get_ssl_context
 from ExceptionDefinitions import *
 
 
@@ -365,41 +366,6 @@ def process_renew(**arguments):
     process_csr(**arguments)
     return
 
-def get_ssl_context(**arguments):
-    """ This function sets the ssl context by accepting the passphrase
-    and validating it for user private key and his certificate"""
-    first = True
-    count = 0
-    pass_str = 'Please enter the pass phrase for'
-    while(True):
-        try:
-            def prompt_for_password(verify):
-                return getpass.getpass(pass_str+" '%s':"
-                                       % arguments['userprivkey'])
-        
-            ssl_context = M2Crypto.SSL.Context('sslv3')
-            ssl_context.load_cert_chain(arguments['usercert'],
-                                        arguments['userprivkey'],
-                                        callback=prompt_for_password)
-            arguments.update({'ssl_context': ssl_context})
-            break
-        except Exception, e:
-            if 'sslv3 alert bad certificate' in e:
-                raise BadCertificateException('Error connecting to server: %s.\n\
-                                          Your certificate is not trusted by the server'
-                 % e)
-            elif 'handshake failure' in e:
-                raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
-                 % e)
-            first = False
-            count = count + 1
-            print_uncaught_exception()
-            pass_str = 'Incorrect password. Please enter the password again for'
-            if count > 1:
-                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
-                        )
-                break
-    return arguments
 
 def extract_info(**arguments):
     """ Extracts the DN from the certificate provided."""

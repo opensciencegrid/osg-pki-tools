@@ -27,6 +27,52 @@ MBSTRING_BMP = MBSTRING_FLAG | 2
 # The variable for storing version number for the scripts
 Version_Number = 1.2
 
+
+
+def get_ssl_context(**arguments):
+    """ This function sets the ssl context by accepting the passphrase
+    and validating it for user private key and his certificate
+    INPUT : 
+        arguments - A dict containing
+    userprivkey - Filename for private key of user.
+    usercert    - Filename for user certificate.
+    
+    OUTPUT :
+    ssl_context - ssl context for the HTTPS connection.
+    
+    """
+    first = True
+    count = 0
+    pass_str = 'Please enter the pass phrase for'
+    while(True):
+        try:
+            def prompt_for_password(verify):
+                return getpass.getpass(pass_str+" '%s':"
+                                       % arguments['userprivkey'])
+        
+            ssl_context = M2Crypto.SSL.Context('sslv3')
+            ssl_context.load_cert_chain(arguments['usercert'],
+                                        arguments['userprivkey'],
+                                        callback=prompt_for_password)
+            break
+        except Exception, e:
+            if 'sslv3 alert bad certificate' in e:
+                raise BadCertificateException('Error connecting to server: %s.\n\
+                                          Your certificate is not trusted by the server'
+                 % e)
+            elif 'handshake failure' in e:
+                raise HandshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
+                 % e)
+            first = False
+            count = count + 1
+            pass_str = 'Incorrect password. Please enter the password again for'
+            if count > 1:
+                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
+                        )
+                break
+    return ssl_context
+
+
 def print_exception_message(e):
     """Checks if the str representation of the exception is empty or not
     if empty, it prints an generic error message stating the type of exception
