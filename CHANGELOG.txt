@@ -1,3 +1,7 @@
 * Adding check for Write access. JIRA-324
 * Merged Branch 1.1 with trunk. JIRA-325
 * Merged ConnectAPI with trunk. JIRA-322
+* Updating charlimit_textwrap.  JIRA-366
+* Modifying exception handling to handle exceptions with empty error messages
+JIRA-365
+* Centralizing access to get ssl context to OSGPKIUtils.py
