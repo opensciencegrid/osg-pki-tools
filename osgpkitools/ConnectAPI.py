@@ -311,7 +311,7 @@ class ConnectAPI(object):
         except NotOKException:
             raise
         
-    def renew(**arguments):
+    def renew(self,**arguments):
         """This function connects to the user renew API and passes the DN
         and the serial number to API to get back the request ID.
         """ 

@@ -26,6 +26,7 @@ import ssl
 import tempfile
 
 from osgpkitools import OSGPKIUtils
+from osgpkitools import ConnectAPI
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import extractHostname
 from osgpkitools.OSGPKIUtils import extractEEC
@@ -42,8 +43,6 @@ from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.OSGPKIUtils import get_ssl_context
-from ConnectAPI import renew
-from ConnectAPI import retrieve_authenticated
 from ExceptionDefinitions import *
 
 
@@ -116,7 +115,6 @@ def parse_args():
         dest='version_info',
         help="Print version information and exit",
         )
-    parser.add_option_group(group)
     (args, values) = parser.parse_args()
     arguments = dict()
     
@@ -302,7 +300,6 @@ def connect_retrieve(**arguments):
     conn.close()
     charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.'
                        )
-    iterations = 0
     while 'PENDING' in data:
         conn.request('POST', arguments['userreturl'], params, headers)
         try:
@@ -314,7 +311,6 @@ def connect_retrieve(**arguments):
         check_response_500(response)
         data = response.read()
         conn.close()
-        iterations = check_for_pending(data, iterations, **arguments)
     check_failed_response(data)
     pkcs7raw = simplejson.loads(data)['pkcs7']
     
@@ -339,7 +335,7 @@ def process_csr(**arguments):
     """This function handles the entire processing of the request i.e.
     requesting and then retrieving in sequence"""
     
-    capi = ConnectAPI.ConnectAPI
+    capi = ConnectAPI.ConnectAPI()
     try:
         
         arguments = capi.renew(**arguments)
@@ -353,7 +349,7 @@ def process_csr(**arguments):
             raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
                                     )
 
-    capi.retrieve_authenticated(**arguments)
+    connect_retrieve(**arguments)
     return
 
 
@@ -378,7 +374,8 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-        arguments = get_ssl_context(**arguments)
+        ssl_context = get_ssl_context(**arguments)
+        arguments.update({'ssl_context': ssl_context})
         arguments = extract_info(**arguments)
         process_renew(**arguments)
     except AttributeError, e:
