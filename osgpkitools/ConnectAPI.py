@@ -310,6 +310,44 @@ class ConnectAPI(object):
             raise
         except NotOKException:
             raise
+        
+    def renew(**arguments):
+        """This function connects to the user renew API and passes the DN
+        and the serial number to API to get back the request ID.
+        """ 
+    
+        print 'Connecting to server to renew certificate...'
+        params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
+                                   }, doseq=True)
+        ### For testing purpose only###
+        #params = urllib.urlencode({'user_request_id': '214'
+        #                           }, doseq=True)
+        ####
+        headers = {'Content-type': arguments['content_type'],
+                   'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+    
+        conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
+                ssl_context=arguments['ssl_context'])
+        try:
+            conn.request('POST', arguments['renewurl'], params, headers)
+    
+            response = conn.getresponse()
+        except httplib.HTTPException, e:
+            charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
+            raise e
+        data = response.read()
+    
+        #This if block is to catch failures and would exit the script
+        if not 'OK' in response.reason:
+            print_failure_reason_exit(data)
+        conn.close()
+        check_failed_response(data)
+        return_data = simplejson.loads(data)
+        request_id = return_data['request_id']
+        if not request_id:
+            raise UnexpectedBehaviourException("Request Id not found in data. Script will now exit")
+        arguments.update({'reqid': request_id})
+        return arguments
 
     def do_connect(self, connection_Handle, http_type, url, parameters, headers):
         """Function to handle the connection to the web server.

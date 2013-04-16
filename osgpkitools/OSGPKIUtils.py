@@ -28,7 +28,6 @@ MBSTRING_BMP = MBSTRING_FLAG | 2
 Version_Number = 1.2
 
 
-
 def get_ssl_context(**arguments):
     """ This function sets the ssl context by accepting the passphrase
     and validating it for user private key and his certificate
@@ -80,7 +79,10 @@ def print_exception_message(e):
     """
     
     if(str(e) != ""):
-        charlimit_textwrap(e.message)
+        charlimit_textwrap("Got an exception %s" %str(type(e)))
+        charlimit_textwrap((e.message))
+        charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
+
     else:
         print_uncaught_exception()
         handle_empty_exceptions(e)

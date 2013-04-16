@@ -25,6 +25,7 @@ import getpass
 import StringIO
 import base64
 import M2Crypto
+import pprint
 from optparse import OptionParser
 from optparse import OptionGroup
 import optparse
@@ -102,6 +103,7 @@ or specify from a file using -f/--hostfile.''')
               the certificate for.\n If specified -f/--hostfile will be ignored'
             ,
         metavar='HOSTNAME',
+        default=None,
         )
     group.add_option(
         '-f',
@@ -357,6 +359,7 @@ def write_certificate(**arguments):
     # in the output from OIM. We stringify the data, replace all the text
     # newline characters with actual new lines and the strip off the
     # extra data.
+    
 
 def process_pkcs7(pkcs7, num_requests, **arguments):
     """Method to seperate the processing of pkcs7 string from the certificate retrieval logic"""
@@ -619,22 +622,22 @@ if __name__ == '__main__':
         os.umask(0177)
         arguments = parse_args()
         check_permissions(arguments['certdir'])
-        arguments = get_ssl_context(**arguments)
+        ssl_context = get_ssl_context(**arguments)
+        arguments.update({'ssl_context':ssl_context})
         if not arguments.has_key('hostname'):
             process_hostfile_mode(**arguments)
         else:
             process_single_host_mode(**arguments)
+            
     except AttributeError, e:
         print_exception_message(e)
         sys.exit(1)
-
     except SystemExit, e:
         print_exception_message(e)
         raise e
     except ssl.SSLError, e:
         print_exception_message(e)
         sys.exit('Please check for valid certificate.\n')
-        
     except KeyboardInterrupt, k:
         print_exception_message(e)
         sys.exit('''Interrupted by user\n''')

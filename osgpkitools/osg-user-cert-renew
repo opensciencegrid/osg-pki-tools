@@ -34,11 +34,16 @@ from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import check_failed_response
 from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import check_for_pending
+from osgpkitools.OSGPKIUtils import version_info
+from osgpkitools.OSGPKIUtils import check_permissions
+from osgpkitools.OSGPKIUtils import find_existing_file_count
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.OSGPKIUtils import get_ssl_context
+from ConnectAPI import renew
+from ConnectAPI import retrieve_authenticated
 from ExceptionDefinitions import *
 
 
@@ -97,8 +102,27 @@ def parse_args():
         default=True,
         help="don't print status messages to stdout",
         )
+    parser.add_option(
+        '-d',
+        '--directory',
+        action='store',
+        dest='write_directory',
+        help="Write the output files to this directory",
+        )
+    parser.add_option(
+        '-V',
+        '--version',
+        action='store_true',
+        dest='version_info',
+        help="Print version information and exit",
+        )
+    parser.add_option_group(group)
     (args, values) = parser.parse_args()
     arguments = dict()
+    
+    if args.version_info:
+        version_info()
+        raise SystemExit
 
     try:
         timeout = int(args.timeout)
@@ -111,7 +135,12 @@ def parse_args():
                          )
     print 'Using timeout of %d minutes' % timeout
 
-    certdir = './'
+    if args.write_directory:
+        certdir = args.write_directory
+        charlimit_textwrap("Writing certificate to %s" %certdir)
+        
+    else:
+        certdir = './'
 
     if args.userprivkey is None:
         try:
@@ -176,44 +205,7 @@ def parse_args():
 # of the certificate to be renews. It gets back the request ID
 # which can be used to retrieve the certificate
 
-def connect_renew(**arguments):
-    """This function connects to the user renew API and passes the DN
-    and the serial number to API to get back the request ID.
-    """ 
 
-    print 'Connecting to server to renew certificate...'
-    params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
-                               }, doseq=True)
-    ### For testing purpose only###
-    #params = urllib.urlencode({'user_request_id': '214'
-    #                           }, doseq=True)
-    ####
-    headers = {'Content-type': arguments['content_type'],
-               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    #print "Before connection"
-    conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
-            ssl_context=arguments['ssl_context'])
-    try:
-        conn.request('POST', arguments['renewurl'], params, headers)
-        #print "Conn request succeeded"
-        #conn.request('POST', arguments['renewurl'], params, headers)
-        response = conn.getresponse()
-    except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
-        raise e
-    data = response.read()
-    #print "data is ",data
-    #This if block is to catch failures and would exit the script
-    if not 'OK' in response.reason:
-        print_failure_reason_exit(data)
-    conn.close()
-    check_failed_response(data)
-    return_data = simplejson.loads(data)
-    request_id = return_data['request_id']
-    if not request_id:
-        raise UnexpectedBehaviourException("Request Id not found in data. Script will now exit")
-    arguments.update({'reqid': request_id})
-    return arguments
 
 
 def extract_certs(pkcs7raw, arguments):
@@ -226,7 +218,7 @@ def extract_certs(pkcs7raw, arguments):
     temp_file = tempfile.NamedTemporaryFile()
     print ''
 
-    # ### printing our all the certificates received from OIM to a temporrary file###
+    # ### printing our all the certificates received from OIM to a temporary file###
     subprocess.call([
         'openssl',
         'pkcs7',
@@ -239,11 +231,11 @@ def extract_certs(pkcs7raw, arguments):
     pkcs7_file.close()
     certString = temp_file.read()
     temp_file.close()
-    # ## Extracting the hostname ###
+    ### Extracting the hostname ###
 
     hostname = extractHostname(certString)
 
-    # ## Extracting the EEC certificate ###
+    ### Extracting the EEC certificate ###
 
     eecString = extractEEC(certString, hostname)
     arguments.update({'hostname': hostname})
@@ -284,7 +276,9 @@ def write_certificate(**arguments):
     return
 
 
-def connect_retrieve(num_requests, **arguments):
+
+def connect_retrieve(**arguments): 
+    #trying to put the block inside connectAPI
     """This function accepts a dictionary consisting of variables and their values against it.
     It retrieves the certificate from the OIM."""
 
@@ -301,7 +295,7 @@ def connect_retrieve(num_requests, **arguments):
         raise httplib.HTTPException
     check_response_500(response)
     data = response.read()
-    #print "data is ret %s" %data
+
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
             print_failure_reason_exit(data)
@@ -331,21 +325,24 @@ def connect_retrieve(num_requests, **arguments):
     # newline characters with actual new lines and the strip off the
     # extra data.
     #print "pkcs7 raw is %s" %pkcs7raw
-    i = 0
-    cert_num = 0
-    extract_certs(pkcs7raw.strip(), arguments)
-    cert_num = cert_num + 1
-    i = i + 1
-    if cert_num != num_requests:
-        raise CertificateMismatchException(num_requests, cert_num,
-                'Request and certificate received mismatch')
+#    i = 0
+#    cert_num = 0
+#    extract_certs(pkcs7raw.strip(), arguments)
+#    cert_num = cert_num + 1
+#    i = i + 1
+#    if cert_num != num_requests:
+#        raise CertificateMismatchException(num_requests, cert_num,
+#                'Request and certificate received mismatch')
     return
 
 def process_csr(**arguments):
     """This function handles the entire processing of the request i.e.
     requesting and then retrieving in sequence"""
+    
+    capi = ConnectAPI.ConnectAPI
     try:
-        arguments = connect_renew(**arguments)
+        
+        arguments = capi.renew(**arguments)
     except Exception, e:
         if 'sslv3 alert bad certificate' in e:
             raise BadCertificateException('Error connecting to server: %s.\n\
@@ -356,7 +353,7 @@ def process_csr(**arguments):
             raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
                                     )
 
-    connect_retrieve(1, **arguments)
+    capi.retrieve_authenticated(**arguments)
     return
 
 
