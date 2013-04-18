@@ -1,0 +1,38 @@
+.TH osg-cert-request 1 "MARCH 2013" OSG PKI-CLI
+
+.SH NAME
+osg-cert-request \- To request for host certificate.
+
+.SH DESCRIPTION
+For description and usage, please refer to,
+https://twiki.grid.iu.edu/bin/view/Operations/OSGPKICommandlineClients
+
+.SH OPTIONS
+
+.IP  "-h, --help"            
+show this help message and exit
+.IP  "-c CSR, --csr=CSR"     
+Specify CSR name (default = gennew.csr)
+.IP  "-o Output Keyfile, --outkeyfile=Output Keyfile"
+Specify the output filename for the retrieved user
+certificate.  Default is ./hostkey.pem
+.IP  "-y CC List, --cc=CC List"
+Specify the CC list(the email id's to be CCed). Separate values by ','
+.IP  "-m Comment, --comment=Comment"
+The comment to be added to the request
+.IP  "-t CN, --hostname=CN"  
+Specify hostname for CSR (FQDN)
+.IP  "-e EMAIL, --email=EMAIL"
+Email address to receive certificate
+.IP  "-n NAME, --name=NAME"  
+Name of user receiving certificate
+.IP  "-p PHONE, --phone=PHONE"
+Phone number of user receiving certificate
+.IP  "-v VO, --vo=VO"
+VO name of requested hostname
+.IP  "-T, --test"
+Run in test mode
+.IP  "-q, --quiet"           
+don't print status messages to stdout
+.IP  "-V, --version"         
+Print the script version number and exit. 

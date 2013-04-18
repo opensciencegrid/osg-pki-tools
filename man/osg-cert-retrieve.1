@@ -1,0 +1,28 @@
+.TH osg-cert-retrieve 1 "MARCH 2013"  OSG  "OSG PKI-CLI"
+
+.SH NAME
+osg-cert-retrieve \- To retrieve the requested host certificate.
+
+.SH DESCRIPTION
+For description and usage, please refer to,
+https://twiki.grid.iu.edu/bin/view/Operations/OSGPKICommandlineClients
+
+.SH OPTIONS
+
+.IP  "-h, --help"            
+show this help message and exit
+.IP  "-i ID, --id=ID"        
+Specify ID# of certificate to be retrieved[Required]
+.IP  "-o ID, --certfile=ID"
+Specify the output filename for the retrieved user
+certificate. Default is ./hostcert.pem
+.IP  "-T, --test"            
+Run in test mode
+.IP  "-t TIMEOUT, --timeout=TIMEOUT"
+Specify the timeout in minutes
+.IP  "-q, --quiet"           
+don't print status messages to stdout
+.IP  "-d WRITE_DIRECTORY, --directory=WRITE_DIRECTORY"
+Write the output files to this directory
+.IP  "-V, --version"         
+Print version information and exit
