@@ -4,6 +4,8 @@ Testing for Releases
 Note that the following tests should be run, at a minimum, on Python 2.4 and
 2.6. See below for details on using the FermiCloud for running 2.4 tests.
 
+These tests are run in a source code checkout prior to making an RPM.
+
 1) Run tests/do-tests.sh which should exit without errors.
 
 2) Do 50 cert bulk issuance test.
@@ -33,6 +35,18 @@ and check certificate:
 
 % openssl x509 -in hostcert.pem -noout -text
 
+----------------------------------------------------------------------
+Testing an RPM Installation
+
+After installing an RPM, e.g.
+
+yum install --enablerepo=osg-development osg-pki-tools
+
+You can run 'tests/do-tests.py -r' to test an RPM install.
+
+This runs the scripts from /usr/bin and doesn't change PYTHONPATH or
+put pki-clients.ini into the test environment (i.e. stuff that the RPM
+install should be handling.)
 
 ----------------------------------------------------------------------
 Setting up FermiClound system for testing

@@ -31,6 +31,9 @@ def main(argv=None):
                       default=PKIClientTestCase.get_key_path(),
                       help="Specify private key for authentication",
                       metavar="PATH")
+    parser.add_option("-r", "--test-rpm-install",
+                      action="store_true", default=False,
+                      help="Test RPM install.")
     parser.add_option("-s", "--scripts-path",
                       default="../osgpkitools",
                       help="Specify path to scripts",
@@ -53,6 +56,10 @@ def main(argv=None):
     print "Test private key: " + PKIClientTestCase.get_key_path()
     PKIClientTestCase.set_scripts_path(options.scripts_path)
     print "Path to scripts: " + PKIClientTestCase.get_scripts_path()
+
+    if options.test_rpm_install:
+        print "Testing RPM install"
+        PKIClientTestCase.setup_rpm_test()
 
     loader = unittest.TestLoader()
     print "Running tests in " + options.tests

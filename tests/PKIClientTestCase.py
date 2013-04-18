@@ -10,6 +10,9 @@ import unittest
 class PKIClientTestCase(unittest.TestCase):
     """OSG PKI CLI TestCase bass class"""
 
+    # Flag to indicate we are testing an RPM install
+    testing_rpm_install=False
+
     # Path to certificate and private key to use for authentication
     # See README for details
     cert_path = os.path.abspath("./test-cert.pem")
@@ -34,6 +37,9 @@ class PKIClientTestCase(unittest.TestCase):
     # Where the scripts are relative to the tests/ directory
     scripts_path = os.path.abspath("../osgpkitools")
 
+    # Scripts import from osgpkitools, and it is up a directory
+    pypath = os.path.abspath("..")
+
     # Our test directory
     test_path = "./test-output"
 
@@ -43,18 +49,19 @@ class PKIClientTestCase(unittest.TestCase):
         # Make sure our source path is in PYTHONPATH so we can
         # find imports
         env = dict(os.environ)
-        # Scripts import from osgpkitools, and it is up a directory
-        pypath = os.path.abspath("..")
-        if env.has_key("PYTHONPATH"):
-            env["PYTHONPATH"] += ":" + pypath
-        else:
-            env["PYTHONPATH"] = pypath
-        env = scripttest.TestFileEnvironment(cls.test_path,
-                                             environ=env,
-                                             template_path=cls.scripts_path)
-        # Copy in configuration file
-        env.writefile("pki-clients.ini", frompath="pki-clients.ini")
-        return env
+        if cls.pypath is not None:
+            if env.has_key("PYTHONPATH"):
+                env["PYTHONPATH"] += ":" + cls.pypath
+            else:
+                env["PYTHONPATH"] = cls.pypath
+        test_env = scripttest.TestFileEnvironment(
+            cls.test_path,
+            environ=env,
+            template_path=cls.scripts_path)
+        if not cls.testing_rpm_install:  # Should be installed by RPM
+            # Copy in configuration file
+            test_env.writefile("pki-clients.ini", frompath="pki-clients.ini")
+        return test_env
 
     @classmethod
     def run_cmd(cls, env, *args):
@@ -193,3 +200,13 @@ class PKIClientTestCase(unittest.TestCase):
                               "openssl", "x509",
                               "-in", path)
         return result
+
+    @classmethod
+    def setup_rpm_test(cls, path="/usr/bin/"):
+        """Test an RPM install instead of from source."""
+        # Override where to look for scripts
+        cls.scripts_path = path
+        # Don't override PYTHONPATH
+        cls.pypath = None
+        # And finally a flag for other things...
+        cls.testing_rpm_install = True
