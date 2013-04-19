@@ -16,7 +16,13 @@ SCRIPTS_PATH=$(cd `dirname $0`/../osgpkitools/ && pwd)
 
 key_file=${TESTS_PATH}/test-key.pem
 cert_file=${TESTS_PATH}/test-cert.pem
-hosts_file=${TESTS_PATH}/hosts.50
+
+if test $# -eq 0 ; then
+  hosts_file=${TESTS_PATH}/hosts.50
+else
+  hosts_file=${1} ; shift
+  echo "Using ${hosts_file} for test."
+fi
 
 # XXX: This assume PYTHONPATH is empty
 export PYTHONPATH=$(cd `dirname $0`/../ && pwd)
