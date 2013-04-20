@@ -67,7 +67,7 @@ def parse_args():
         '--message',
         action='store',
         dest='message',
-        help="Specify the reason for requesting certificate revocation."
+        help="Specify the reason for certificate revocation."
             ,
         default=None,
         metavar='REASON',
