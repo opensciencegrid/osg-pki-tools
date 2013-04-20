@@ -194,7 +194,7 @@ def connect_user_revoke(**arguments):
         Message      - Message to be sent to the OIM server.
     """
 
-    if 'id' in arguments:
+    if arguments.has_key('id'):
         params = urllib.urlencode({'user_request_id': arguments['id'], 
                                    'request_comment':arguments['message']})
     else:
@@ -220,8 +220,12 @@ def connect_user_revoke(**arguments):
     if not 'OK' in data:
         print_failure_reason_exit(data)
     else:
-        charlimit_textwrap("Successfully revoked user certificate with request ID %s "
-                            %arguments['id'])
+        if arguments.has_key('id'):
+            charlimit_textwrap("Successfully revoked user certificate with request ID %s "
+                                %arguments['id'])
+        else:
+            charlimit_textwrap("Successfully revoked user certificate with certificate ID %s "
+                                %arguments['certid'])
     return
     
 if __name__ == "__main__":
