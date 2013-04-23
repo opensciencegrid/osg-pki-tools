@@ -13,7 +13,7 @@ class GridadminCertSingleHostRequestAndRevocationTests(PKIClientTestCase.PKIClie
     # test001_single_host_request()
     id = "" 
     
-    def test1_single_host_request(self):
+    def test_host_cert_request(self):
         """Test making a request for a single host (-H)"""
         env = self.get_test_env()
         fqdn = "test." + self.domain
@@ -55,8 +55,8 @@ class GridadminCertSingleHostRequestAndRevocationTests(PKIClientTestCase.PKIClie
                                                                  err_msg))
         
         
-    def test2_host_cert_revocation(self):
-        """Test revoking a host certificate. obtained from the test001_single_host_request stored in the static variable id"""
+    def test_host_cert_revocation(self):
+        """Test revoking a host certificate. obtained from the test1_single_host_request stored in the static variable id"""
         reqID = GridadminCertSingleHostRequestAndRevocationTests.id
         env = self.get_test_env()
         message = "Testing host certificate revocation"
