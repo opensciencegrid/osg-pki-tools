@@ -282,6 +282,9 @@ def write_certificate(**arguments):
         os.chdir(arguments['certdir'])
         if (os.path.exists(pem_filename)): # if the file already exists in the specified directory.
             subprocess.call(['mv', pem_filename, pem_filename_old])
+            charlimit_textwrap("Moving existing certificate %s to %s"
+                               %(pem_filename, pem_filename_old)
+                               )
         subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename]) 
         os.chmod(pem_filename, 0644)
     except OSError, e:
