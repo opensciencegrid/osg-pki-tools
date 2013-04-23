@@ -633,7 +633,6 @@ if __name__ == '__main__':
         print_exception_message(e)
         sys.exit(1)
     except SystemExit, e:
-        print_exception_message(e)
         raise e
     except ssl.SSLError, e:
         print_exception_message(e)
