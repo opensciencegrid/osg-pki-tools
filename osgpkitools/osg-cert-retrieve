@@ -148,7 +148,7 @@ def parse_args():
         if args.write_directory[-1] != '/':
             args.write_directory = args.write_directory + '/'
         certdir = args.write_directory
-        charlimit_textwrap("Writing certificate to %s" %certdir)
+
     else:
         certdir = "./"
     
@@ -230,6 +230,13 @@ if __name__ == '__main__':
         capi = ConnectAPI.ConnectAPI()
         print 'Connecting server to retrieve certificate...'
         pkcs7raw = capi.retrieve_unauthenticated(**arguments)
+        if(os.path.exists(arguments['pem_filename'])):
+            pem_filename = arguments['pem_filename']
+            temp_name = pem_filename.split("/")[-1].split(".")[-2]
+            pem_filename_old = temp_name + "-old.pem"
+            subprocess.call(['mv', pem_filename, pem_filename_old])
+            charlimit_textwrap("Moving existing file %s to %s "  
+                               %(arguments['pem_filename'] ,pem_filename_old))
         new_file_name = find_existing_file_count(arguments['pem_filename'])
         if new_file_name != arguments['pem_filename']:
             subprocess.call([

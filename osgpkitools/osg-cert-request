@@ -17,6 +17,7 @@ from optparse import OptionParser
 import M2Crypto
 import textwrap
 import traceback
+import subprocess
 import ssl
 from pprint import pprint
 
@@ -174,17 +175,12 @@ def parse_args():
                         # , config_items
     if args.csr is None:
         if os.path.exists(args.keyfile):
-            opt = \
-                raw_input('%s already exists. Do you want to overwrite it?\
-                          Y/N : '
-                           % args.keyfile)
-            if opt == 'y' or opt == 'Y':
-                pem_filename = args.keyfile
-            elif opt == 'n' or opt == 'N':
-                pem_filename = \
-                    raw_input('Please enter a different file name\n')
-            else:
-                raise InvalidOptionException("Invalid Option")
+            pem_filename = args.keyfile
+            key_name = pem_filename.split("/")[-1].split(".")[-2]
+            pem_filename_old = key_name + "-old.pem"
+            subprocess.call(['mv',  pem_filename , pem_filename_old])
+            charlimit_textwrap("Moving existing file %s to %s "  
+                               %(pem_filename ,pem_filename_old))
         else:
             pem_filename = args.keyfile
     else:
