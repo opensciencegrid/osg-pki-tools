@@ -47,6 +47,34 @@ class GridadminCertSingleHostRequestTests(PKIClientTestCase.PKIClientTestCase):
                          "Check of private key %s failed: %s" % (key_file,
                                                                  err_msg))
 
+    def test_existing_files(self):
+        """Test making a request for a single host (-H) with files already existing"""
+        env = self.get_test_env()
+        fqdn = "test." + self.domain
+        result = self.run_script(env,
+                                 self.command,
+                                 "-H", fqdn,
+                                 "-k", self.get_key_path(),
+                                 "-c", self.get_cert_path())
+        err_msg = self.run_error_msg(result)
+        self.assertEqual(result.returncode, 0, err_msg)
+        # Now run command again and make sure we rename original certificates
+        result = self.run_script(env,
+                                 self.command,
+                                 "-H", fqdn,
+                                 "-k", self.get_key_path(),
+                                 "-c", self.get_cert_path())
+        err_msg = self.run_error_msg(result)
+        self.assertEqual(result.returncode, 0, err_msg)
+        match = re.search("Renaming existing key to",
+                          result.stdout,
+                          re.MULTILINE)
+        self.assertNotEqual(match, None, "Existing key not renamed.")
+        match = re.search("Renaming existing file to",
+                          result.stdout,
+                          re.MULTILINE)
+        self.assertNotEqual(match, None, "Existing certificate not renamed.")
+
 if __name__ == '__main__':
     import unittest
     unittest.main()
