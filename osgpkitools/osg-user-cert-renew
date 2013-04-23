@@ -26,7 +26,6 @@ import ssl
 import tempfile
 
 from osgpkitools import OSGPKIUtils
-from osgpkitools import ConnectAPI
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import extractHostname
 from osgpkitools.OSGPKIUtils import extractEEC
@@ -35,14 +34,10 @@ from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import check_failed_response
 from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import check_for_pending
-from osgpkitools.OSGPKIUtils import version_info
-from osgpkitools.OSGPKIUtils import check_permissions
-from osgpkitools.OSGPKIUtils import find_existing_file_count
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
-from osgpkitools.OSGPKIUtils import get_ssl_context
 from ExceptionDefinitions import *
 
 
@@ -93,6 +88,16 @@ def parse_args():
         help='Specify the timeout in minutes',
         default=5,
         )
+    
+    parser.add_option(
+        '-d',
+        '--directory',
+        action='store',
+        dest='write_directory',
+        default='./',
+        help="Write the output files to this directory",
+        )
+    
     parser.add_option(
         '-q',
         '--quiet',
@@ -101,26 +106,8 @@ def parse_args():
         default=True,
         help="don't print status messages to stdout",
         )
-    parser.add_option(
-        '-d',
-        '--directory',
-        action='store',
-        dest='write_directory',
-        help="Write the output files to this directory",
-        )
-    parser.add_option(
-        '-V',
-        '--version',
-        action='store_true',
-        dest='version_info',
-        help="Print version information and exit",
-        )
     (args, values) = parser.parse_args()
     arguments = dict()
-    
-    if args.version_info:
-        version_info()
-        raise SystemExit
 
     try:
         timeout = int(args.timeout)
@@ -132,13 +119,6 @@ def parse_args():
         raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n'
                          )
     print 'Using timeout of %d minutes' % timeout
-
-    if args.write_directory:
-        certdir = args.write_directory
-        charlimit_textwrap("Writing certificate to %s" %certdir)
-        
-    else:
-        certdir = './'
 
     if args.userprivkey is None:
         try:
@@ -182,6 +162,11 @@ def parse_args():
         raise FileNotFoundException(usercert,
                                     'Could not locate the certificate file'
                                     )
+        
+    if args.write_directory:
+        certdir = args.write_directory
+    else:
+        certdir = "./"
     
     if args.test:
         OIM = True
@@ -203,27 +188,53 @@ def parse_args():
 # of the certificate to be renews. It gets back the request ID
 # which can be used to retrieve the certificate
 
+def connect_renew(**arguments):
+    """This function connects to the user renew API and passes the DN
+    and the serial number to API to get back the request ID.
+    """ 
+
+    print 'Connecting to server to renew certificate...'
+    params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
+                               }, doseq=True)
+    ### For testing purpose only###
+    #params = urllib.urlencode({'user_request_id': '214'
+    #                           }, doseq=True)
+    ####
+    headers = {'Content-type': arguments['content_type'],
+               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+    conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
+            ssl_context=arguments['ssl_context'])
+    try:
+        conn.request('POST', arguments['renewurl'], params, headers)
+        response = conn.getresponse()
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
+        raise e
+    data = response.read()
+    #This if block is to catch failures and would exit the script
+    if not 'OK' in response.reason:
+        print_failure_reason_exit(data)
+    conn.close()
+    check_failed_response(data)
+    return_data = simplejson.loads(data)
+    request_id = return_data['request_id']
+    if not request_id:
+        raise UnexpectedBehaviourException("Request Id not found in data. Script will now exit")
+    arguments.update({'reqid': request_id})
+    return arguments
+
 
 def extract_certs(pkcs7raw, arguments):
     """This function accepts the hostname, pkcs7raw dump of the certificate and
     a dictionary that consists variables and their value against them.
-    It write the certificates to file system by calling write_certificate function
-    INPUTS:
-        arguments:(a dict containing)
-    
-    OUTPUTS:
-        Returns nothing but adds the arguments
-        hostname
-        eecString to the dict.
-    
-    """
+    It write the certificates to file system by calling write_certificate function"""
     pkcs7_file = tempfile.NamedTemporaryFile()
     pkcs7_file.write(str(pkcs7raw))
     pkcs7_file.flush()
     temp_file = tempfile.NamedTemporaryFile()
     print ''
 
-    # ### printing our all the certificates received from OIM to a temporary file###
+    # ### printing our all the certificates received from OIM to a temporrary file###
     subprocess.call([
         'openssl',
         'pkcs7',
@@ -236,11 +247,11 @@ def extract_certs(pkcs7raw, arguments):
     pkcs7_file.close()
     certString = temp_file.read()
     temp_file.close()
-    ### Extracting the hostname ###
+    # ## Extracting the hostname ###
 
     hostname = extractHostname(certString)
 
-    ### Extracting the EEC certificate ###
+    # ## Extracting the EEC certificate ###
 
     eecString = extractEEC(certString, hostname)
     arguments.update({'hostname': hostname})
@@ -250,36 +261,32 @@ def extract_certs(pkcs7raw, arguments):
 
 
 def write_certificate(**arguments):
-    """ This function writes the extracted EEC certificate
-    INPUTS : 
-    arguments(a dict containing)
-    hostname : Host name for the certificate.
-    eecString: 
-    reqid    : request ID
-    certdir  : directory to write the certificate in 
-    
-    OUTPUTS: 
-    Returns nothing
-    """
+    """ This function writes the extracted EEC certificate"""
     hostname = arguments['hostname']
     eecString = arguments['eecString']
     hostname = hostname.strip(' \n').replace('/', '-')
-    pem_filename = hostname + '.pem'
+    #pem_filename = hostname + '.pem'
+    cert_filename = arguments['usercert'].split("/")[-1].split(".")[-2]
+    pem_filename_old = cert_filename + "-old.pem"
+    pem_filename = cert_filename + ".pem"
     temp_file = tempfile.NamedTemporaryFile()
     temp_file.write(eecString)
     temp_file.flush()
-    if os.path.exists(pem_filename):
-        charlimit_textwrap('The file %s already exists.' % pem_filename)
-        pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem'
-                )
-    subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename])  # ## fix for move the file to desired name ###
-    os.chmod(pem_filename, 0644)
+#    if os.path.exists(pem_filename):
+#        charlimit_textwrap('The file %s already exists.' % pem_filename)
+#        pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem'
+#                )
+
     cwd = os.getcwd()
     try:
         os.chdir(arguments['certdir'])
+        if (os.path.exists(pem_filename)): # if the file already exists in the specified directory.
+            subprocess.call(['mv', pem_filename, pem_filename_old])
+        subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename]) 
+        os.chmod(pem_filename, 0644)
     except OSError, e:
         charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
-    .Please report the bug to goc@opensciencegrid.org.a
+    .Please report the bug to goc@opensciencegrid.org.
     %s''',
                            arguments['certdir'], e)
         raise OSError
@@ -291,20 +298,9 @@ def write_certificate(**arguments):
     return
 
 
-
-def connect_retrieve(**arguments): 
+def connect_retrieve(num_requests, **arguments):
     """This function accepts a dictionary consisting of variables and their values against it.
-    It retrieves the certificate from the OIM.
-    INPUTS : 
-    arguments (A dict containing):
-        reqid       : request ID
-        content_type: content type of data
-        host        : host URL
-        userreturl  : URL for user certificate retrieval.
-        
-    OUTPUTS :
-        returns nothing. 
-    """
+    It retrieves the certificate from the OIM."""
 
     print 'Issuing certificate...'
     params = urllib.urlencode({'user_request_id': arguments['reqid']}, True)
@@ -319,13 +315,14 @@ def connect_retrieve(**arguments):
         raise httplib.HTTPException
     check_response_500(response)
     data = response.read()
-
+    #print "data is ret %s" %data
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
             print_failure_reason_exit(data)
     conn.close()
     charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.'
                        )
+    iterations = 0
     while 'PENDING' in data:
         conn.request('POST', arguments['userreturl'], params, headers)
         try:
@@ -337,19 +334,32 @@ def connect_retrieve(**arguments):
         check_response_500(response)
         data = response.read()
         conn.close()
+        iterations = check_for_pending(data, iterations, **arguments)
     check_failed_response(data)
     pkcs7raw = simplejson.loads(data)['pkcs7']
     
+
+    # The slice and dice on the JSON output to get the certificate out
+    # happens here - the problem is that the new lines are getting all screwy
+    # in the output from OIM. We stringify the data, replace all the text
+    # newline characters with actual new lines and the strip off the
+    # extra data.
+    #print "pkcs7 raw is %s" %pkcs7raw
+    i = 0
+    cert_num = 0
+    extract_certs(pkcs7raw.strip(), arguments)
+    cert_num = cert_num + 1
+    i = i + 1
+    if cert_num != num_requests:
+        raise CertificateMismatchException(num_requests, cert_num,
+                'Request and certificate received mismatch')
     return
 
 def process_csr(**arguments):
     """This function handles the entire processing of the request i.e.
     requesting and then retrieving in sequence"""
-    
-    capi = ConnectAPI.ConnectAPI()
     try:
-        
-        arguments = capi.renew(**arguments)
+        arguments = connect_renew(**arguments)
     except Exception, e:
         if 'sslv3 alert bad certificate' in e:
             raise BadCertificateException('Error connecting to server: %s.\n\
@@ -360,7 +370,7 @@ def process_csr(**arguments):
             raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
                                     )
 
-    connect_retrieve(**arguments)
+    connect_retrieve(1, **arguments)
     return
 
 
@@ -370,21 +380,44 @@ def process_renew(**arguments):
     process_csr(**arguments)
     return
 
+def get_ssl_context(**arguments):
+    """ This function sets the ssl context by accepting the passphrase
+    and validating it for user private key and his certificate"""
+    first = True
+    count = 0
+    pass_str = 'Please enter the pass phrase for'
+    while(True):
+        try:
+            def prompt_for_password(verify):
+                return getpass.getpass(pass_str+" '%s':"
+                                       % arguments['userprivkey'])
+        
+            ssl_context = M2Crypto.SSL.Context('sslv3')
+            ssl_context.load_cert_chain(arguments['usercert'],
+                                        arguments['userprivkey'],
+                                        callback=prompt_for_password)
+            arguments.update({'ssl_context': ssl_context})
+            break
+        except Exception, e:
+            if 'sslv3 alert bad certificate' in e:
+                raise BadCertificateException('Error connecting to server: %s.\n\
+                                          Your certificate is not trusted by the server'
+                 % e)
+            elif 'handshake failure' in e:
+                raise HanshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
+                 % e)
+            first = False
+            count = count + 1
+            print_uncaught_exception()
+            pass_str = 'Incorrect password. Please enter the password again for'
+            if count > 1:
+                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
+                        )
+                break
+    return arguments
 
 def extract_info(**arguments):
-    """ Extracts the DN from the certificate provided.
-    
-    Inputs : 
-    arguments (a dict containing)
-    usercert : path to the user certificate.
-    
-    Outputs: 
-    returns nothing,
-    adds to the arguments,
-    serial_number : serial number of the certificate.
-    DN            : DN for the certificate.
-    
-    """
+    """ Extracts the DN from the certificate provided."""
     x509 = M2Crypto.X509.load_cert(arguments['usercert'])
     dec_sid = x509.get_serial_number()
     hex_sid = "%032X" % dec_sid
@@ -397,8 +430,7 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-        ssl_context = get_ssl_context(**arguments)
-        arguments.update({'ssl_context': ssl_context})
+        arguments = get_ssl_context(**arguments)
         arguments = extract_info(**arguments)
         process_renew(**arguments)
     except AttributeError, e:
