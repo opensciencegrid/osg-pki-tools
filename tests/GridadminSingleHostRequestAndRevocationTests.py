@@ -9,12 +9,20 @@ class GridadminCertSingleHostRequestAndRevocationTests(PKIClientTestCase.PKIClie
 
     command = "osg-gridadmin-cert-request"
     command_revoke = "osg-cert-revoke"
-    # Define a class variable to store the requestID obtained from 
-    # test001_single_host_request()
-    id = "" 
+    
+    def test_help(self):
+        """Test if we get the help message on osg-cert-revoke"""
+        env = self.get_test_env()
+        result = self.run_script(env, self.command_revoke, "-h")
+        err_msg = self.run_error_msg(result)
+        self.assertTrue("Usage:" in result.stdout or "usage:" in result.stdout, err_msg)
+    
     
     def test_host_cert_request(self):
-        """Test making a request for a single host (-H)"""
+        """Test making a request for a single host (-H) 
+         and then Test revoking a host certificate obtained from single host request on 
+         Gridadmin script"""
+         
         env = self.get_test_env()
         fqdn = "test." + self.domain
         result = self.run_script(env,
@@ -29,9 +37,8 @@ class GridadminCertSingleHostRequestAndRevocationTests(PKIClientTestCase.PKIClie
                           re.MULTILINE)
         self.assertNotEqual(match, None,
                             "Could not find request Id: " + err_msg)
-        id = int(match.group(1))
-        # Set the class variable id to the id obtained from single host request.
-        GridadminCertSingleHostRequestAndRevocationTests.id = id
+        reqID = int(match.group(1))
+
 
         match = re.search("Certificate written to (.*)$",
                           result.stdout,
@@ -54,10 +61,6 @@ class GridadminCertSingleHostRequestAndRevocationTests(PKIClientTestCase.PKIClie
                          "Check of private key %s failed: %s" % (key_file,
                                                                  err_msg))
         
-        
-    def test_host_cert_revocation(self):
-        """Test revoking a host certificate. obtained from the test1_single_host_request stored in the static variable id"""
-        reqID = GridadminCertSingleHostRequestAndRevocationTests.id
         env = self.get_test_env()
         message = "Testing host certificate revocation"
         result = self.run_script(env,
@@ -67,19 +70,13 @@ class GridadminCertSingleHostRequestAndRevocationTests(PKIClientTestCase.PKIClie
                                  "-c", self.get_cert_path(),
                                  "-i", reqID)
         err_msg = self.run_error_msg(result)
-        
         self.assertEqual(result.returncode, 0, err_msg)
+        # Check what we obtain on STDOUT
         match = re.search("^Sucessfully revoked certificate with request ID (\d+)\s*$",
                           result.stdout,
                           re.MULTILINE)
         self.assertNotEqual(match, None, "Failure, could not revoke certificate " + err_msg)
-    
-    def test_help(self):
-        """Test if we get the help message on osg-cert-revoke"""
-        env = self.get_test_env()
-        result = self.run_script(env, self.command_revoke, "-h")
-        err_msg = self.run_error_msg(result)
-        self.assertTrue("Usage:" in result.stdout or "usage:" in result.stdout, err_msg)
+
 
 if __name__ == '__main__':
     import unittest
