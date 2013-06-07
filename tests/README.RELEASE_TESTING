@@ -18,24 +18,37 @@ These tests are run in a source code checkout prior to making an RPM.
 
 3) cd osgpkitools
 
-4) Do unauthenticated host certificate request:
+
+----
+Test obtaining and revoking a host certificate.
+
+1) Do unauthenticated host certificate request:
 
 % python ./osg-cert-request -T -n "PKI Tester" -p 555-555-5555 -e pkitester@example.com -m "Doing release testing." -t host/test.pki-test.opensciencegrid.org
 
 And note request id number.
 
-5) Approve request.
+2) Approve request.
 
 https://oim-itb.grid.iu.edu/oim/certificatehost?id=<id from request>
 
-6) Retrieve certificate:
+3) Retrieve the host certificate:
 
 % python ./osg-cert-retrieve -T -i <id from request>
 
-and check certificate:
+and check it:
 
 % openssl x509 -in hostcert.pem -noout -text
 
+4) Revoke the newly generated host certificate
+
+% python ./osg-cert-revoke -T -m "Test revocation of test certificate" -i <id from request> -c hostcert.pem -k hostkey.pem
+
+You should see a message similar to the following:
+
+"Sucessfully revoked certificate with request ID 825"
+
+That completes testing of host certificates with the CLI.
 
 ----------------------------------------------------------------------
 Testing an RPM Installation
