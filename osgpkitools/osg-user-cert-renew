@@ -88,7 +88,7 @@ def parse_args():
         help='Specify the timeout in minutes',
         default=5,
         )
-    
+
     parser.add_option(
         '-d',
         '--directory',
@@ -97,7 +97,7 @@ def parse_args():
         default='./',
         help="Write the output files to this directory",
         )
-    
+
     parser.add_option(
         '-q',
         '--quiet',
@@ -155,19 +155,19 @@ def parse_args():
     else:
         usercert = args.usercert
 
-    
+
     if os.path.exists(usercert):
         pass
     else:
         raise FileNotFoundException(usercert,
                                     'Could not locate the certificate file'
                                     )
-        
+
     if args.write_directory:
         certdir = args.write_directory
     else:
         certdir = "./"
-    
+
     if args.test:
         OIM = True
     else:
@@ -191,7 +191,7 @@ def parse_args():
 def connect_renew(**arguments):
     """This function connects to the user renew API and passes the DN
     and the serial number to API to get back the request ID.
-    """ 
+    """
 
     print 'Connecting to server to renew certificate...'
     params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
@@ -285,7 +285,7 @@ def write_certificate(**arguments):
             charlimit_textwrap("Moving existing certificate %s to %s"
                                %(pem_filename, pem_filename_old)
                                )
-        subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename]) 
+        subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename])
         os.chmod(pem_filename, 0644)
     except OSError, e:
         charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
@@ -294,7 +294,7 @@ def write_certificate(**arguments):
                            arguments['certdir'], e)
         raise OSError
     os.chdir(cwd)
-    charlimit_textwrap('''Certificate written to %s%s 
+    charlimit_textwrap('''Certificate written to %s%s
     '''
                        % (arguments['certdir'], pem_filename))
     temp_file.close()
@@ -340,7 +340,7 @@ def connect_retrieve(num_requests, **arguments):
         iterations = check_for_pending(data, iterations, **arguments)
     check_failed_response(data)
     pkcs7raw = simplejson.loads(data)['pkcs7']
-    
+
 
     # The slice and dice on the JSON output to get the certificate out
     # happens here - the problem is that the new lines are getting all screwy
@@ -394,7 +394,7 @@ def get_ssl_context(**arguments):
             def prompt_for_password(verify):
                 return getpass.getpass(pass_str+" '%s':"
                                        % arguments['userprivkey'])
-        
+
             ssl_context = M2Crypto.SSL.Context('sslv3')
             ssl_context.load_cert_chain(arguments['usercert'],
                                         arguments['userprivkey'],
@@ -428,7 +428,7 @@ def extract_info(**arguments):
     DN = x509.get_issuer()
     arguments.update({'DN':DN})
     return arguments
-    
+
 if __name__ == '__main__':
     try:
         os.umask(0177)

@@ -121,7 +121,7 @@ def parse_args():
         )
 
     (args, values) = parser.parse_args()
-    
+
     if args.version_info:
         version_info()
         raise SystemExit
@@ -143,7 +143,7 @@ def parse_args():
     print 'Using timeout of %d minutes' % timeout
 
     pem_filename = args.certfile
-    
+
     if args.write_directory:
         if args.write_directory[-1] != '/':
             args.write_directory = args.write_directory + '/'
@@ -151,12 +151,12 @@ def parse_args():
 
     else:
         certdir = "./"
-    
+
     if args.test:
         OIM = True
     else:
         OIM = False
-    
+
     filetype = 'hostcert'
     fileext = 'pkcs7'
     filename = '%s.%s.%s' % (filetype, reqid, fileext)
@@ -178,7 +178,7 @@ def parse_args():
     arguments.update({'fileext': fileext})
     arguments.update({'filename': filename})
     arguments.update({'certdir':certdir})
-    
+
     return arguments
 
 
@@ -235,7 +235,7 @@ if __name__ == '__main__':
             temp_name = pem_filename.split("/")[-1].split(".")[-2]
             pem_filename_old = temp_name + "-old.pem"
             subprocess.call(['mv', pem_filename, pem_filename_old])
-            charlimit_textwrap("Moving existing file %s to %s "  
+            charlimit_textwrap("Moving existing file %s to %s "
                                %(arguments['pem_filename'] ,pem_filename_old))
         new_file_name = find_existing_file_count(arguments['pem_filename'])
         if new_file_name != arguments['pem_filename']:
@@ -246,7 +246,7 @@ if __name__ == '__main__':
             ])
             print 'Moving existing file ' + arguments['pem_filename'] + ' to ' + new_file_name
         write_certificate(pkcs7raw)
-        
+
     except EOFError, e:
         print_exception_message(e)
         sys.exit(1)

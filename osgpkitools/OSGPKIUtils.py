@@ -31,14 +31,14 @@ Version_Number = 1.2
 def get_ssl_context(**arguments):
     """ This function sets the ssl context by accepting the passphrase
     and validating it for user private key and his certificate
-    INPUT : 
-        arguments - A dict containing
+    INPUT :
+    arguments - A dict containing
     userprivkey - Filename for private key of user.
     usercert    - Filename for user certificate.
-    
+
     OUTPUT :
     ssl_context - ssl context for the HTTPS connection.
-    
+
     """
     first = True
     count = 0
@@ -48,7 +48,7 @@ def get_ssl_context(**arguments):
             def prompt_for_password(verify):
                 return getpass.getpass(pass_str+" '%s':"
                                        % arguments['userprivkey'])
-        
+
             ssl_context = M2Crypto.SSL.Context('sslv3')
             ssl_context.load_cert_chain(arguments['usercert'],
                                         arguments['userprivkey'],
@@ -77,7 +77,7 @@ def print_exception_message(e):
     if empty, it prints an generic error message stating the type of exception
     and traceback.
     """
-    
+
     if(str(e) != ""):
         charlimit_textwrap("Got an exception %s" %str(type(e)))
         charlimit_textwrap((e.message))
@@ -86,26 +86,26 @@ def print_exception_message(e):
     else:
         print_uncaught_exception()
         handle_empty_exceptions(e)
-        
+
 def print_uncaught_exception():
     """This function prints the stack trace of a failure to aid
     debugging"""
     print traceback.format_exc()
 
 def handle_empty_exceptions(e):
-    """The method handles all empty exceptions and displays a meaningful message and 
+    """The method handles all empty exceptions and displays a meaningful message and
     traceback for such exceptions."""
-    
+
     charlimit_textwrap('Encountered exception of type %s' % type(e))
     charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
     #print traceback.format_exc()
-    
+
 def version_info():
     """ Print the version number and exit"""
     print "OSG CLI Scripts Version :", Version_Number
-    
+
 def check_permissions(path):
-    """The function checks for write permissions for the given path to verify if the user has write permissions   
+    """The function checks for write permissions for the given path to verify if the user has write permissions
     """
     if(os.access(path, os.W_OK)):
         return
@@ -131,7 +131,7 @@ def find_existing_file_count(filename):
         return new_file
     else:
         return filename
- 
+
 #    os.rename(filename, new_file)
 #    subprocess.call(["touch", filename])
 #    print new_file

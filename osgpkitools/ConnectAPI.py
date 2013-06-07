@@ -21,13 +21,13 @@ from ExceptionDefinitions import *
 
 class ConnectAPI(object):
     conn_defaults_dict = {'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    
+
     def __init__(self):
         """Set the initialization parameters."""
         return
 
     def request_unauthenticated(self, **arguments):
-        """For unregistered user requests for a certificate 
+        """For unregistered user requests for a certificate
         INPUTS: Arguments (A dict)
                         1. content_type. (The type of content to be sent over to the server)
                         2. csr    (certificate signing request in PEM format).
@@ -36,7 +36,7 @@ class ConnectAPI(object):
                         5: host   (URL to connect to the server to initiate certificate request)
                         6. name   (Name of the requesting user)
                         7. email  (E-mail for the user).
-        
+
         OUTPUT: request_id - Request ID for current Certificate request.
         """
         try:
@@ -51,12 +51,12 @@ class ConnectAPI(object):
             headers = {'Content-type': arguments['content_type'],
                        'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
             conn = httplib.HTTPConnection(arguments['host'])
-            
+
             response = self.do_connect(conn, 'POST', arguments['requrl'], params, headers)
             data = response.read()
             check_failed_response(data)
             conn.close()
-    
+
             if simplejson.loads(data)['detail'] == 'Nothing to report' \
                 and simplejson.loads(data)['status'] == 'OK' in data:
                 request_id = simplejson.loads(data)['host_request_id']
@@ -69,7 +69,7 @@ class ConnectAPI(object):
         except Exception, e:
             raise e
         return request_id
-    
+
     def request_authenticated(self, bulk_csr, **arguments):
         """For registered user(gridadmin) requests for certificate.
                 INPUTS: Arguments (A dict)
@@ -77,9 +77,9 @@ class ConnectAPI(object):
                         2. ssl_context  (SSL Context for M2Crypto)
                         3. hostsec      (URL for https connection to the server).
                         4. requrl       (URL to request certificate).
-                        
+
                 BULK_CSR: Certificate Signing Requests in PEM format for multiple certificates.
-        
+
         OUTPUT:  'reqid' - Request ID for current Certificate request.
         """
         try:
@@ -108,25 +108,25 @@ class ConnectAPI(object):
         except Exception, e:
             raise e
         return reqid
-       
-        
+
+
     def retrieve_authenticated(self, **arguments):
-        """This function is used by the gridadmin scripts for fetching the 
-        cert strings in a raw string format. 
-        
+        """This function is used by the gridadmin scripts for fetching the
+        cert strings in a raw string format.
+
         We retrieve the certificate from OIM after it has retrieved it from the CA
         This is where things tend to fall apart - if the delay is to long and the
         request to the CA times out, the whole script operation fails. I'm not
         terribly pleased with that at the moment, but it is out of my hands since
         a GOC staffer has to reset the request to be able to retrieve the
         certificate
-        
+
         INPUT: arguments (As a dict)
                1. reqid        (The request ID for retrieving the user requested certificate).
-               2. hostsec      (URL to connect to the server using HTTPS) 
+               2. hostsec      (URL to connect to the server using HTTPS)
                3. content_type (The type of content to be sent over to the server)
-               4. returl       (URL to retrieve certificate)    
-        
+               4. returl       (URL to retrieve certificate)
+
         RETURNS: PKCS7 Certificate String in raw format.
         """
         try:
@@ -146,8 +146,8 @@ class ConnectAPI(object):
                 response = self.do_connect(conn,'POST', arguments['returl'], params, headers)
                 data = response.read()
                 iterations = check_for_pending(data, iterations, **arguments)
-                
-            check_failed_response(data)                
+
+            check_failed_response(data)
             pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
 
         except KeyError, e:
@@ -161,24 +161,24 @@ class ConnectAPI(object):
         return simplejson.loads(data)['pkcs7s']
 
     def retrieve_unauthenticated(self, **arguments):
-        """This function checks if the request by an unauthenticated user 
-        is in issued state. If it is in the issued state, it then retrieves 
-        the certificate, otherwise it calls the issue method to issue the 
-        certificate if it is in approved state. 
-        
+        """This function checks if the request by an unauthenticated user
+        is in issued state. If it is in the issued state, it then retrieves
+        the certificate, otherwise it calls the issue method to issue the
+        certificate if it is in approved state.
+
         We retrieve the certificate from OIM after it has retrieved it from the CA
         This is where things tend to fall apart - if the delay is to long and the
         request to the CA times out, the whole script operation fails. I'm not
         terribly pleased with that at the moment, but it is out of my hands since
         a GOC staffer has to reset the request to be able to retrieve the
         certificate
-        
+
         INPUT: arguments (As a dict)
                1. id           (request id for the certificate)
                2. returl       (URL to retrieve certificate from the server)
                3. content_type (The type of content to be sent over to the server)
-               4. host         (URL to connect to the server)   
-        
+               4. host         (URL to connect to the server)
+
         RETURNS: PKCS7 Certificate String in raw format.
         """
         try:
@@ -186,10 +186,10 @@ class ConnectAPI(object):
             headers = {'Content-type': arguments['content_type'],
                        'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
             conn = httplib.HTTPConnection(arguments['host'])
-    
+
             response = self.do_connect(conn,'POST', arguments['returl'], params, headers)
             data = response.read()
-            
+
             if simplejson.loads(data).has_key('request_status'):
                 if simplejson.loads(data)['request_status'] == 'REQUESTED':
                     raise NotApprovedException('Certificate request is in Requested state. \
@@ -204,7 +204,7 @@ class ConnectAPI(object):
             response = self.do_connect(conn,'POST', arguments['returl'], params, headers)
             data = response.read()
             iterations = 0
-            
+
             while 'PENDING' in data:
                 conn.request('POST', arguments['returl'], params, headers)
                 response = conn.getresponse()
@@ -229,7 +229,7 @@ class ConnectAPI(object):
             needed and then pass them into the server
             The data returned is in JSON format so to make it a little more human
             readable we pass it through the json module to pretty print it
-            
+
            INPUTS: arguments
                 1. id           (Request id for the certificate request).
                 2. content_type (The type of content to be sent over to the server)
@@ -259,12 +259,12 @@ class ConnectAPI(object):
             raise
         except NotOKException, e:
             raise
-    
+
         return
-    
+
     def approve(self, **arguments):
-        
-        """This function accepts an ssl_context instance which contains 
+
+        """This function accepts an ssl_context instance which contains
         information about the established ssl connection
         and a dictionary consisting of all parameters and their values,
         It approves the request that is submitted to the OIM by connect_request.
@@ -274,7 +274,7 @@ class ConnectAPI(object):
                 3. appurl       (URL to approve certificates)
                 4. ssl_context  (SSL Context for M2Crypto)
                 5. host         (URL to connect to the server)
-                
+
         OUTPUT: None
         """
         try:
@@ -294,7 +294,7 @@ class ConnectAPI(object):
                 newrequrl = arguments['issurl']
                 conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
                         ssl_context=arguments['ssl_context'])
-                
+
                 conn.request('POST', newrequrl, params, headers)
                 response = conn.getresponse()
                 data = response.read()
@@ -310,12 +310,12 @@ class ConnectAPI(object):
             raise
         except NotOKException:
             raise
-        
+
     def renew(self,**arguments):
         """This function connects to the user renew API and passes the DN
         and the serial number to API to get back the request ID.
-        """ 
-    
+        """
+
         print 'Connecting to server to renew certificate...'
         params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
                                    }, doseq=True)
@@ -325,18 +325,18 @@ class ConnectAPI(object):
         ####
         headers = {'Content-type': arguments['content_type'],
                    'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    
+
         conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
                 ssl_context=arguments['ssl_context'])
         try:
             conn.request('POST', arguments['renewurl'], params, headers)
-    
+
             response = conn.getresponse()
         except httplib.HTTPException, e:
             charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
             raise e
         data = response.read()
-    
+
         #This if block is to catch failures and would exit the script
         if not 'OK' in response.reason:
             print_failure_reason_exit(data)
@@ -356,13 +356,13 @@ class ConnectAPI(object):
            2. http_type         ("GET or POST" method.)
            3. url               (URL to connect to the server.)
            4. parameters        (Parameters to be passed to the server.)
-           5. headers           (Headers to be sent over to the server.) 
-           
-           OUTPUT: 
+           5. headers           (Headers to be sent over to the server.)
+
+           OUTPUT:
            response   : Dict containing the response from the server.
         """
         try:
-        
+
             connection_Handle.request(http_type, url, parameters, headers)
             response = connection_Handle.getresponse()
             check_response_500(response)
