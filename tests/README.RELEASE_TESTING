@@ -50,6 +50,44 @@ You should see a message similar to the following:
 
 That completes testing of host certificates with the CLI.
 
+----
+Test obtaining, renewing and revoking a user certificate.
+
+NOTE: this requires manual approve by a OSG VO RA and hence will
+take some time.
+
+1) Visit the following URL and request a test certificate (provide some
+   unique CN such as your name followed by "Test" and today's date).
+
+https://oim-itb.grid.iu.edu/oim/certificaterequestuser
+
+Use the OSG VO. You should contact the RAs as listed at the following URL
+and explain you are testing and request approval of the certificate.
+
+https://oim-itb.grid.iu.edu/oim/voedit?id=30
+
+2) Once the request has been approved, retrieve the certificate as a pkcs12
+   file and convert to PEM.
+
+% openssl pkcs12 -in user_certificate_and_key.U715.p12 -out cert.pem -nodes -clcerts -nokeys
+% openssl pkcs12 -in user_certificate_and_key.U715.p12 -out key.pem -nodes -nocerts
+
+3) Now test renewal.
+
+% python osg-user-cert-renew -T -c ./cert.pem -k ./key.pem
+
+You should see a message similar to "Certificate written to ./cert.pem"
+
+4) Now test revocation. Replace <id from request> with the Id from your
+   original request in step 1.
+
+% python osg-user-cert-revoke -T -i <id from request> -m "Testing user certificate revocation" -k ../tests/key.pem -c cert.pem
+
+You should see a message similar to "Successfully revoked user certificate
+with request ID 715"
+
+That completes testing of user certificate renewal and revocation.
+
 ----------------------------------------------------------------------
 Testing an RPM Installation
 
