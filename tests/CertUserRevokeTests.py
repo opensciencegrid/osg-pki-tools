@@ -5,7 +5,7 @@ import PKIClientTestCase
 
 class CertRetrieveTests(PKIClientTestCase.PKIClientTestCase):
 
-    command = "osg-cert-revoke"
+    command = "osg-user-cert-revoke"
 
     def test_help(self):
         """Test running with -h to get help"""
