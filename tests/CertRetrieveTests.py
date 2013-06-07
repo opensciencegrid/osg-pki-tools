@@ -51,7 +51,7 @@ class CertRetrieveTests(PKIClientTestCase.PKIClientTestCase):
         # Make sure we see moved aside certificate
         # (Note that result won't have hostcert.pem as created because it
         #  already existed)
-        self.assertTrue(result.files_created.has_key("hostcert-0.pem"),
+        self.assertTrue(result.files_created.has_key("hostcert-old.pem"),
                         "Cannot find renamed certificate\n" + err_msg)
 
 if __name__ == '__main__':
