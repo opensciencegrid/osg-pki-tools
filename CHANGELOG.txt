@@ -1,7 +1,37 @@
-* Adding check for Write access. JIRA-324
-* Merged Branch 1.1 with trunk. JIRA-325
-* Merged ConnectAPI with trunk. JIRA-322
-* Updating charlimit_textwrap.  JIRA-366
-* Modifying exception handling to handle exceptions with empty error messages
-JIRA-365
+
+Enhancements in version 1.2:
+
+* Revocation tool. OSGPKI-231
+* Merged ConnectAPI with trunk. OSGPKI-322
 * Centralizing access to get ssl context to OSGPKIUtils.py
+* Certificates and keys are now always written to file with predictable
+filename with old files renamed. OSGPKI-332
+* Scripts now have -d option to specify output directory. OSGPKI-330
+
+Bug Fixes in version 1.2:
+* Adding check for Write access. OSGPKI-324
+* Updating charlimit_textwrap.  OSGPKI-366
+* Modifying exception handling to handle exceptions with empty error messages
+OSGPKI-365
+* Improved error message on exceeded quota. OSGPKI-360
+
+
+----------------------------------------------------------------------
+Enhancements in version 1.1:
+
+* Extracted only EEC certificates and not the CA certs as per OSGPKI-251
+* Adding quota status check beforehand as per https://jira.opensciencegrid.org/browse/OSGPKI-218#comment-17613
+* Adding additional parameters for cc and request comment as per https://jira.opensciencegrid.org/browse/OSGPKI-222#comment-17615
+* Adding provision to override the INI file with ~//.osg-pki/OSG_PKI.ini as per OSGPKI-193
+* Adding parameter --vo to specify the VO for a host certificate request OSGPKI-298
+
+Bug Fixes in version 1.1:
+
+* Fix for multiple hostname SSL error OSGPKI-210
+* Fixing the path of /etc/pki-clients.ini as per OSGPKI-197
+* fixing a broken test for keyword arguments error and confirming to pep8 standards as per OSGPKI-289
+* Fixing quota logic for osg-gridadmin and removing commented code OSGPKI-283
+
+Modifications to version 1.1:
+
+* Adding the patch by Mat Selmicki as described in OSGPKI-931
