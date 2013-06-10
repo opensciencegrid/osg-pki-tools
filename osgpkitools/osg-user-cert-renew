@@ -194,12 +194,9 @@ def connect_renew(**arguments):
     """
 
     print 'Connecting to server to renew certificate...'
-#     params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
-#                                }, doseq=True)
-    ## For testing purpose only###
-    params = urllib.urlencode({'user_request_id': '214'
-                               }, doseq=True)
-    ###
+    params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
+                                }, doseq=True)
+    
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
@@ -211,6 +208,7 @@ def connect_renew(**arguments):
         charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
         raise e
     data = response.read()
+    
     #This if block is to catch failures and would exit the script
     if not 'OK' in response.reason:
         print_failure_reason_exit(data)
@@ -265,28 +263,19 @@ def write_certificate(**arguments):
     hostname = arguments['hostname']
     eecString = arguments['eecString']
     hostname = hostname.strip(' \n').replace('/', '-')
-    #pem_filename = hostname + '.pem'
+    
     cert_filename = arguments['usercert'].split("/")[-1].split(".")[-2]
-    pem_filename_old = cert_filename + "-old.pem"
+    pem_filename_renewed = cert_filename + "-renewed.pem"
     pem_filename = cert_filename + ".pem"
     temp_file = tempfile.NamedTemporaryFile()
     temp_file.write(eecString)
     temp_file.flush()
-#    if os.path.exists(pem_filename):
-#        charlimit_textwrap('The file %s already exists.' % pem_filename)
-#        pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem'
-#                )
 
     cwd = os.getcwd()
     try:
         os.chdir(arguments['certdir'])
-        if (os.path.exists(pem_filename)): # if the file already exists in the specified directory.
-            subprocess.call(['mv', pem_filename, pem_filename_old])
-            charlimit_textwrap("Moving existing certificate %s to %s"
-                               %(pem_filename, pem_filename_old)
-                               )
-        subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename])
-        os.chmod(pem_filename, 0644)
+        subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename_renewed])
+        os.chmod(pem_filename_renewed, 0644)
     except OSError, e:
         charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
     .Please report the bug to goc@opensciencegrid.org.
@@ -296,7 +285,7 @@ def write_certificate(**arguments):
     os.chdir(cwd)
     charlimit_textwrap('''Certificate written to %s%s
     '''
-                       % (arguments['certdir'], pem_filename))
+                       % (arguments['certdir'], pem_filename_renewed))
     temp_file.close()
     return
 
@@ -318,7 +307,7 @@ def connect_retrieve(**arguments):
         raise httplib.HTTPException
     check_response_500(response)
     data = response.read()
-    #print "data is ret %s" %data
+
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
             print_failure_reason_exit(data)
@@ -347,15 +336,7 @@ def connect_retrieve(**arguments):
     # in the output from OIM. We stringify the data, replace all the text
     # newline characters with actual new lines and the strip off the
     # extra data.
-    #print "pkcs7 raw is %s" %pkcs7raw
-#     i = 0
-#     cert_num = 0
-#     extract_certs(pkcs7raw.strip(), arguments)
-#     cert_num = cert_num + 1
-#     i = i + 1
-#     if cert_num != num_requests:
-#         raise CertificateMismatchException(num_requests, cert_num,
-#                 'Request and certificate received mismatch')
+
     return
 
 def process_csr(**arguments):
@@ -373,7 +354,7 @@ def process_csr(**arguments):
             raise UncaughtException('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
                                     )
 
-    connect_retrieve(1, **arguments)
+    connect_retrieve(**arguments)
     return
 
 
