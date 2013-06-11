@@ -72,7 +72,7 @@ class GridadminCertSingleHostRequestAndRevocationTests(PKIClientTestCase.PKIClie
         err_msg = self.run_error_msg(result)
         self.assertEqual(result.returncode, 0, err_msg)
         # Check what we obtain on STDOUT
-        match = re.search("^Sucessfully revoked certificate with request ID (\d+)\s*$",
+        match = re.search("^Successfully revoked certificate with request ID (\d+)\s*$",
                           result.stdout,
                           re.MULTILINE)
         self.assertNotEqual(match, None, "Failure, could not revoke certificate " + err_msg)
