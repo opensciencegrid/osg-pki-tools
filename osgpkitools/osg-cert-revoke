@@ -201,7 +201,7 @@ def connect_revoke(**arguments):
     conn.close()
 
     if (simplejson.loads(data)['status'] == 'OK'):
-        charlimit_textwrap( "Sucessfully revoked certificate with request ID %s" %str(arguments['id']))
+        charlimit_textwrap( "Successfully revoked certificate with request ID %s" %str(arguments['id']))
     else:
         charlimit_textwrap("Failure, could not revoke certificate.")
         charlimit_textwrap(simplejson.loads(data)['detail'])
