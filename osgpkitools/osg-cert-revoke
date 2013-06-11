@@ -1,0 +1,253 @@
+#!/usr/bin/env python
+
+import sys
+import urllib
+import httplib
+import optparse
+import M2Crypto
+import simplejson
+import traceback
+import getpass
+from pprint import pprint
+from optparse import OptionParser
+
+from OSGPKIUtils import *
+from osgpkitools.OSGPKIUtils import CreateOIMConfig
+from osgpkitools.OSGPKIUtils import handle_empty_exceptions
+from osgpkitools.OSGPKIUtils import print_exception_message
+from osgpkitools.OSGPKIUtils import print_uncaught_exception
+from osgpkitools.OSGPKIUtils import get_ssl_context
+
+def parse_args():
+    """This function parses all the arguments, validates them and then
+    stores them in a dictionary that is used throughout in the script."""
+
+    usage = \
+        'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
+    parser = OptionParser(usage)
+    parser.add_option(
+        '-i',
+        '--id',
+        action='store',
+        dest='id',
+        help='Specify ID# of the Host certificate to be revoked ',
+        metavar='Request_ID'
+        )
+    parser.add_option(
+        '-k',
+        '--pkey',
+        action='store',
+        dest='userprivkey',
+        help="Specify Requestor's private key (PEM Format).\n If not specified\
+             will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+            ,
+        metavar='PKEY',
+        default=None,
+        )
+    parser.add_option(
+        '-c',
+        '--cert',
+        action='store',
+        dest='usercert',
+        help="Specify Requestor's certificate (PEM Format).\n If not specified\
+             will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
+            ,
+        default=None,
+        metavar='CERT',
+        )
+    parser.add_option(
+        '-T',
+        '--test',
+        action='store_true',
+        dest='test',
+        help='Run in test mode',
+        default=False,
+        )
+    parser.add_option(
+        '-q',
+        '--quiet',
+        action='store_false',
+        dest='verbose',
+        default=True,
+        help="don't print status messages to stdout",
+        )
+    parser.add_option(
+        '-m',
+        '--message',
+        action='store',
+        dest='message',
+        help="Specify the reason for host certificate revocation."
+            ,
+        default=None,
+        metavar='REASON',
+        )
+    parser.add_option(
+        '-V',
+        '--version',
+        action='store_true',
+        dest='version_info',
+        help="Print version information and exit",
+        )
+
+    (args, values) = parser.parse_args()
+    if args.version_info:
+        version_info()
+        raise SystemExit
+
+    if (not args.id):
+        parser.error('-i/--id argument required')
+
+    if not args.message:
+        parser.error('-m/--message argument required, need reason for certificate revocation')
+
+    reqid = args.id
+
+    if args.test:
+        OIM = True
+    else:
+        OIM = False
+
+    arguments = dict()
+    arguments = CreateOIMConfig(OIM, **arguments)
+
+    if args.userprivkey is None:
+        try:
+            userprivkey = os.environ['X509_USER_KEY']
+        except:
+            if os.path.exists(str(os.environ['HOME'])
+                                + '/.globus/userkey.pem'):
+                userprivkey = str(os.environ['HOME']) \
+                    + '/.globus/userkey.pem'
+            else:
+                raise FileNotFoundException('Key file',
+                        'Could not locate the private key file')
+    else:
+        userprivkey = args.userprivkey
+
+    if os.path.exists(userprivkey):
+        pass
+    else:
+        raise FileNotFoundException(userprivkey,
+                                    'Could not locate the private key file'
+                                    )
+    if args.usercert is None:
+        try:
+            usercert = os.environ['X509_USER_CERT']
+        except:
+            usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
+            if os.path.exists(str(os.environ['HOME'])
+                              + '/.globus/usercert.pem'):
+                usercert = str(os.environ['HOME']) \
+                    + '/.globus/usercert.pem'
+            else:
+                raise FileNotFoundException('Certificate File',
+                        'Could not locate the certificate file')
+    else:
+        usercert = args.usercert
+
+    if os.path.exists(usercert):
+        pass
+    else:
+        raise FileNotFoundException(usercert,
+                                    'Could not locate the certificate file'
+                                    )
+
+    arguments.update({'id': reqid})
+    arguments.update({'usercert': usercert})
+    arguments.update({'userprivkey': userprivkey})
+    arguments.update({'message':args.message})
+
+    return arguments
+
+def connect_revoke(**arguments):
+    """This function accepts an ssl_context instance which contains
+    information about the established ssl connection and a dictionary consisting
+    of all parameters and their values,
+    it returns the response from the OIM server for the user request.
+
+    INPUTS:
+        arguments: A dict containing,
+    hostsec     - URL of the OIM server using HTTPS
+    ssl_context - Context for the ssl connection for current session.
+    revurl      - URL for requesting revocation of the host certificate.
+    content_type- Content type for the data to be sent.
+    id          - Request ID for the host certificate.
+    message     - Message to be sent on the OIM server as reason for revocation.
+
+    OUTPUT:
+        Returns nothing, printing if the revocation was successful or not on the terminal.
+    """
+
+    print 'Connecting to server to revoke host certificate...'
+    params = urllib.urlencode({'host_request_id': arguments['id'],
+                               'request_comment':arguments['message']})
+    headers = {'Content-type': arguments['content_type'],
+               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+    conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
+            ssl_context=arguments['ssl_context'])
+    try:
+        conn.request('POST', arguments['revurl'], params, headers)
+        response = conn.getresponse()
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed: %s'
+                           % (arguments['revurl'], repr(e)))
+        raise e
+    except AttributeError, e:
+        raise e
+    check_response_500(response)
+    if not 'OK' in response.reason:
+        raise NotOKException(response.status, response.reason)
+    data = response.read()
+    conn.close()
+
+    if (simplejson.loads(data)['status'] == 'OK'):
+        charlimit_textwrap( "Successfully revoked certificate with request ID %s" %str(arguments['id']))
+    else:
+        charlimit_textwrap("Failure, could not revoke certificate.")
+        charlimit_textwrap(simplejson.loads(data)['detail'])
+        raise SystemExit
+
+
+if __name__ == "__main__":
+    try:
+        arguments = parse_args()
+        ssl_context = get_ssl_context(**arguments)
+        arguments.update({'ssl_context': ssl_context})
+        connect_revoke(**arguments)
+
+    except FileNotFoundException, e:
+        print_exception_message(e)
+
+    except BadCertificateException, e:
+        print_exception_message(e)
+        sys.exit(1)
+    except HandshakeFailureException, e:
+        print_exception_message(e)
+        sys.exit(1)
+    except BadPassphraseException, e:
+        charlimit_textwrap("Invalid passphrase entered, please try running the script again.")
+
+    except KeyError, e:
+        print_exception_message(e)
+        sys.exit(1)
+    except httplib.HTTPException, e:
+        print_exception_message(e)
+        sys.exit(1)
+    except AttributeError, e:
+        print_exception_message(e)
+        sys.exit(1)
+    except NotOKException, e:
+        charlimit_textwrap('Request Failed. Status %s' % e.status)
+        charlimit_textwrap('Reason for failure %s' % e.message)
+        sys.exit(1)
+    except Exception, e:
+        print traceback.print_exc(e)
+        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                           )
+    except UncaughtException, e:
+        print_uncaught_exception()
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except SystemExit, e:
+        raise e
+    sys.exit(0)

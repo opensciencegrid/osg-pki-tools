@@ -1,0 +1,312 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+"""
+This script is used to retrieve certificates. This script requires no
+authentication. It will check the status of the request and request
+issuance of the certificate if needed (i.e. it is in the APPROVED
+state), wait for that issuance to complete, and then retrieve the
+certificate.
+
+Not that between requesting a certificate and retrieving it, it is
+required for a registration authority to approve the certificate
+through the webUI.
+
+This script checks to see if the output file exists and prompts the
+user if it does.
+"""
+
+import urllib
+import httplib
+import sys
+import ConfigParser
+from optparse import OptionParser
+import simplejson
+import time
+import re
+import os
+import textwrap
+import traceback
+import subprocess
+import ssl
+import tempfile
+
+import ConnectAPI
+from osgpkitools import OSGPKIUtils
+from osgpkitools.OSGPKIUtils import charlimit_textwrap
+from osgpkitools.OSGPKIUtils import CreateOIMConfig
+from osgpkitools.OSGPKIUtils import extractEEC
+from osgpkitools.OSGPKIUtils import extractHostname
+from osgpkitools.OSGPKIUtils import check_failed_response
+from osgpkitools.OSGPKIUtils import check_response_500
+from osgpkitools.OSGPKIUtils import print_failure_reason_exit
+from osgpkitools.OSGPKIUtils import check_for_pending
+from osgpkitools.OSGPKIUtils import check_permissions
+from osgpkitools.OSGPKIUtils import version_info
+from osgpkitools.OSGPKIUtils import find_existing_file_count
+from osgpkitools.OSGPKIUtils import handle_empty_exceptions
+from osgpkitools.OSGPKIUtils import print_exception_message
+from osgpkitools.OSGPKIUtils import print_uncaught_exception
+
+from osgpkitools.ExceptionDefinitions import *
+
+
+
+
+# Set up Option Parser
+#
+
+def parse_args():
+    """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout in the script."""
+
+    usage = \
+        'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
+    parser = OptionParser(usage)
+    parser.add_option(
+        '-i',
+        '--id',
+        action='store',
+        dest='id',
+        help='Specify ID# of certificate to be retrieved[Required]',
+        metavar='ID',
+        )
+    parser.add_option(
+        '-o',
+        '--certfile',
+        action='store',
+        dest='certfile',
+        help='Specify the output filename for the retrieved user certificate\n. Default is ./hostcert.pem'
+            ,
+        metavar='ID',
+        default='hostcert.pem',
+        )
+    parser.add_option(
+        '-T',
+        '--test',
+        action='store_true',
+        dest='test',
+        help='Run in test mode',
+        default=False,
+        )
+    parser.add_option(
+        '-t',
+        '--timeout',
+        action='store',
+        dest='timeout',
+        help='Specify the timeout in minutes',
+        default=5,
+        )
+    parser.add_option(
+        '-q',
+        '--quiet',
+        action='store_false',
+        dest='verbose',
+        default=True,
+        help="don't print status messages to stdout",
+        )
+    parser.add_option(
+        '-d',
+        '--directory',
+        action='store',
+        dest='write_directory',
+        default='./',
+        help="Write the output files to this directory",
+        )
+    parser.add_option(
+        '-V',
+        '--version',
+        action='store_true',
+        dest='version_info',
+        help="Print version information and exit",
+        )
+
+    (args, values) = parser.parse_args()
+
+    if args.version_info:
+        version_info()
+        raise SystemExit
+
+    if not args.id:
+        parser.error('-i/--id argument required')
+
+    reqid = args.id
+
+    try:
+        timeout = int(args.timeout)
+        if not timeout >= 0:
+            raise ValidationException('Your timeout value cannot be a negative integer.\nExiting now'
+                    )
+    except ValueError, e:
+        charlimit_textwrap('Invalid timeout value. Please enter a non-negative integer.\n'
+                           )
+        raise e
+    print 'Using timeout of %d minutes' % timeout
+
+    pem_filename = args.certfile
+
+    if args.write_directory:
+        if args.write_directory[-1] != '/':
+            args.write_directory = args.write_directory + '/'
+        certdir = args.write_directory
+
+    else:
+        certdir = "./"
+
+    if args.test:
+        OIM = True
+    else:
+        OIM = False
+
+    filetype = 'hostcert'
+    fileext = 'pkcs7'
+    filename = '%s.%s.%s' % (filetype, reqid, fileext)
+
+    arguments = dict()
+    arguments = CreateOIMConfig(OIM, **arguments)
+    if vars().has_key('args'):
+        arguments.update({'args': args})
+    if vars().has_key('values'):
+        arguments.update({'values': values})
+
+    if vars().has_key('pem_filename'):
+        arguments.update({'pem_filename': pem_filename})
+    if vars().has_key('timeout'):
+        arguments.update({'timeout': timeout})
+
+    arguments.update({'id': reqid})
+    arguments.update({'filetype': filetype})
+    arguments.update({'fileext': fileext})
+    arguments.update({'filename': filename})
+    arguments.update({'certdir':certdir})
+
+    return arguments
+
+
+def write_certificate(pkcs7raw):
+    """Separating the writing logic for user certificate and process the pkcs7raw string."""
+    temp_filename = tempfile.NamedTemporaryFile()
+    cwd = None
+    if (arguments['certdir'] != "./"):
+        cwd = os.getcwd()
+    try:
+        temp_filename.write(pkcs7raw)
+        temp_filename.flush()
+        if cwd != None: #if the variable is set, i.e. the output path is not ./
+            os.chdir(arguments['certdir'])
+        subprocess.call([
+            'openssl',
+            'pkcs7',
+            '-print_certs',
+            '-in',
+            os.path.abspath(temp_filename.name),
+            '-out',
+            arguments['pem_filename'],
+            ])
+        temp_filename.close()
+        certString = open(arguments['pem_filename'], 'rb').read()
+        hostname = extractHostname(certString)
+        extractedEEC = extractEEC(certString, hostname)
+        os.remove(arguments['pem_filename'])
+        fileWrite = open(arguments['pem_filename'], 'wb')
+        fileWrite.write(extractedEEC)
+        os.chmod(arguments['pem_filename'], 0644)
+        if cwd != None:
+            os.chdir(cwd)
+    except OSError, e:
+        charlimit_textwrap('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org.'
+                           )
+        raise e
+    charlimit_textwrap('Certificate written to %s%s \n'
+                       %( arguments['certdir'],arguments['pem_filename']))
+    return
+
+
+if __name__ == '__main__':
+    try:
+        os.umask(0177)
+        arguments = parse_args()
+        path = os.getcwd()
+        check_permissions(path)
+        capi = ConnectAPI.ConnectAPI()
+        print 'Connecting server to retrieve certificate...'
+        pkcs7raw = capi.retrieve_unauthenticated(**arguments)
+        if(os.path.exists(arguments['pem_filename'])):
+            pem_filename = arguments['pem_filename']
+            temp_name = pem_filename.split("/")[-1].split(".")[-2]
+            pem_filename_old = temp_name + "-old.pem"
+            subprocess.call(['mv', pem_filename, pem_filename_old])
+            charlimit_textwrap("Moving existing file %s to %s "
+                               %(arguments['pem_filename'] ,pem_filename_old))
+        new_file_name = find_existing_file_count(arguments['pem_filename'])
+        if new_file_name != arguments['pem_filename']:
+            subprocess.call([
+            'mv',
+            arguments['pem_filename'],
+            new_file_name
+            ])
+            print 'Moving existing file ' + arguments['pem_filename'] + ' to ' + new_file_name
+        write_certificate(pkcs7raw)
+
+    except EOFError, e:
+        print_exception_message(e)
+        sys.exit(1)
+    except SystemExit, e:
+        raise
+    except KeyboardInterrupt, e:
+        print_exception_message(e)
+        sys.exit('''Interrupted by user\n''')
+    except ssl.SSLError, e:
+        print_exception_message(e)
+        sys.exit('Please check for valid certificate.\n')
+    except Exception_500response, e:
+        charlimit_textwrap('Request Failed. Status %s' % e.status)
+        charlimit_textwrap('Reason for failure %s' % e.message)
+        sys.exit(1)
+    except TimeoutException, e:
+        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.'
+                            % e.timeout)
+        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
+                           )
+        sys.exit(1)
+    except FileWriteException, e:
+        charlimit_textwrap(e.message)
+        charlimit_textwrap("The script will exit now\n")
+        sys.exit(1)
+    except FileNotFoundException, e:
+        charlimit_textwrap(e.message + ':' + e.filename)
+        sys.exit(1)
+    except ValueError, e:
+        print_exception_message(e)
+        sys.exit(1)
+    except KeyError, e:
+        print_exception_message(e)
+    except httplib.HTTPException, e:
+        charlimit_textwrap('Connection to %s failed: %s' % (returl, e))
+    except NotOKException, e:
+        charlimit_textwrap('Request Failed. Status %s' % e.status)
+        charlimit_textwrap('Reason for failure %s' % e.message)
+        sys.exit(1)
+    except ValidationException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except InvalidOptionException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except UncaughtException, e:
+        print_uncaught_exception()
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except NotApprovedException, e:
+        charlimit_textwrap(e.message)
+    except OSError, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except UnexpectedBehaviourException, e:
+        charlimit_textwrap(e.message)
+        sys.exit(1)
+    except Exception, e:
+        print_uncaught_exception()
+        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                           )
+        sys.exit(1)
+    sys.exit(0)

@@ -1,0 +1,35 @@
+Test scripts for OSG Command Line Clients.
+
+Prerequisits
+============
+
+Requires scripttest module. To install use:
+
+    pip install scripttest
+
+For python 2.4 and 2.6, it also requires the unittest2 module:
+
+    pip install unittest2
+
+You will need a set of test credentials. The certificate is in
+tests/test-cert.pem and the private key may be obtained from Von Welch
+(vwelch@indiana.edu). The private key must be in tests/test-key.pem
+
+The test credentials are registered in OIM-ITB and have Grid Admin
+rights in the OIM-ITB instance for pki-test.opensciencegrid.org
+
+Test credentials registration in OIM-UTB:
+https://oim-itb.grid.iu.edu/oim/contactedit?id=895
+
+To Run
+======
+
+So that the scripts can be found, the tests must be run from the
+tests/ subdirectory (the directory in which this README sits):
+
+    cd tests/
+    ./do-tests.py
+
+You may also run tests indvidually (which can be significantly faster):
+
+    python GridadminSingleHostRequestTests.py

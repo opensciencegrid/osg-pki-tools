@@ -1,0 +1,130 @@
+
+Testing for Releases
+
+Note that the following tests should be run, at a minimum, on Python 2.4 and
+2.6. See below for details on using the FermiCloud for running 2.4 tests.
+
+These tests are run in a source code checkout prior to making an RPM.
+
+1) Run tests/do-tests.sh which should exit without errors. (Note this runs
+   the full test suite, which will take ~10 minutes.)
+
+2) Do 50 cert bulk issuance test.
+  2a) Clear daily quota for test credential:
+      https://oim-itb.grid.iu.edu/oim/contactedit?id=893
+  2b) tests/do-50-cert-test.sh
+  2c) Clear daily quota for test credential:
+      https://oim-itb.grid.iu.edu/oim/contactedit?id=893
+
+3) cd osgpkitools
+
+
+----
+Test obtaining and revoking a host certificate.
+
+1) Do unauthenticated host certificate request:
+
+% python ./osg-cert-request -T -n "PKI Tester" -p 555-555-5555 -e pkitester@example.com -m "Doing release testing." -t host/test.pki-test.opensciencegrid.org
+
+And note request id number.
+
+2) Approve request.
+
+https://oim-itb.grid.iu.edu/oim/certificatehost?id=<id from request>
+
+3) Retrieve the host certificate:
+
+% python ./osg-cert-retrieve -T -i <id from request>
+
+and check it:
+
+% openssl x509 -in hostcert.pem -noout -text
+
+4) Revoke the newly generated host certificate
+
+% python ./osg-cert-revoke -T -m "Test revocation of test certificate" -i <id from request> -c hostcert.pem -k hostkey.pem
+
+You should see a message similar to the following:
+
+"Sucessfully revoked certificate with request ID 825"
+
+That completes testing of host certificates with the CLI.
+
+----
+Test obtaining, renewing and revoking a user certificate.
+
+NOTE: this requires manual approve by a OSG VO RA and hence will
+take some time.
+
+1) Visit the following URL and request a test certificate (provide some
+   unique CN such as your name followed by "Test" and today's date).
+
+https://oim-itb.grid.iu.edu/oim/certificaterequestuser
+
+Use the OSG VO. You should contact the RAs as listed at the following URL
+and explain you are testing and request approval of the certificate.
+
+https://oim-itb.grid.iu.edu/oim/voedit?id=30
+
+2) Once the request has been approved, retrieve the certificate as a pkcs12
+   file and convert to PEM.
+
+% openssl pkcs12 -in user_certificate_and_key.U715.p12 -out cert.pem -nodes -clcerts -nokeys
+% openssl pkcs12 -in user_certificate_and_key.U715.p12 -out key.pem -nodes -nocerts
+
+3) Now test renewal.
+
+% python osg-user-cert-renew -T -c ./cert.pem -k ./key.pem
+
+You should see a message similar to "Certificate written to ./cert.pem"
+
+4) Now test revocation. Replace <id from request> with the Id from your
+   original request in step 1.
+
+% python osg-user-cert-revoke -T -i <id from request> -m "Testing user certificate revocation" -k ../tests/key.pem -c cert.pem
+
+You should see a message similar to "Successfully revoked user certificate
+with request ID 715"
+
+That completes testing of user certificate renewal and revocation.
+
+----------------------------------------------------------------------
+Testing an RPM Installation
+
+After installing an RPM, e.g.
+
+yum install --enablerepo=osg-development osg-pki-tools
+
+You can run 'tests/do-tests.py -r' to test an RPM install.
+
+This runs the scripts from /usr/bin and doesn't change PYTHONPATH or
+put pki-clients.ini into the test environment (i.e. stuff that the RPM
+install should be handling.)
+
+----------------------------------------------------------------------
+Setting up FermiClound system for testing
+
+Create a VM using tests/OpenNebula/pki-cli-test.one - note you need to
+change /cloud/login/vwelch/OpenNebula/k5login to use the path to your
+home directory.
+
+One the VM:
+
+1) svn checkout https://vdt.cs.wisc.edu/svn/software/osg-cert-scripts-v3/
+
+2) cd trunk/tests
+
+3) sudo OpenNebula/setup-fermi-cloud.sh  # Sets up OSG RPM repos
+
+4) sudo yum install python-pip  # Note installs pip-python instead of pip
+
+3) sudo pip-python install scripttests unittest2  # Needed for testing
+
+4) sudo yum install --enablerepo=osg-development python-simplejson
+
+5) sudo yum install openssl-devel gcc python-devel  # Needed for pyton ssl
+
+6) sudo pip-python install ssl
+
+Now test as above.
+
