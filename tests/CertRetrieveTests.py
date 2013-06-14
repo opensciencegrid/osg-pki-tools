@@ -16,6 +16,16 @@ class CertRetrieveTests(PKIClientTestCase.PKIClientTestCase):
         self.assertTrue("Usage:" in result.stdout or "usage:" in result.stdout,
                         err_msg)
 
+    def test_no_args(self):
+        """Test running without arguments and seeing usage"""
+        env = self.get_test_env()
+        result = self.run_script(env, self.command)
+        err_msg = self.run_error_msg(result)
+        self.assertNotEqual(result.returncode, 0, err_msg)
+        # Python 2.4 optpase prints "usage" instead of "Usage"
+        self.assertTrue("Usage:" in result.stderr or "usage:" in result.stderr,
+                        err_msg)
+
     def test_retrieve(self):
         """Test retrieving a certificate"""
         # 83 is a known good certificate but otherwise arbitrary

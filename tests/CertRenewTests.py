@@ -17,6 +17,11 @@ class CertRetrieveTests(PKIClientTestCase.PKIClientTestCase):
         self.assertTrue("Usage:" in result.stdout or "usage:" in result.stdout,
                         err_msg)
 
+    # No test with no arguments, because this script doesn't require
+    # arguments and it's behavior will be undefined depending on
+    # whether or not it finds a key and certificate in the default
+    # location.
+
 if __name__ == '__main__':
     import unittest
     unittest.main()
