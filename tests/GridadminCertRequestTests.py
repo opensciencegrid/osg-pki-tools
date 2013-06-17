@@ -26,7 +26,9 @@ class GridadminCertRequestTests(PKIClientTestCase.PKIClientTestCase):
         err_msg = self.run_error_msg(result)
         self.assertNotEqual(result.returncode, 0, err_msg)
         # Python 2.4 optpase prints "usage" instead of "Usage"
-        self.assertTrue("Usage:" in result.stderr or "usage:" in result.stderr,
+        # For test on returncode 2, I noticed that the usage comes in stdout instead of stderr.
+        # Hence making changes.
+        self.assertTrue("Usage:" in result.stdout or "usage:" in result.stdout,
                         err_msg)
 
 if __name__ == '__main__':
