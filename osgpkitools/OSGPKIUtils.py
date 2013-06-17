@@ -84,7 +84,6 @@ def print_exception_message(e):
         charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
 
     else:
-        print_uncaught_exception()
         handle_empty_exceptions(e)
 
 def print_uncaught_exception():
@@ -95,10 +94,10 @@ def print_uncaught_exception():
 def handle_empty_exceptions(e):
     """The method handles all empty exceptions and displays a meaningful message and
     traceback for such exceptions."""
-
+    
+    print traceback.format_exc()
     charlimit_textwrap('Encountered exception of type %s' % type(e))
     charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
-    #print traceback.format_exc()
 
 def version_info():
     """ Print the version number and exit"""
