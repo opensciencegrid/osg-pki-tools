@@ -174,7 +174,7 @@ or specify from a file using -f/--hostfile.''')
         if args.hostfile is None:
             raise InsufficientArgumentException("InsufficientArgumentException: \
                                                 Please provide hostname(-H) or file name containing hosts(-f)\n\
-                               Use osg-gridadmin-cert-request -h for help")
+                               Usage: osg-gridadmin-cert-request -h for help")
         else:
             hostfile = args.hostfile
     else:
@@ -710,7 +710,7 @@ if __name__ == '__main__':
         sys.exit(1)
     except InsufficientArgumentException, e:
         print_exception_message(e)
-        sys.exit(1)
+        sys.exit(2) # Fix for returning exit code of 2 as in all the other scripts.
     except Exception, e:
         print_uncaught_exception()
         charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
