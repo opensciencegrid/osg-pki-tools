@@ -11,6 +11,9 @@ class Exception_500response(Exception):
     def __init__(self, status, message):
         self.status = status
         self.message = message
+        
+    def __str__(self):
+        return str(self.message)
 
 class TimeoutException(Exception):
     """ Exception raised for all timeouts
@@ -20,6 +23,9 @@ class TimeoutException(Exception):
         """
     def __init__(self,timeout):
         self.timeout = timeout
+    
+    def __str__(self):
+        return "timeout: " + str(self.timeout)
 
 class FileNotFoundException(Exception):
     """ Exception raised when a file is not found
@@ -31,6 +37,9 @@ class FileNotFoundException(Exception):
     def __init__(self,filename, message):
         self.filename = filename
         self.message = message
+    
+    def __str__(self):
+        return str(self.message)
 
 class NotOKException(Exception):
     """Exception raised when OK string is not found and is expected in response
@@ -42,6 +51,9 @@ class NotOKException(Exception):
     def __init__ (self,status,reason):
         self.status = status
         self.reason = reason
+        
+    def __str__(self):
+        return "OK not found; status: %d; reason: %s" % (self.status, self.reason)
 
 class UnexpectedBehaviourException(Exception):
     """Exception raised when and unexpected behaviour of the CLI script is encountered.
@@ -53,6 +65,9 @@ class UnexpectedBehaviourException(Exception):
         """
     def __init__(self,message):
         self.message = message
+        
+    def __str__(self):
+        return str(self.message)
 
 class CertificateMismatchException(Exception):
     """Exception occurs when the requested number of certificate does not match with the
@@ -68,15 +83,21 @@ class CertificateMismatchException(Exception):
         self.request_um = request_num
         self.retrieve_num - retrieve_num
         self.message = message
+    
+    def __str__(self):
+        return str(self.message)
 
 class BadCertificateException(Exception):
-    """Execption occurs when a certificate is not trusted by the server.
+    """Exception occurs when a certificate is not trusted by the server.
 
     Attributes:
         message -- message to be displayed
         """
     def __init__(self,message):
         self.message = message
+        
+    def __str__(self):
+        return str(self.message)
 
 class BadPassphraseException(Exception):
     """ This Exception occurs when the passphrase entered for the private key file
@@ -87,6 +108,9 @@ class BadPassphraseException(Exception):
         """
     def __init__(self, message):
         self.message = message
+    
+    def __str__(self):
+        return str(self.message)
 
 class HandshakeFailureException(Exception):
     """This exception occurs for a failure for valid key/cert pair
@@ -96,6 +120,9 @@ class HandshakeFailureException(Exception):
         """
     def __init__(self,message):
         self.message = message
+    
+    def __str__(self):
+        return str(self.message)
 
 class UncaughtException(Exception):
     """This exception is called when any uncaught exception occurs
@@ -105,6 +132,9 @@ class UncaughtException(Exception):
 
     def __init__(self,message):
         self.message = message
+    
+    def __str__(self):
+        return str(self.message)
 
 class QuotaException(Exception):
     """This exception occurs when the approval quota of the user is predicted to be exceeded
@@ -115,6 +145,9 @@ class QuotaException(Exception):
 
     def __init__(self,message):
         self.message = message
+    
+    def __str__(self):
+        return str(self.message)
 
 class ValidationException(Exception):
     """Exception occurs when validation fails
@@ -123,6 +156,9 @@ class ValidationException(Exception):
 
     def __init__(self,message):
         self.message = message
+        
+    def __str__(self):
+        return str(self.message)
 
 class InvalidOptionException(Exception):
     """This exception occurs when and invalid option is selected
@@ -132,6 +168,9 @@ class InvalidOptionException(Exception):
 
     def __init__(self,message):
         self.message = message
+        
+    def __str__(self):
+        return str(self.message)
 
 class NotApprovedException(Exception):
     """This exception occurs when the retrieval script tries to retrieve a certificate whose
@@ -142,18 +181,27 @@ class NotApprovedException(Exception):
 
     def __init__(self,message):
         self.message = message
+        
+    def __str__(self):
+        return str(self.message)
 
 class InsufficientArgumentException(Exception):
     """This exception is raised when insufficient number of arguments are passed to a script."""
 
     def __init__(self,message):
         self.message = message
+        
+    def __str__(self):
+        return str(self.message)
 
 class FileWriteException(Exception):
     """This exception is raised when the user does not have permission to write in the current directory"""
 
     def __init__(self, message):
         self.message = message
+        
+    def __str__(self):
+        return str(self.message)
 
 
 
