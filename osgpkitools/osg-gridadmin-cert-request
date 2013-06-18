@@ -709,7 +709,11 @@ if __name__ == '__main__':
         print_exception_message(e)
         sys.exit(1)
     except InsufficientArgumentException, e:
-        print_exception_message(e)
+        # I agree with mat on JIRA Software 1072 on that if a user enters 
+        # the script without options, there is no bug and shouldn't be 
+        # reported to goc. Hence bypassing call to print exception message
+        
+        charlimit_textwrap(e.message)
         sys.exit(2) # Fix for returning exit code of 2 as in all the other scripts.
     except Exception, e:
         print_uncaught_exception()
