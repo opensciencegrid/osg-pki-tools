@@ -21,8 +21,8 @@ import subprocess
 import ssl
 from pprint import pprint
 
-import ConnectAPI
 from osgpkitools import OSGPKIUtils
+from osgpkitools import ConnectAPI
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import check_response_500

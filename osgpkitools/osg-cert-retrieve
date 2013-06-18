@@ -31,8 +31,8 @@ import subprocess
 import ssl
 import tempfile
 
-import ConnectAPI
 from osgpkitools import OSGPKIUtils
+from osgpkitools import ConnectAPI
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import extractEEC
