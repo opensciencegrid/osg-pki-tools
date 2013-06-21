@@ -64,8 +64,8 @@ class ConnectAPI(object):
             raise
         except httplib.HTTPException:
             raise
-        except Exception_500response:
-            raise
+        except Exception_500response, e:
+            raise e("Encountered Http 500 error")
         except Exception, e:
             raise e
         return request_id
@@ -103,8 +103,8 @@ class ConnectAPI(object):
             raise
         except httplib.HTTPException:
             raise
-        except Exception_500response:
-            raise
+        except Exception_500response, e:
+            raise e("Encountered Http 500 error")
         except Exception, e:
             raise e
         return reqid
@@ -154,10 +154,10 @@ class ConnectAPI(object):
             raise
         except httplib.HTTPException, e:
             raise
-        except Exception_500response:
-            raise
-        except NotOKException:
-            raise
+        except Exception_500response, e:
+            raise e("Encountered Http 500 error")
+        except NotOKException, e:
+            raise e
         return simplejson.loads(data)['pkcs7s']
 
     def retrieve_unauthenticated(self, **arguments):
@@ -218,8 +218,8 @@ class ConnectAPI(object):
             raise
         except httplib.HTTPException:
             raise
-        except Exception_500response:
-            raise
+        except Exception_500response, e:
+            raise e("Encountered Http 500 error")
         except Exception,e:
             raise
         return pkcs7raw
@@ -306,8 +306,9 @@ class ConnectAPI(object):
             raise
         except httplib.HTTPException:
             raise
-        except Exception_500response:
-            raise
+        except Exception_500response, e:
+            print e.message
+            raise e("Encountered Http 500 error")
         except NotOKException:
             raise
 
@@ -369,8 +370,8 @@ class ConnectAPI(object):
             connection_Handle.close()
         except httplib.HTTPResponse:
             raise
-        except Exception_500response:
-            raise
+        except Exception_500response , e:
+            raise e("Encountered Http 500 error")
         return response
 if __name__ == '__main__':
     pass
