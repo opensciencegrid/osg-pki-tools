@@ -174,7 +174,7 @@ or specify from a file using -f/--hostfile.''')
         if args.hostfile is None:
             raise InsufficientArgumentException("InsufficientArgumentException: \
                                                 Please provide hostname(-H) or file name containing hosts(-f)\n\
-                               Usage: osg-gridadmin-cert-request -h for help")
+                               ")
         else:
             hostfile = args.hostfile
     else:
@@ -714,6 +714,7 @@ if __name__ == '__main__':
         # reported to goc. Hence bypassing call to print exception message
         
         charlimit_textwrap(e.message)
+        sys.stderr.write("Usage: osg-gridadmin-cert-request -h for help")
         sys.exit(2) # Fix for returning exit code of 2 as in all the other scripts.
     except Exception, e:
         print_uncaught_exception()
