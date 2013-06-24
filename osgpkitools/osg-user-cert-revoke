@@ -258,6 +258,9 @@ if __name__ == "__main__":
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
+    except SystemExit, e: ###Reason for failing test in python2.4 was misplaced handler
+        # for SystemExit
+        raise e
     except Exception, e:
         charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
                            )
@@ -268,6 +271,4 @@ if __name__ == "__main__":
                            )
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except SystemExit, e:
-        raise e
     sys.exit(0)
