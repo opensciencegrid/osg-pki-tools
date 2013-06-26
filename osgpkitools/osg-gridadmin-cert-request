@@ -714,7 +714,7 @@ if __name__ == '__main__':
         # reported to goc. Hence bypassing call to print exception message
         
         charlimit_textwrap(e.message)
-        sys.stderr.write("Usage: osg-gridadmin-cert-request -h for help")
+        sys.stderr.write("Usage: osg-gridadmin-cert-request -h for help \n")
         sys.exit(2) # Fix for returning exit code of 2 as in all the other scripts.
     except Exception, e:
         print_uncaught_exception()

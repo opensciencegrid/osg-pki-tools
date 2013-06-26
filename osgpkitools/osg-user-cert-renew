@@ -25,7 +25,6 @@ import subprocess
 import ssl
 import tempfile
 
-from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import extractHostname
 from osgpkitools.OSGPKIUtils import extractEEC
@@ -38,7 +37,8 @@ from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
-from ExceptionDefinitions import *
+from osgpkitools.ExceptionDefinitions import *
+
 
 
 # Set up Option Parser
