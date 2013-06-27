@@ -14,8 +14,8 @@ setup(
     version = "1.2.1",
     author = "Rohan Mathure",
     author_email = "rmathure@indiana.edu",
-    maintainer = "Viplav Khadke"
-    maintainer_email = "vdkhadke@indiana.edu"
+    maintainer = "Viplav Khadke",
+    maintainer_email = "vdkhadke@indiana.edu",
     description = ("A utility to request and manage certificates."),
     data_files = [('/usr/bin/',['osgpkitools/osg-cert-request', 'osgpkitools/osg-cert-retrieve', 'osgpkitools/osg-gridadmin-cert-request', 'osgpkitools/osg-cert-revoke', 'osgpkitools/osg-user-cert-revoke', 'osgpkitools/osg-user-cert-renew']),
                  ('/etc/osg/',['osgpkitools/pki-clients.ini']),
