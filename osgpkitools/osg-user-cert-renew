@@ -37,6 +37,7 @@ from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
+from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.ExceptionDefinitions import *
 
 
@@ -106,8 +107,19 @@ def parse_args():
         default=True,
         help="don't print status messages to stdout",
         )
+    parser.add_option(
+        '-V',
+        '--version',
+        action='store_true',
+        dest='version_info',
+        help="Print version information and exit",
+        )
     (args, values) = parser.parse_args()
     arguments = dict()
+    
+    if args.version_info:
+        version_info()
+        raise SystemExit
 
     try:
         timeout = int(args.timeout)

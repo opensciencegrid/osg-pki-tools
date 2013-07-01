@@ -1,11 +1,14 @@
 
 Enhancements in version 1.2:
 
+* Renewal tool for User certificates. OSGPKI-310
 * Revocation tool. OSGPKI-231
 * Merged ConnectAPI with trunk. OSGPKI-322
 * Centralizing access to get ssl context to OSGPKIUtils.py
 * Certificates and keys are now always written to file with predictable
 filename with old files renamed. OSGPKI-332
+* Addition of version flag (-V/--version) to specify the version of the scripts.
+OSGPKI-314 
 * Scripts now have -d option to specify output directory. OSGPKI-330
 
 Bug Fixes in version 1.2:
