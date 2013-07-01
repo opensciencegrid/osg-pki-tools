@@ -139,7 +139,7 @@ def check_response_500(response):
     """ This functions handles the 500 error response from the server"""
 
     if response.status == 500:
-        raise Exception_500response(response.status, reponse.reason)
+        raise Exception_500response(response.status, response.reason)
 
 
 def check_failed_response(data):
@@ -260,9 +260,11 @@ def CreateOIMConfig(isITB, **OIMConfig):
         Config.read(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini')
     elif os.path.exists('pki-clients.ini'):
         Config.read('pki-clients.ini')
-    ### Fix for pki-clients.ini not found in etc/osg/
+
+    ### Fix for pki-clients.ini not found in /etc/osg/
     elif os.path.exists('/etc/osg/pki-clients.ini'):
         Config.read('/etc/osg/pki-clients.ini')
+        
     else:
         raise FileNotFoundException('pki-clients.ini',
                                     'Could not locate the file')
