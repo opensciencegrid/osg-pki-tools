@@ -141,7 +141,7 @@ def parse_args():
                 userprivkey = str(os.environ['HOME']) \
                     + '/.globus/userkey.pem'
             else:
-                raise FileNotFoundException('Key file',
+                raise FileNotFoundException(userprivkey,
                         'Could not locate the private key file')
     else:
         userprivkey = args.userprivkey
