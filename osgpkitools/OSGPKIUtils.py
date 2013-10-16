@@ -79,8 +79,8 @@ def print_exception_message(e):
     """
 
     if(str(e) != ""):
-        charlimit_textwrap("Got an exception %s" %str(type(e)))
-        charlimit_textwrap((e.message))
+        charlimit_textwrap("Got an exception %s" % e.__class__.__name__)
+        charlimit_textwrap(e)
         charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
 
     else:
@@ -96,7 +96,7 @@ def handle_empty_exceptions(e):
     traceback for such exceptions."""
     
     print traceback.format_exc()
-    charlimit_textwrap('Encountered exception of type %s' % type(e))
+    charlimit_textwrap('Encountered exception of type %s' % e.__class__.__name__)
     charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
 
 def version_info():
