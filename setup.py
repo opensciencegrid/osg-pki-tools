@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name = "OSGPKITools",
-    version = "1.2.1",
+    version = "1.2.2",
     author = "Rohan Mathure",
     author_email = "rmathure@indiana.edu",
     maintainer = "Viplav Khadke",
@@ -23,7 +23,7 @@ setup(
     packages=['osgpkitools', 'tests'],
     long_description=read('README.txt'),
     classifiers=[
-        "Development Status :: 1.2.1 - Alpha",
+        "Development Status :: 1.2.2 - Alpha",
         "Topic :: Utilities",
         "Programming Language :: Python"
         "Operating System :: POSIX :: Linux"

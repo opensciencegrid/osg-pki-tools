@@ -17,6 +17,7 @@ Bug Fixes in version 1.2:
 * Modifying exception handling to handle exceptions with empty error messages
 OSGPKI-365
 * Improved error message on exceeded quota. OSGPKI-360
+* Improved handling of built-in exceptions SOFTWARE-1183
 
 
 ----------------------------------------------------------------------
