@@ -406,6 +406,12 @@ if __name__ == '__main__':
     except InvalidOptionException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
+    except IOError, e:
+        if e.errno == 2:
+            charlimit_textwrap(e)
+        else:
+            print_exception_message(e)
+        sys.exit(1)
     except Exception, e:
         print_exception_message(e)
         sys.exit(1)
