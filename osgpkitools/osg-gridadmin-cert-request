@@ -588,6 +588,8 @@ def process_hostfile_mode(**arguments):
         raise QuotaException('Your request would exceed your quota. Aborting'
                              )
     for line in hosts:
+        if re.match('\s*$', line):
+            continue
         line = line.strip(' \n')
         if count == 0:
                 temp_file = find_existing_file_count(line)
