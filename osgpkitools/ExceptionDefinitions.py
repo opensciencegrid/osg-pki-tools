@@ -80,7 +80,7 @@ class CertificateMismatchException(Exception):
     """
 
     def __init__(self, request_num, retrieve_num, message):
-        self.request_um = request_num
+        self.request_num = request_num
         self.retrieve_num - retrieve_num
         self.message = message
     
