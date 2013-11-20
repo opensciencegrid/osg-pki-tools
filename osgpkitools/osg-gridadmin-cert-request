@@ -673,7 +673,7 @@ if __name__ == '__main__':
         sys.exit(1)
     except NotOKException, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
-        charlimit_textwrap('Reason for failure %s' % e.message)
+        charlimit_textwrap('Reason for failure %s' % e.reason)
         sys.exit(1)
     except CertificateMismatchException, e:
         print 'The number of requests made was ', e.request_num
@@ -684,12 +684,6 @@ if __name__ == '__main__':
         print_exception_message(e)
         sys.exit(1)
     except BadCertificateException, e:
-        charlimit_textwrap(e.message)
-        sys.exit(1)
-    except Exception_500response, e:
-        charlimit_textwrap(e.message)
-        sys.exit(1)
-    except NotOKException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
     except BadPassphraseException, e:

@@ -65,7 +65,7 @@ class ConnectAPI(object):
         except httplib.HTTPException:
             raise
         except Exception_500response, e:
-            raise e("Encountered Http 500 error")
+            raise e
         except Exception, e:
             raise e
         return request_id
@@ -104,7 +104,7 @@ class ConnectAPI(object):
         except httplib.HTTPException:
             raise
         except Exception_500response, e:
-            raise e("Encountered Http 500 error")
+            raise e
         except Exception, e:
             raise e
         return reqid
@@ -155,7 +155,7 @@ class ConnectAPI(object):
         except httplib.HTTPException, e:
             raise
         except Exception_500response, e:
-            raise e("Encountered Http 500 error")
+            raise e
         except NotOKException, e:
             raise e
         return simplejson.loads(data)['pkcs7s']
@@ -219,7 +219,7 @@ class ConnectAPI(object):
         except httplib.HTTPException:
             raise
         except Exception_500response, e:
-            raise e("Encountered Http 500 error")
+            raise e
         except Exception,e:
             raise
         return pkcs7raw
@@ -308,7 +308,7 @@ class ConnectAPI(object):
             raise
         except Exception_500response, e:
             print e.message
-            raise e("Encountered Http 500 error")
+            raise e
         except NotOKException:
             raise
 
@@ -371,7 +371,7 @@ class ConnectAPI(object):
         except httplib.HTTPResponse:
             raise
         except Exception_500response , e:
-            raise e("Encountered Http 500 error")
+            raise e
         return response
 if __name__ == '__main__':
     pass
