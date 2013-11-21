@@ -673,7 +673,7 @@ if __name__ == '__main__':
         sys.exit(1)
     except NotOKException, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
-        charlimit_textwrap('Reason for failure %s' % e.reason)
+        charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
     except CertificateMismatchException, e:
         print 'The number of requests made was ', e.request_num

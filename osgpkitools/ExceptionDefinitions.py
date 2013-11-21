@@ -46,11 +46,11 @@ class NotOKException(Exception):
 
     Attributes:
         status -- Status of the response
-        reason -- reason of the failure reponse
+        message -- message of the failure reponse
         """
-    def __init__ (self,status,reason):
+    def __init__ (self,status,message):
         self.status = status
-        self.reason = reason
+        self.message = message
         
     def __str__(self):
         return "OK not found; status: %d; reason: %s" % (self.status, self.reason)
