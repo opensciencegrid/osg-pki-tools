@@ -125,6 +125,17 @@ or specify from a file using -f/--hostfile.''')
         default=None,
         )
     parser.add_option(
+        '-y',
+        '--cc',
+        action='store',
+        dest='cc_list',
+        help='Specify the CC list(the email id\'s to be CCed). \
+             Separate values by \',\''
+            ,
+        metavar='CC List',
+        default='',
+        )
+    parser.add_option(
         '-T',
         '--test',
         action='store_true',
@@ -252,6 +263,7 @@ or specify from a file using -f/--hostfile.''')
 
     arguments.update({'vo' : args.vo})
     arguments.update({'mode': OIM})
+    arguments.update({'cc_list': args.cc_list})
     arguments = CreateOIMConfig(OIM, **arguments)
     if vars().has_key('args'):
         arguments.update({'args': args})
