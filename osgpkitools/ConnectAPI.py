@@ -83,7 +83,11 @@ class ConnectAPI(object):
         OUTPUT:  'reqid' - Request ID for current Certificate request.
         """
         try:
-            params = urllib.urlencode({'csrs': bulk_csr}, doseq=True)
+            if arguments['vo']:
+                params = urllib.urlencode({'csrs': bulk_csr,'vo': arguments['vo']}, doseq=True)
+            else:
+                params = urllib.urlencode({'csrs': bulk_csr}, doseq=True)
+                
             headers = {'Content-type': arguments['content_type'],
                        'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
             conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
