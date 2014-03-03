@@ -81,7 +81,7 @@ class CertificateMismatchException(Exception):
 
     def __init__(self, request_num, retrieve_num, message):
         self.request_num = request_num
-        self.retrieve_num - retrieve_num
+        self.retrieve_num = retrieve_num
         self.message = message
     
     def __str__(self):
