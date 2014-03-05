@@ -228,9 +228,12 @@ def connect_renew(**arguments):
                    'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
         conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
                                                  ssl_context=arguments['ssl_context'])
-        try:
+        try:           
             conn.request('POST', arguments['renewurl'], params, headers)
-            arguments['ssl_session'] = conn.get_session()
+            try:
+                arguments['ssl_session'] = conn.get_session()
+            except AttributeError:
+                arguments['ssl_session'] = conn.sock.get_session()
             response = conn.getresponse()
         except httplib.HTTPException, e:
             charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
@@ -289,7 +292,10 @@ def connect_retrieve(**arguments):
     conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
                                              ssl_context=arguments['ssl_context'])
     try:
-        conn.set_session(arguments['ssl_session'])
+        try:
+            conn.set_session(arguments['ssl_session'])
+        except AttributeError:
+            conn.session = arguments['ssl_session']
         conn.request('POST', arguments['userreturl'], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
@@ -308,7 +314,10 @@ def connect_retrieve(**arguments):
     while 'PENDING' in json:
         conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
                                                  ssl_context=arguments['ssl_context']) # we have to reconnect
-        conn.set_session(arguments['ssl_session'])
+        try:
+            conn.set_session(arguments['ssl_session'])
+        except AttributeError:
+            conn.session = arguments['ssl_session']
         conn.request('POST', arguments['userreturl'], params, headers)
         try:
             response = conn.getresponse()
