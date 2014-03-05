@@ -11,11 +11,11 @@ def read(fname):
 
 setup(
     name = "OSGPKITools",
-    version = "1.2.4",
+    version = "1.2.7",
     author = "Rohan Mathure",
     author_email = "rmathure@indiana.edu",
-    maintainer = "Viplav Khadke",
-    maintainer_email = "vdkhadke@indiana.edu",
+    maintainer = "Brian Lin",
+    maintainer_email = "blin@cs.wisc.edu",
     description = ("A utility to request and manage certificates."),
     data_files = [('/usr/bin/',['osgpkitools/osg-cert-request', 'osgpkitools/osg-cert-retrieve', 'osgpkitools/osg-gridadmin-cert-request', 'osgpkitools/osg-cert-revoke', 'osgpkitools/osg-user-cert-revoke', 'osgpkitools/osg-user-cert-renew']),
                  ('/etc/osg/',['osgpkitools/pki-clients.ini']),
@@ -23,7 +23,7 @@ setup(
     packages=['osgpkitools', 'tests'],
     long_description=read('README.txt'),
     classifiers=[
-        "Development Status :: 1.2.4 - Alpha",
+        "Development Status :: 1.2.7",
         "Topic :: Utilities",
         "Programming Language :: Python"
         "Operating System :: POSIX :: Linux"

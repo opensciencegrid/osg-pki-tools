@@ -10,6 +10,8 @@ filename with old files renamed. OSGPKI-332
 * Addition of version flag (-V/--version) to specify the version of the scripts.
 OSGPKI-314 
 * Scripts now have -d option to specify output directory. OSGPKI-330
+* Renew now grabs PKCS12 files from OIM. SOFTWARE-1229
+* Can add CC's in cert request SOFTWARE-1318
 
 Bug Fixes in version 1.2:
 * Adding check for Write access. OSGPKI-324
@@ -18,7 +20,7 @@ Bug Fixes in version 1.2:
 OSGPKI-365
 * Improved error message on exceeded quota. OSGPKI-360
 * Improved handling of built-in exceptions SOFTWARE-1183
-
+* Fix VO option when requesting a new cert. SOFTWARE-1386
 
 ----------------------------------------------------------------------
 Enhancements in version 1.1:
