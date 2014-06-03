@@ -40,14 +40,17 @@ class ConnectAPI(object):
         OUTPUT: request_id - Request ID for current Certificate request.
         """
         try:
-            params = urllib.urlencode({
+            params_list = {
                 'name': arguments['name'],
                 'email': arguments['email'],
                 'phone': arguments['phone'],
                 'csrs': arguments['csr'],
                 'request_comment': arguments['comment'],
                 'request_ccs': arguments['cc_list'].split(','),
-                })
+                }
+            if 'vo' in arguments:
+                params_list['vo'] = arguments['vo']
+            params = urllib.urlencode(params_list)
             headers = {'Content-type': arguments['content_type'],
                        'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
             conn = httplib.HTTPConnection(arguments['host'])

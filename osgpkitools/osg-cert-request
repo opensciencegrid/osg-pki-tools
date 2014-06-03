@@ -259,15 +259,16 @@ def connect(arguments):
     It submits the request to the OIM server and returns the request details."""
 
     print '\nConnecting to server...'
-    params = urllib.urlencode({
-        'name': arguments['name'],
+    params_list = {'name': arguments['name'],
         'email': arguments['email'],
         'phone': arguments['phone'],
         'csrs': arguments['csr'],
         'request_comment': arguments['comment'],
         'request_ccs': arguments['cc_list'].split(','),
-        'vo' : arguments['vo'],
-        })
+        }
+    if 'vo' in arguments:
+        params_list['vo'] = arguments['vo']
+    params = urllib.urlencode(params_list)
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
     conn = httplib.HTTPConnection(arguments['host'])
