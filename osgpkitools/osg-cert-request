@@ -100,6 +100,7 @@ def parse_args():
         dest='hostname',
         help='Specify hostname for CSR (FQDN)',
         metavar='CN',
+        default=None
         )
     parser.add_option(
         '-e',
@@ -169,10 +170,9 @@ def parse_args():
         parser.error('-n/--name argument required')
     if not args.email:
         parser.error('-e/--email argument required')
-    if not args.hostname:
-        parser.error('-t/--hostname argument required')
+    if not args.hostname and not args.csr:
+        parser.error('-t/--hostname or -c/--csr argument required')
 
-                        # , config_items
     if args.csr is None:
         if os.path.exists(args.keyfile):
             pem_filename = args.keyfile
@@ -300,9 +300,6 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-        config_items = {'CN': arguments['hostname'],
-                        'emailAddress': arguments['email']}
-
         # The two modes in which the script is run are
         # 1. The user doesn't provide a csr:
         # Here we generate a private key for the user and also a
@@ -313,6 +310,9 @@ if __name__ == '__main__':
         # lines of the csr and submit the request to the OIM
         cwd = None
         if arguments['csr'] is None:
+            config_items = {'CN': arguments['hostname'],
+                            'emailAddress': arguments['email']}
+
             if (arguments['certdir'] != "./"):
                 cwd = os.getcwd()
 
