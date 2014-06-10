@@ -60,16 +60,8 @@ def parse_args():
     """This function parses all the arguments, validates them and then stores them in a dictionary that is used throughout in the script."""
 
     usage = \
-        'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
+        'usage: %prog [options] <Request ID>\nUsage: %prog -h/--help [for detailed explanations of options]'
     parser = OptionParser(usage)
-    parser.add_option(
-        '-i',
-        '--id',
-        action='store',
-        dest='id',
-        help='Specify ID# of certificate to be retrieved[Required]',
-        metavar='ID',
-        )
     parser.add_option(
         '-o',
         '--certfile',
@@ -119,6 +111,15 @@ def parse_args():
         dest='version_info',
         help="Print version information and exit",
         )
+    parser.add_option(
+        '-i',
+        '--id',
+        action='store_true',
+        dest='id',
+        help='Specify ID# of certificate to be retrieved [deprecated]',
+        metavar='ID',
+        default=False
+        )
 
     (args, values) = parser.parse_args()
 
@@ -126,10 +127,19 @@ def parse_args():
         version_info()
         raise SystemExit
 
-    if not args.id:
-        parser.error('-i/--id argument required')
-
-    reqid = args.id
+    num_args = len(values)
+    if num_args == 1:
+        reqid = values[0]
+        try:
+            int(reqid)
+        except ValueError:
+            parser.error('Expecting Request ID to be an integer, instead got: ' + reqid)
+    else:
+        parser.error("Wrong number of arguments (%s of 1): %s"
+                     % (num_args, ', '.join(str(value) for value in values)))
+    
+    if args.id:
+        charlimit_textwrap("The '-i' flag is deprecated and no longer needed when specifying a request ID.")
 
     try:
         timeout = int(args.timeout)
