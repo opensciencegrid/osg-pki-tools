@@ -1,22 +1,18 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
 
 import sys
 import urllib
 import httplib
-import optparse
 import M2Crypto
 import simplejson
 import traceback
-import getpass
 import os
-from pprint import pprint
 from optparse import OptionParser
 
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
-from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
-from osgpkitools.OSGPKIUtils import print_uncaught_exception
+from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import get_ssl_context
 from osgpkitools.OSGPKIUtils import version_info
@@ -30,13 +26,29 @@ def parse_args():
         'usage: %prog [options] <Request ID> <message>\nUsage: %prog -h/--help [for detailed explanations of options]'
     parser = OptionParser(usage)
     parser.add_option(
+        '-n',
+        '--certid',
+        action='store_true',
+        dest='certid',
+        help='Treat the ID argument as the serial ID# for the certificate to be revoked',
+        metavar='Certificate ID',
+        default=False
+        )
+    parser.add_option(
+        '-u',
+        '--user',
+        action='store_true',
+        dest='user',
+        help='Certificate to be revoked is a user certificate. Redundant when using `osg-user-cert-revoke`.',
+        default=False
+        )
+    parser.add_option(
         '-k',
         '--pkey',
         action='store',
         dest='userprivkey',
-        help="Specify Requestor's private key (PEM Format).\n If not specified\
-             will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
-            ,
+        help="Specify Requestor's private key (PEM Format). If not specified, " \
+             "this takes the value of X509_USER_KEY or $HOME/.globus/userkey.pem",
         metavar='PKEY',
         default=None,
         )
@@ -45,9 +57,8 @@ def parse_args():
         '--cert',
         action='store',
         dest='usercert',
-        help="Specify Requestor's certificate (PEM Format).\n If not specified\
-             will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
-            ,
+        help="Specify Requestor's certificate (PEM Format). If not specified, " \
+             "this takes the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
         default=None,
         metavar='CERT',
         )
@@ -79,7 +90,7 @@ def parse_args():
         '--message',
         action='store',
         dest='message',
-        help="Specify the reason for host certificate revocation. [deprecated]"
+        help="Specify the reason for certificate revocation [deprecated]"
             ,
         default=None,
         metavar='REASON',
@@ -107,23 +118,23 @@ def parse_args():
         
     # Get command line arguments
     num_args = len(values)
-    if num_args < 1 or num_args > 2:
-        parser.error("Wrong number of arguments (%s of 2): %s"
-                     % (num_args, ', '.join(str(value) for value in values)))
-    else:
-        # verify format of request ID
+    if num_args >= 1 and num_args <= 2:
+        # Since the ID flag is a boolean, the number of arguments should be at least 1 and at most 2.
         reqid = values[0]
         try:
-            int(reqid)
-        except ValueError:
-            parser.error('Expecting Request ID to be an integer, instead got: ' + reqid)
-
-        try:
             args.message = values[1]
-        except IndexError: # missing second argument
+        except IndexError: # Missing second argument
             if not args.message:
                 parser.error("Wrong number of arguments (%s of 2): %s"
                              % (num_args, ', '.join(str(value) for value in values)))
+    else:
+        if args.message:
+            parser.error("Wrong number of arguments (%s of 1): %s"
+                         % (num_args, ', '.join(str(value) for value in values)))
+        else:
+            parser.error("Wrong number of arguments (%s of 2): %s"
+                         % (num_args, ', '.join(str(value) for value in values)))
+
     if args.test:
         OIM = True
     else:
@@ -149,9 +160,7 @@ def parse_args():
     if os.path.exists(userprivkey):
         pass
     else:
-        raise FileNotFoundException(userprivkey,
-                                    'Could not locate the private key file'
-                                    )
+        raise FileNotFoundException(userprivkey, 'Could not locate the private key file')
     if args.usercert is None:
         try:
             usercert = os.environ['X509_USER_CERT']
@@ -170,14 +179,14 @@ def parse_args():
     if os.path.exists(usercert):
         pass
     else:
-        raise FileNotFoundException(usercert,
-                                    'Could not locate the certificate file'
-                                    )
+        raise FileNotFoundException(usercert, 'Could not locate the certificate file')
 
+    arguments.update({'certid': args.certid})    
     arguments.update({'id': reqid})
+    arguments.update({'message': args.message})
+    arguments.update({'user': args.user})
     arguments.update({'usercert': usercert})
     arguments.update({'userprivkey': userprivkey})
-    arguments.update({'message': args.message})
 
     return arguments
 
@@ -187,32 +196,59 @@ def connect_revoke(**arguments):
     of all parameters and their values,
     it returns the response from the OIM server for the user request.
 
-    INPUTS:
-        arguments: A dict containing,
-    hostsec     - URL of the OIM server using HTTPS
-    ssl_context - Context for the ssl connection for current session.
-    revurl      - URL for requesting revocation of the host certificate.
-    content_type- Content type for the data to be sent.
-    id          - Request ID for the host certificate.
-    message     - Message to be sent on the OIM server as reason for revocation.
+    HOST REVOCATION INPUTS:
+    Arguments: A dict containing,
+        hostsec      - URL of the OIM server using HTTPS
+        ssl_context  - Context for the ssl connection for current session.
+        revurl       - URL for requesting revocation of the host certificate.
+        content_type - Content type for the data to be sent.
+        id           - Request ID for the host certificate.
+        message      - Message to be sent on the OIM server as reason for revocation.
+
+    USER REVOCATION INPUTS:
+    Arguments: A dict containing
+        hostsec      - URL of the OIM server using HTTPS
+        ssl_context  - Context for the ssl connection for current session.
+        userrevurl   - URL for requesting revocation of the host certificate.
+        content_type - Content type for the data to be sent.
+        id           - Request ID for the host certificate.
+        message      - Message to be sent on the OIM server as reason for revocation.
 
     OUTPUT:
         Returns nothing, printing if the revocation was successful or not on the terminal.
     """
-
-    print 'Connecting to server to revoke host certificate...'
-    params = urllib.urlencode({'host_request_id': arguments['id'],
+    
+    revoke_text = {}
+    if arguments['user']:
+        id_type = 'user_request_id'
+        url = 'userrevurl'
+        revoke_text = {'cert_type': 'user'}
+    else:
+        id_type = 'host_request_id'
+        url = 'revurl'
+        revoke_text = {'cert_type': 'host'}
+        
+    if arguments['certid']:
+        id_type = 'serial_id'
+        revoke_text['id_type'] = 'certificate'
+    else:
+        revoke_text['id_type'] = 'request'
+        
+    params = urllib.urlencode({id_type: arguments['id'],
                                'request_comment':arguments['message']})
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
+
+    charlimit_textwrap('Contacting Server to revoke the %s certificate \n' % revoke_text['cert_type'])
+    
     conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
-            ssl_context=arguments['ssl_context'])
+                                             ssl_context=arguments['ssl_context'])
     try:
-        conn.request('POST', arguments['revurl'], params, headers)
+        conn.request('POST', arguments[url], params, headers)
         response = conn.getresponse()
     except httplib.HTTPException, e:
         charlimit_textwrap('Connection to %s failed: %s'
-                           % (arguments['revurl'], repr(e)))
+                           % (arguments[url], repr(e)))
         raise e
     except AttributeError, e:
         raise e
@@ -223,12 +259,12 @@ def connect_revoke(**arguments):
     conn.close()
 
     if (simplejson.loads(data)['status'] == 'OK'):
-        charlimit_textwrap( "Successfully revoked certificate with request ID %s" %str(arguments['id']))
+            charlimit_textwrap("Successfully revoked %s certificate with %s ID: %s" %
+                               (revoke_text['cert_type'], revoke_text['id_type'], str(arguments['id'])))
     else:
         charlimit_textwrap("Failure, could not revoke certificate.")
         charlimit_textwrap(simplejson.loads(data)['detail'])
         raise SystemExit
-
 
 if __name__ == "__main__":
     try:
@@ -248,7 +284,7 @@ if __name__ == "__main__":
         sys.exit(1)
     except BadPassphraseException, e:
         charlimit_textwrap("Invalid passphrase entered, please try running the script again.")
-
+        sys.exit(1)
     except KeyError, e:
         print_exception_message(e)
         sys.exit(1)
@@ -267,8 +303,7 @@ if __name__ == "__main__":
         raise e
     except Exception, e:
         print traceback.print_exc(e)
-        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
-                           )
+        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
     except UncaughtException, e:
         print traceback.print_exc(e)
         charlimit_textwrap(e.message)
