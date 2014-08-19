@@ -12,6 +12,7 @@ OSGPKI-314
 * Scripts now have -d option to specify output directory. OSGPKI-330
 * Renew now grabs PKCS12 files from OIM. SOFTWARE-1229
 * Can add CC's in cert request SOFTWARE-1318
+* Add ability to revoke specific certificates by serial ID SOFTWARE-1494
 
 Bug Fixes in version 1.2:
 * Adding check for Write access. OSGPKI-324
