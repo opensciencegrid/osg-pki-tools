@@ -44,7 +44,6 @@ from osgpkitools.OSGPKIUtils import extractEEC
 from osgpkitools.OSGPKIUtils import get_request_count
 from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import check_failed_response
-from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import check_for_pending
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import check_permissions
@@ -179,7 +178,7 @@ or specify from a file using -f/--hostfile.''')
 
     if args.version_info:
         version_info()
-        raise SystemExit
+        sys.exit(0)
 
     if not args.hostname:
         if args.hostfile is None:
@@ -452,7 +451,7 @@ def check_quota_limit(request_count, arguments):
                  % e)
         else:
             print e.__class__.__name__
-            raise UncaughtException, e
+            raise
     check_response_500(response)
     data = response.read()
     if not 'PENDING' in response.reason:
@@ -519,7 +518,7 @@ def process_csr(num_requests, bulk_csr, **arguments):
                                           Your certificate is not trusted by the server'
                      % e)
         else:
-            raise UncaughtException , e
+            raise
 
     print 'Id is:', reqid
     arguments.update({'reqid':reqid})
@@ -550,7 +549,7 @@ def process_csr(num_requests, bulk_csr, **arguments):
                                           Your certificate is not trusted by the server'
                      % e)
         else:
-            raise UncaughtException, e
+            raise
     return
 
 def process_single_host_mode(**arguments):
@@ -647,6 +646,8 @@ if __name__ == '__main__':
         print_exception_message(e)
         sys.exit(1)
     except SystemExit, e:
+        # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
+        # print a confusing message for the user (SOFTWARE-1584)
         raise e
     except ssl.SSLError, e:
         print_exception_message(e)
@@ -706,9 +707,6 @@ if __name__ == '__main__':
         sys.exit(1)
     except QuotaException, e:
         charlimit_textwrap(e.message)
-        sys.exit(1)
-    except UncaughtException, e:
-        print_exception_message(e)
         sys.exit(1)
     except M2Crypto.SSL.SSLError, e:
         print_exception_message(e)

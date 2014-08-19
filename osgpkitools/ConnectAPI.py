@@ -148,7 +148,6 @@ class ConnectAPI(object):
             if not 'PENDING' in response.reason:
                 if not 'OK' in response.reason:
                     raise NotOKException(simplejson.loads(data)['status'],simplejson.loads(data)['detail'].lstrip())
-                    raise SystemExit
 
             iterations = 0
             while 'PENDING' in data:
@@ -161,12 +160,12 @@ class ConnectAPI(object):
 
         except KeyError, e:
             raise
-        except httplib.HTTPException, e:
+        except httplib.HTTPException:
             raise
-        except Exception_500response, e:
-            raise e
-        except NotOKException, e:
-            raise e
+        except Exception_500response:
+            raise
+        except NotOKException:
+            raise
         return simplejson.loads(data)['pkcs7s']
 
     def retrieve_unauthenticated(self, **arguments):
@@ -261,7 +260,6 @@ class ConnectAPI(object):
             conn.close()
             if not 'OK' in data:
                 raise NotOKException('Failed',simplejson.loads(data)['detail'])
-                raise SystemExit
         except KeyError, e:
             raise
         except httplib.HTTPException, e:

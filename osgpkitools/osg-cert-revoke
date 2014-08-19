@@ -108,7 +108,7 @@ def parse_args():
     (args, values) = parser.parse_args()
     if args.version_info:
         version_info()
-        raise SystemExit
+        sys.exit(0)
 
     # Print deprecation messages
     if args.id:
@@ -264,7 +264,7 @@ def connect_revoke(**arguments):
     else:
         charlimit_textwrap("Failure, could not revoke certificate.")
         charlimit_textwrap(simplejson.loads(data)['detail'])
-        raise SystemExit
+        sys.exit(1)
 
 if __name__ == "__main__":
     try:
@@ -298,14 +298,11 @@ if __name__ == "__main__":
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
-    except SystemExit, e: ###Reason for failure on the test suites was the misplaced
-        # handler for SystemExit exception
-        raise e
+    except SystemExit: 
+        # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
+        # print a confusing message for the user (SOFTWARE-1584)
+        raise
     except Exception, e:
         print traceback.print_exc(e)
         charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
-    except UncaughtException, e:
-        print traceback.print_exc(e)
-        charlimit_textwrap(e.message)
-        sys.exit(1)
     sys.exit(0)

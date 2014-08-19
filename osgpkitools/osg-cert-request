@@ -162,7 +162,7 @@ def parse_args():
     #print version info and exit.
     if args.version_info:
         version_info()
-        raise SystemExit
+        sys.exit(0)
 
     if not args.phone:
         parser.error('-p/--phone argument required')
@@ -349,6 +349,8 @@ if __name__ == '__main__':
         print_exception_message(e)
         sys.exit('''Interrupted by user\n''')
     except SystemExit, e:
+        # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
+        # print a confusing message for the user (SOFTWARE-1584)
         raise
     except ssl.SSLError, e:
         print_exception_message(e)
@@ -395,10 +397,6 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message)
         sys.exit(1)
     except HandshakeFailureException, e:
-        charlimit_textwrap(e.message)
-        sys.exit(1)
-    except UncaughtException, e:
-        print_uncaught_exception()
         charlimit_textwrap(e.message)
         sys.exit(1)
     except UnexpectedBehaviourException, e:

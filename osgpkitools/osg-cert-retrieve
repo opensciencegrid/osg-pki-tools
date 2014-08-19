@@ -125,7 +125,7 @@ def parse_args():
 
     if args.version_info:
         version_info()
-        raise SystemExit
+        sys.exit(0)
 
     num_args = len(values)
     if num_args == 1:
@@ -261,6 +261,8 @@ if __name__ == '__main__':
         print_exception_message(e)
         sys.exit(1)
     except SystemExit, e:
+        # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
+        # print a confusing message for the user (SOFTWARE-1584)
         raise
     except KeyboardInterrupt, e:
         print_exception_message(e)
@@ -300,10 +302,6 @@ if __name__ == '__main__':
         charlimit_textwrap(e.message)
         sys.exit(1)
     except InvalidOptionException, e:
-        charlimit_textwrap(e.message)
-        sys.exit(1)
-    except UncaughtException, e:
-        print_uncaught_exception()
         charlimit_textwrap(e.message)
         sys.exit(1)
     except NotApprovedException, e:
