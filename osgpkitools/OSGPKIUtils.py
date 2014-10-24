@@ -5,7 +5,7 @@
 # vim: ts=4 sw=4 nowrap
 #
 
-import M2Crypto
+from M2Crypto import SSL, m2, RSA, EVP, X509
 import base64
 import ConfigParser
 import os
@@ -49,7 +49,8 @@ def get_ssl_context(**arguments):
                 return getpass.getpass(pass_str+" '%s':"
                                        % arguments['userprivkey'])
 
-            ssl_context = M2Crypto.SSL.Context('sslv3')
+            ssl_context = SSL.Context()
+            ssl_context.set_options(m2.SSL_OP_NO_SSLv2 | m2.SSL_OP_NO_SSLv3)
             ssl_context.load_cert_chain(arguments['usercert'],
                                         arguments['userprivkey'],
                                         callback=prompt_for_password)
@@ -310,12 +311,12 @@ class Cert:
         """This function accepts the filename of the key file to write to.
 ........It write the private key to the specified file name without ciphering it."""
 
-        self.KeyPair = M2Crypto.RSA.gen_key(self.RsaKey['KeyLength'],
+        self.KeyPair = RSA.gen_key(self.RsaKey['KeyLength'],
                 self.RsaKey['PubExponent'],
                 self.RsaKey['keygen_callback'])
-        PubKey = M2Crypto.RSA.new_pub_key(self.KeyPair.pub())
+        PubKey = RSA.new_pub_key(self.KeyPair.pub())
         self.KeyPair.save_key(filename, cipher=None)
-        self.PKey = M2Crypto.EVP.PKey(md='sha1')
+        self.PKey = EVP.PKey(md='sha1')
         self.PKey.assign_rsa(self.KeyPair)
         return
 
@@ -328,13 +329,13 @@ class Cert:
         # X509 REQUEST
         #
 
-        self.X509Request = M2Crypto.X509.Request()
+        self.X509Request = X509.Request()
 
         #
         # subject
         #
 
-        X509Name = M2Crypto.X509.X509_Name()
+        X509Name = X509.X509_Name()
 
         X509Name.add_entry_by_txt(  # common name
             field='CN',
