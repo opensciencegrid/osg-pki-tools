@@ -25,7 +25,7 @@ MBSTRING_ASC = MBSTRING_FLAG | 1
 MBSTRING_BMP = MBSTRING_FLAG | 2
 
 # The variable for storing version number for the scripts
-Version_Number = "1.2.10"
+Version_Number = "1.2.11"
 
 
 def get_ssl_context(**arguments):
