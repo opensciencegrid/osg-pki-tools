@@ -50,7 +50,7 @@ def parse_args():
     in a dictionary that is used throughout the script."""
 
     usage = \
-        'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
+        'usage: %prog [options]\nUsage:%prog -h/--help [for detailed explanations of options]'
     parser = OptionParser(usage)
     parser.add_option(
         '-k',
