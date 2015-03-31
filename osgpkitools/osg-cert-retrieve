@@ -28,7 +28,7 @@ import os
 import textwrap
 import traceback
 import subprocess
-import ssl
+from ssl import SSLError
 import tempfile
 
 from osgpkitools import OSGPKIUtils
@@ -267,7 +267,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt, e:
         print_exception_message(e)
         sys.exit('''Interrupted by user\n''')
-    except ssl.SSLError, e:
+    except SSLError, e:
         print_exception_message(e)
         sys.exit('Please check for valid certificate.\n')
     except Exception_500response, e:

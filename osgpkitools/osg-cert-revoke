@@ -135,13 +135,8 @@ def parse_args():
             parser.error("Wrong number of arguments (%s of 2): %s"
                          % (num_args, ', '.join(str(value) for value in values)))
 
-    if args.test:
-        OIM = True
-    else:
-        OIM = False
-
     arguments = dict()
-    arguments = CreateOIMConfig(OIM, **arguments)
+    arguments = CreateOIMConfig(args.test, **arguments)
 
     if args.userprivkey is None:
         try:
@@ -157,9 +152,7 @@ def parse_args():
     else:
         userprivkey = args.userprivkey
 
-    if os.path.exists(userprivkey):
-        pass
-    else:
+    if not os.path.exists(userprivkey):
         raise FileNotFoundException(userprivkey, 'Could not locate the private key file')
     if args.usercert is None:
         try:
@@ -176,9 +169,7 @@ def parse_args():
     else:
         usercert = args.usercert
 
-    if os.path.exists(usercert):
-        pass
-    else:
+    if not os.path.exists(usercert):
         raise FileNotFoundException(usercert, 'Could not locate the certificate file')
 
     arguments.update({'certid': args.certid})    

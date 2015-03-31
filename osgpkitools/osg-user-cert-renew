@@ -1,41 +1,25 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import pdb
 import urllib
 import httplib
 import sys
-import ConfigParser
 import simplejson
-import time
 import re
 import os
-import errno
 import getpass
-import StringIO
 import base64
 import M2Crypto
 from optparse import OptionParser
-from optparse import OptionGroup
-import optparse
-import sys
-import textwrap
-import traceback
-import subprocess
-import ssl
-import tempfile
+from ssl import SSLError
 
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
-from osgpkitools.OSGPKIUtils import extractHostname
-from osgpkitools.OSGPKIUtils import extractEEC
-from osgpkitools.OSGPKIUtils import get_request_count
 from osgpkitools.OSGPKIUtils import get_ssl_context
 from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import check_failed_response
 from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import check_for_pending
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
-from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.OSGPKIUtils import version_info
@@ -58,8 +42,7 @@ def parse_args():
         action='store',
         dest='userprivkey',
         help="Specify Requestor's private key (PEM Format). If not specified \
- will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
-            ,
+ will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem",
         metavar='PKEY',
         default=None,
         )
@@ -69,8 +52,7 @@ def parse_args():
         action='store',
         dest='usercert',
         help="Specify Requestor's certificate (PEM Format).\n If not specified\
- will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
-            ,
+ will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
         default=None,
         metavar='CERT',
         )
@@ -90,16 +72,14 @@ def parse_args():
         help='Specify the timeout in minutes',
         default=5,
         )
-
     parser.add_option(
         '-d',
         '--directory',
         action='store',
         dest='write_directory',
-        default='./',
+        default='.',
         help="Write the output files to this directory",
         )
-
     parser.add_option(
         '-q',
         '--quiet',
@@ -117,81 +97,52 @@ def parse_args():
         )
     (args, values) = parser.parse_args()
     arguments = dict()
-    
+
     if args.version_info:
         version_info()
         sys.exit(1)
 
     try:
         timeout = int(args.timeout)
-        if not timeout >= 0:
-            charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now'
-                               )
+        if not timeout > 0:
             raise ValueError
     except ValueError:
-        raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n'
-                         )
+        raise ValueError('Invalid timeout value. Please enter an integer value greater than zero.\n')
     print 'Using timeout of %d minutes' % timeout
 
-    if args.userprivkey is None:
+    if args.userprivkey:
+        userprivkey = args.userprivkey
+    else:
         try:
             userprivkey = os.environ['X509_USER_KEY']
-        except:
-            if os.path.exists(str(os.environ['HOME'])
-                              + '/.globus/userkey.pem'):
-                userprivkey = str(os.environ['HOME']) \
-                    + '/.globus/userkey.pem'
-            else:
-                raise FileNotFoundException(userprivkey,
-                        'Could not locate the private key file')
-    else:
-        userprivkey = args.userprivkey
+        except KeyError:
+            try:
+                userprivkey = os.environ['HOME'] + '/.globus/userkey.pem'
+            except KeyError:
+                userprivkey = ''
 
-    if os.path.exists(userprivkey):
-        pass
+    if not os.path.exists(userprivkey):
+        raise FileNotFoundException(userprivkey, 'Could not locate the private key file')
+
+    if args.usercert:
+        usercert = args.usercert
     else:
-        raise FileNotFoundException(userprivkey,
-                                    'Could not locate the private key file'
-                                    )
-    if args.usercert is None:
         try:
             usercert = os.environ['X509_USER_CERT']
-        except:
-            usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
-            if os.path.exists(str(os.environ['HOME'])
-                              + '/.globus/usercert.pem'):
-                usercert = str(os.environ['HOME']) \
-                    + '/.globus/usercert.pem'
-            else:
-                raise FileNotFoundException('Certificate File',
-                        'Could not locate the certificate file')
-    else:
-        usercert = args.usercert
+        except KeyError:
+            try:
+                usercert = os.environ['HOME'] + '/.globus/usercert.pem'
+            except KeyError:
+                usercert = ''
 
+    if not os.path.exists(usercert):
+        raise FileNotFoundException(usercert, 'Could not locate the certificate file')
 
-    if os.path.exists(usercert):
-        pass
-    else:
-        raise FileNotFoundException(usercert,
-                                    'Could not locate the certificate file'
-                                    )
-
-    if args.write_directory:
-        certdir = args.write_directory
-    else:
-        certdir = "."
-
-    if args.test:
-        OIM = True
-    else:
-        OIM = False
-
-    arguments.update({'mode': OIM})
-    arguments = CreateOIMConfig(OIM, **arguments)
+    arguments = CreateOIMConfig(args.test, **arguments)
     arguments.update({'timeout': timeout})
     arguments.update({'usercert': usercert})
     arguments.update({'userprivkey': userprivkey})
-    arguments.update({'certdir': certdir})
+    arguments.update({'certdir': args.write_directory})
     return arguments
 
 
@@ -206,7 +157,7 @@ def connect_renew(**arguments):
     and the serial number to API to get back the request ID.
     """
 
-    while(True):
+    while True:
         password = 'password'
         second_password = 'second_password'
 
@@ -216,7 +167,7 @@ def connect_renew(**arguments):
         password = getpass.getpass(pass_msg)
         second_password = getpass.getpass(verify_pass_msg)
         # make sure they match
-        while(password != second_password):
+        while password != second_password:
             charlimit_textwrap('Passwords mismatch, please re-enter.')
             password = getpass.getpass(pass_msg)
             second_password = getpass.getpass(verify_pass_msg)
@@ -224,12 +175,12 @@ def connect_renew(**arguments):
         charlimit_textwrap('Connecting to server to renew certificate...')
         params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
                                    'password': password}, doseq=True)
-    
+
         headers = {'Content-type': arguments['content_type'],
                    'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
         conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
                                                  ssl_context=arguments['ssl_context'])
-        try:           
+        try:
             conn.request('POST', arguments['renewurl'], params, headers)
             try:
                 arguments['ssl_session'] = conn.get_session()
@@ -237,7 +188,7 @@ def connect_renew(**arguments):
                 arguments['ssl_session'] = conn.sock.get_session()
             response = conn.getresponse()
         except httplib.HTTPException, e:
-            charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
+            charlimit_textwrap('Connection to %s failed : %s' % (arguments['renewurl'], e))
             raise e
         data = response.read()
         if re.search('Password is too weak', data):
@@ -264,7 +215,7 @@ def write_certificate(pkcs12, arguments):
     """ This function writes the pkcs12 file"""
     pkcs12_filename = '%s/user_certificate_and_key.U%s.p12' % (arguments['certdir'], arguments['reqid'])
     old_pkcs12_filename_base = pkcs12_filename + '.bak'
-    
+
     if os.path.exists(pkcs12_filename):
         iterator = 0
         old_pkcs12_filename = old_pkcs12_filename_base
@@ -273,7 +224,7 @@ def write_certificate(pkcs12, arguments):
             iterator += 1
         os.rename(pkcs12_filename, old_pkcs12_filename)
         charlimit_textwrap('Backed up existing PKCS12 file to %s' % old_pkcs12_filename)
-        
+
     pkcs12_file = open(pkcs12_filename, 'w')
     pkcs12_file.write(pkcs12)
     pkcs12_file.close()
@@ -347,12 +298,11 @@ def process_csr(**arguments):
         arguments = connect_renew(**arguments)
     except Exception, e:
         if 'sslv3 alert bad certificate' in e:
-            raise BadCertificateException('Error connecting to server: %s.\n\
-                                          Your certificate is not trusted by the server'
-                     % e)
+            raise BadCertificateException('Error connecting to server: %s.\n' +
+                                          'Your certificate is not trusted by the server' % e)
         else:
             print_uncaught_exception()
-            raise 
+            raise
     connect_retrieve(**arguments)
     return
 
@@ -386,7 +336,7 @@ if __name__ == '__main__':
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
         raise
-    except ssl.SSLError, e:
+    except SSLError, e:
         print_exception_message(e)
         sys.exit('Please check for valid certificate.\n')
     except KeyboardInterrupt, e:
@@ -400,10 +350,9 @@ if __name__ == '__main__':
         charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
     except TimeoutException, e:
-        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.'
-                            % e.timeout)
-        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
-                           )
+        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' %
+                           e.timeout)
+        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
         sys.exit(1)
     except FileNotFoundException, e:
         charlimit_textwrap(e.message + ':' + e.filename)
@@ -443,7 +392,6 @@ if __name__ == '__main__':
         sys.exit(1)
     except Exception, e:
         print_uncaught_exception()
-        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
-                           )
+        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
         sys.exit(1)
     sys.exit(0)

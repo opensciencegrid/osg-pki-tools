@@ -1,9 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
-
-#
-# vim: ts=4 sw=4 nowrap
-#
 
 from M2Crypto import SSL, m2, RSA, EVP, X509
 import base64
@@ -254,10 +249,8 @@ def CreateOIMConfig(isITB, **OIMConfig):
     It fetches the config file and updates the dictionary of variables"""
 
     Config = ConfigParser.ConfigParser()
-    if os.path.exists(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini'
-                      ):
-        print 'Overriding INI file with %s/.osg-pki/OSG_PKI.ini' \
-            % str(os.environ['HOME'])
+    if os.path.exists(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini'):
+        print 'Overriding INI file with %s/.osg-pki/OSG_PKI.ini' % str(os.environ['HOME'])
         Config.read(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini')
     elif os.path.exists('pki-clients.ini'):
         Config.read('pki-clients.ini')

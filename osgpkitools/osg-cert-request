@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 
 """
 This script submits a host certificate request for an unauthenticated
@@ -18,7 +17,7 @@ import M2Crypto
 import textwrap
 import traceback
 import subprocess
-import ssl
+from ssl import SSLError
 from pprint import pprint
 
 from osgpkitools import OSGPKIUtils
@@ -352,7 +351,7 @@ if __name__ == '__main__':
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
         raise
-    except ssl.SSLError, e:
+    except SSLError, e:
         print_exception_message(e)
         sys.exit('Please check for valid certificate.\n')
     except OSError, e:
