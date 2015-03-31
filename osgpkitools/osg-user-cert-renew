@@ -7,6 +7,7 @@ import sys
 import simplejson
 import re
 import os
+import errno
 import getpass
 import base64
 import M2Crypto
@@ -137,6 +138,16 @@ def parse_args():
 
     if not os.path.exists(usercert):
         raise FileNotFoundException(usercert, 'Could not locate the certificate file')
+
+    # Check write directory existence and write permission
+    try:
+        if not os.access(args.write_directory, os.W_OK):
+            raise FileWriteException('Do not have write permissions to %s' % args.write_directory)
+    except OSError, e:
+        if e.errno == errno.ENOENT:
+            raise FileNotFoundException(args.write_directory, 'Could not locate the output directory')
+        else:
+            raise
 
     arguments = CreateOIMConfig(args.test, **arguments)
     arguments.update({'timeout': timeout})
@@ -356,6 +367,9 @@ if __name__ == '__main__':
         sys.exit(1)
     except FileNotFoundException, e:
         charlimit_textwrap(e.message + ':' + e.filename)
+        sys.exit(1)
+    except FileWriteException, e:
+        charlimit_textwrap(e.message)
         sys.exit(1)
     except ValueError, e:
         print_exception_message(e)
