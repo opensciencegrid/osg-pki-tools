@@ -33,7 +33,7 @@ import sys
 import textwrap
 import traceback
 import subprocess
-import ssl
+from ssl import SSLError
 import tempfile
 import shutil
 
@@ -649,7 +649,7 @@ if __name__ == '__main__':
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
         raise e
-    except ssl.SSLError, e:
+    except SSLError, e:
         print_exception_message(e)
         sys.exit('Please check for valid certificate.\n')
     except KeyboardInterrupt, k:
