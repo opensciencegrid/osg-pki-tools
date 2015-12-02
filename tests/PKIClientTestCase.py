@@ -174,8 +174,7 @@ class PKIClientTestCase(unittest.TestCase):
         mode = os.stat(os.path.join(self.test_path, path)).st_mode
         self.assertEqual(mode & 0777,  # Filter out non-permission bits
                          0600,
-                         "Key file '%s' permissions are not 0600: %o" %(
-                path, mode))
+                         "Key file '%s' permissions are not 0600: %o" %(path, mode))
 	result = self.run_cmd(env,
                               "openssl", "rsa",
                               "-in", path,
@@ -194,11 +193,8 @@ class PKIClientTestCase(unittest.TestCase):
 	Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
         mode = os.stat(os.path.join(self.test_path, path)).st_mode
         self.assertEqual(mode & (stat.S_IWGRP | stat.S_IWOTH), 0,
-                         "Cert file '%s' is excessively writable: %o" %(
-                path, mode))
-        result = self.run_cmd(env,
-                              "openssl", "x509",
-                              "-in", path)
+                         "Cert file '%s' is excessively writable: %o" %(path, mode))
+        result = self.run_cmd(env, "openssl", "x509", "-in", path, '-noout', '-text')
         return result
 
     @classmethod
