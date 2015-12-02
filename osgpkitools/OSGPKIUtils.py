@@ -108,6 +108,8 @@ def check_permissions(path):
         raise FileWriteException("User does not have appropriate permissions for writing to current directory.")
 
 def find_existing_file_count(filename):
+    '''Check if filename and revisions of the filename exists. If so, increment the revision number and return
+    the latest revision filename'''
     temp_name = filename.split(".")[-2]
     trimmed_name = temp_name
     version_count = 0
@@ -126,10 +128,6 @@ def find_existing_file_count(filename):
         return new_file
     else:
         return filename
-
-#    os.rename(filename, new_file)
-#    subprocess.call(["touch", filename])
-#    print new_file
 
 def check_response_500(response):
     """ This functions handles the 500 error response from the server"""
@@ -350,6 +348,15 @@ class Cert:
 
         self.X509Request.set_subject_name(X509Name)
 
+        alt_names = config_items.get('alt_names')
+        if alt_names:
+            extension_stack = X509.X509_Extension_Stack()
+            extension = X509.new_extension('subjectAltName',
+                                           ", ".join(['DNS:%s' % name for name in alt_names]))
+            extension.set_critical(1)
+            extension_stack.push(extension)
+            self.X509Request.add_extensions(extension_stack)
+
         #
         # publickey
         #
@@ -357,5 +364,4 @@ class Cert:
         self.X509Request.set_pubkey(pkey=self.PKey)
         self.X509Request.sign(pkey=self.PKey, md='sha1')
         return self.X509Request
-
 
