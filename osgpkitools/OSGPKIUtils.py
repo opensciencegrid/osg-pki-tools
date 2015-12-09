@@ -362,6 +362,7 @@ class Cert:
         #
 
         self.X509Request.set_pubkey(pkey=self.PKey)
+        self.X509Request.set_version(0)
         self.X509Request.sign(pkey=self.PKey, md='sha1')
         return self.X509Request
 
