@@ -23,6 +23,7 @@ OSGPKI-365
 * Improved handling of built-in exceptions SOFTWARE-1183
 * Fix VO option when requesting a new cert. SOFTWARE-1386
 * Catch uncaught exceptions when missing request VO (SOFTWARE-1584)
+* Certificate requests fail without setting the CSR version (SOFTWARE-1936)
 
 ----------------------------------------------------------------------
 Enhancements in version 1.1:
