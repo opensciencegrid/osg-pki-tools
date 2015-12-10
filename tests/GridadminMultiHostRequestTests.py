@@ -1,92 +1,62 @@
 """Test osg-gridadmin-cert-request script"""
 
+import os.path
 import re
 
-from PKIClientTestCase import PKIClientTestCase
+import PKIClientTestCase
 
-class GridadminMultiHostRequestTests(PKIClientTestCase):
+class GridadminMultiHostRequestTests(PKIClientTestCase.PKIClientTestCase):
 
-    __num_requests = 4  # Number of certificates to request
+    command = "osg-gridadmin-cert-request"
 
-    def __multiple_host_request(self, hosts):
-        """Submit a GridAdmin request for multiple host certs and verify
-        retrieval of cert/key pair
-
-        hosts: list holding lists of SANs with the CN as the first SAN"""
-
-        # Write the hosts input file
-        env = self.get_test_env()
+    def test_multi_host_request(self):
+        """Test making a request for multiple host certificates (-f)"""
+        num_requests = 4  # Number of certificates to request
+        host_template = "test-%d." + self.domain
         hosts_filename = "hosts.txt"
-        hosts_contents = str()
-        for sans in hosts:
-            hosts_contents += " ".join(sans) + "\n"
-        env.writefile(hosts_filename, content=hosts_contents)
-
-        # Submit the request and check the return code
+        env = self.get_test_env()
+        # Build contents of request file
+        hosts_content = "\n".join(
+            [host_template % d for d in xrange(num_requests)]) + "\n"
+        env.writefile(hosts_filename, content=hosts_content)
         result = self.run_script(env,
-                                 "osg-gridadmin-cert-request",
-                                 "--hostfile", hosts_filename,
-                                 "--pkey", self.get_key_path(),
-                                 "--cert", self.get_cert_path())
+                                 self.command,
+                                 "-f", hosts_filename,
+                                 "-k", self.get_key_path(),
+                                 "-c", self.get_cert_path())
         err_msg = self.run_error_msg(result)
         self.assertEqual(result.returncode, 0, err_msg)
-        match = re.search(r"^Id is: (\d+)\s*$",
+        match = re.search("^Id is: (\d+)\s*$",
                           result.stdout,
                           re.MULTILINE)
-        self.assert_(match,"Could not find request Id: " + err_msg)
-
-        # Verify output
-        for sans in hosts:
-            fqdn = sans[0]
+        self.assertNotEqual(match, None,
+                            "Could not find request Id: " + err_msg)
+        id = int(match.group(1))
+        for cert_num in xrange(num_requests):
             # Check output certificate
-            cert_file = fqdn + ".pem"
-            self.assert_("Certificate written to ./%s" % cert_file in result.stdout,
-                "Could not find output of certificate (%s): %s" % (cert_file, err_msg))
-            self.assert_(result.files_created.has_key(cert_file),
-                            "Did not find certificate file %s: %s" % (cert_file, err_msg))
-            # Check permissions
+            cert_file = host_template % cert_num + ".pem"
+            self.assertTrue(
+                "Certificate written to ./%s" % cert_file in result.stdout,
+                "Could not find output of certificate %d (%s): %s" % (cert_num,
+                                                                      cert_file,
+                                                                      err_msg))
+            self.assertTrue(result.files_created.has_key(cert_file),
+                            "Did not find certificate file %s: %s" % (cert_file,
+                                                                      err_msg))
             cert_result = self.check_certificate(env, cert_file)
-            err_msg = self.run_error_msg(cert_result)
+            err_msg = self.run_error_msg(result)
             self.assertEqual(result.returncode, 0,
-                             "Failed checking certificate %s: %s" % (cert_file, err_msg))
+                             "Failed checking certificate %s: %s" % (cert_file,
+                                                                     err_msg))
             # Check output key
-            key_file = fqdn + "-key.pem"
-            self.assert_(result.files_created.has_key(key_file),
+            key_file = host_template % cert_num + "-key.pem"
+            self.assertTrue(result.files_created.has_key(key_file),
                             "Did not find key file %s" % key_file)
-            # Check permissions
             key_result = self.check_private_key(env, key_file)
             err_msg = self.run_error_msg(key_result)
             self.assertEqual(result.returncode, 0,
-                             "Check of private key %s failed: %s" % (key_file, err_msg))
-            # Verify expected hosts in the SANs extension
-            cert_contents = cert_result.stdout
-            self.assertEqual(set(match.group(1) for match in re.finditer(r'DNS:([\w\-\.]+)', cert_contents)),
-                             set(sans),
-                             "Did not find expected SAN contents (%s):\n%s" % (sans, cert_contents))
-
-    def test_multi_host_request(self):
-        """Test making a request for multiple host certificates"""
-        hosts = list(["test-%d.%s" % (i, self.domain)] for i in xrange(self.__num_requests))
-        self.__multiple_host_request(hosts)
-
-    def test_sans_request(self):
-        """Submit cert request for multiple hosts with SANs for each host"""
-        hosts = list()
-        for i in xrange(self.__num_requests):
-            hosts.append([name.format(i, self.domain) for name in
-                          ["test-{0}.{1}", "test-{0}-san.{1}", "test-{0}-san2.{1}"]])
-        self.__multiple_host_request(hosts)
-
-    def test_mixed_multi_host_request(self):
-        """Submit cert request for multiple hosts with SANs for some hosts """
-        mixed_hosts = list()
-        for i in xrange(self.__num_requests):
-            if i % 2 == 1:
-                mixed_hosts.append(["test-%d.%s" % (i, self.domain)])
-            else:
-                mixed_hosts.append([name.format(i, self.domain) for name in
-                                    ["test-{0}.{1}", "test-{0}-san.{1}", "test-{0}-san2.{1}"]])
-        self.__multiple_host_request(mixed_hosts)
+                             "Check of private key %s failed: %s" % (key_file,
+                                                                     err_msg))
 
 if __name__ == '__main__':
     import unittest

@@ -59,7 +59,7 @@ def parse_args():
         help='Specify the output filename for the retrieved user certificate.\
              \nDefault is ./hostkey.pem'
             ,
-        metavar='OUTPUT KEYFILE',
+        metavar='Output Keyfile',
         default='hostkey.pem',
         )
     parser.add_option(
@@ -80,7 +80,7 @@ def parse_args():
         help='Specify the CC list(the email id\'s to be CCed). \
              Separate values by \',\''
             ,
-        metavar='CC LIST',
+        metavar='CC List',
         default='',
         )
     parser.add_option(
@@ -89,7 +89,7 @@ def parse_args():
         action='store',
         dest='comment',
         help='The comment to be added to the request',
-        metavar='COMMENT',
+        metavar='Comment',
         default='',
         )
     parser.add_option(
@@ -97,17 +97,8 @@ def parse_args():
         '--hostname',
         action='store',
         dest='hostname',
-        help='Specify a hostname for CSR (FQDN)',
+        help='Specify hostname for CSR (FQDN)',
         metavar='CN',
-        default=None
-        )
-    parser.add_option(
-        '-a',
-        '--altname',
-        action='append',
-        dest='alt_names',
-        help='Specify an alternative hostname for the CSR (FQDN). May be used more than once',
-        metavar='HOSTNAME',
         default=None
         )
     parser.add_option(
@@ -195,7 +186,6 @@ def parse_args():
         charlimit_textwrap('CSR input found. Skipping creation of the primary key\n')
 
     hostname = args.hostname
-    alt_names = args.alt_names
     email = args.email
     name = args.name
     phone = args.phone
@@ -244,7 +234,6 @@ def parse_args():
     arguments.update({'name': name})
     arguments.update({'phone': phone})
     arguments.update({'hostname': hostname})
-    arguments.update({'alt_names': alt_names})
     arguments.update({'certdir':certdir})
     if vars().has_key('csr'):
         arguments.update({'csr': csr})
@@ -257,6 +246,12 @@ def parse_args():
     # The data returned is in JSON format so to make it a little more human
     # readable we pass it through the json module to pretty print it
     #
+
+def print_uncaught_exception():
+    """This function prints the stack trace of the failure to
+    aid the debugging of the error."""
+    print traceback.format_exc()
+
 
 def connect(arguments):
     """This function accepts a dictionary consisting of all parameters and their values.
@@ -316,8 +311,7 @@ if __name__ == '__main__':
         cwd = None
         if arguments['csr'] is None:
             config_items = {'CN': arguments['hostname'],
-                            'emailAddress': arguments['email'],
-                            'alt_names': arguments['alt_names']}
+                            'emailAddress': arguments['email']}
 
             if (arguments['certdir'] != "./"):
                 cwd = os.getcwd()
@@ -330,14 +324,17 @@ if __name__ == '__main__':
             print 'Writing key to %s%s' %(arguments['certdir'], arguments['pem_filename'])
             new_csr = cert_obj.CreateX509Request(**config_items)
             arguments['csr'] = \
-                new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n', '')\
-                                .replace('-----END CERTIFICATE REQUEST-----\n', '')
+                new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
+                    , '').replace('-----END CERTIFICATE REQUEST-----\n'
+                                  , '')
             if cwd != None:
                 os.chdir(cwd)
             connect(arguments)
         else:
-            csr = open(arguments['csr'], 'rb').read().replace('-----BEGIN CERTIFICATE REQUEST-----\n', '')\
-                                                     .replace('-----END CERTIFICATE REQUEST-----\n', '')
+            csr = open(arguments['csr'], 'rb').read().replace('-----BEGIN CERTIFICATE REQUEST-----\n',
+                              ''
+                              ).replace('-----END CERTIFICATE REQUEST-----\n'
+                    , '')
             arguments.update({'csr': csr})
             capi = ConnectAPI.ConnectAPI()
             id = capi.request_unauthenticated(**arguments)

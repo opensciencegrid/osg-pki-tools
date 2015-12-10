@@ -11,16 +11,31 @@ This script works in two modes:
 2) Request multiple host certificates with hostnames stored in a file -f option
 """
 
+import pdb
+import urllib
 import httplib
 import sys
+import ConfigParser
 import simplejson
+import time
 import re
 import os
+import errno
+import getpass
+import StringIO
+import base64
 import M2Crypto
-from optparse import OptionParser, OptionGroup
+import pprint
+from optparse import OptionParser
+from optparse import OptionGroup
+import optparse
+import sys
+import textwrap
+import traceback
 import subprocess
 from ssl import SSLError
 import tempfile
+import shutil
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
@@ -34,6 +49,7 @@ from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import check_permissions
 from osgpkitools.OSGPKIUtils import find_existing_file_count
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
+from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.OSGPKIUtils import get_ssl_context
@@ -60,8 +76,9 @@ or specify from a file using -f/--hostfile.''')
         '--pkey',
         action='store',
         dest='userprivkey',
-        help="Specify Requestor's private key (PEM Format). If not specified" + \
-             "will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem",
+        help="Specify Requestor's private key (PEM Format).\n If not specified\
+             will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem"
+            ,
         metavar='PKEY',
         default=None,
         )
@@ -70,8 +87,9 @@ or specify from a file using -f/--hostfile.''')
         '--cert',
         action='store',
         dest='usercert',
-        help="Specify Requestor's certificate (PEM Format). If not specified, " + \
-        "will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
+        help="Specify Requestor's certificate (PEM Format).\n If not specified\
+             will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem"
+            ,
         default=None,
         metavar='CERT',
         )
@@ -80,28 +98,18 @@ or specify from a file using -f/--hostfile.''')
         '--hostname',
         action='store',
         dest='hostname',
-        help='Specify the hostname or service/hostname for which you want to request ' + \
-        'the certificate for. If specified, -f/--hostfile will be ignored',
+        help='Specify the hostname or service/hostname for which you want to request\
+              the certificate for.\n If specified -f/--hostfile will be ignored'
+            ,
         metavar='HOSTNAME',
         default=None,
-        )
-    parser.add_option(
-        '-a',
-        '--altname',
-        action='append',
-        dest='alt_names',
-        help='Specify an alternative hostname for CSR (FQDN). May be used more than ' + \
-        'once and if specified, -f/--hostfile will be ignored',
-        metavar='HOSTNAME',
-        default=None
         )
     group.add_option(
         '-f',
         '--hostfile',
         action='store',
         dest='hostfile',
-        help='Filename with one host (hostname or service/hostname and its optional,' + \
-        'alternative hostnames, separated by spaces) per line',
+        help='Filename with one hostname or service/hostname per line',
         metavar='HOSTFILE',
         default=None,
         )
@@ -110,7 +118,8 @@ or specify from a file using -f/--hostfile.''')
         '--vo',
         action='store',
         dest='vo',
-        help='Specify the VO for the host request',
+        help='Specify the VO for the host request'
+            ,
         metavar='VO name',
         default=None,
         )
@@ -119,8 +128,9 @@ or specify from a file using -f/--hostfile.''')
         '--cc',
         action='store',
         dest='cc_list',
-        help='Specify the CC list(the email id\'s to be CCed).' + \
-             'Separate values by \',\'',
+        help='Specify the CC list(the email id\'s to be CCed). \
+             Separate values by \',\''
+            ,
         metavar='CC List',
         default='',
         )
@@ -172,8 +182,9 @@ or specify from a file using -f/--hostfile.''')
 
     if not args.hostname:
         if args.hostfile is None:
-            raise InsufficientArgumentException("InsufficientArgumentException: " + \
-                                                "Please provide hostname(-H) or file name containing hosts(-f)\n")
+            raise InsufficientArgumentException("InsufficientArgumentException: \
+                                                Please provide hostname(-H) or file name containing hosts(-f)\n\
+                               ")
         else:
             hostfile = args.hostfile
     else:
@@ -182,10 +193,12 @@ or specify from a file using -f/--hostfile.''')
     try:
         timeout = int(args.timeout)
         if not timeout >= 0:
-            charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
+            charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now'
+                               )
             raise ValueError
     except ValueError:
-        raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
+        raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n'
+                         )
     print 'Using timeout of %d minutes' % timeout
 
     if args.write_directory:
@@ -198,44 +211,50 @@ or specify from a file using -f/--hostfile.''')
     if args.userprivkey is None:
         try:
             userprivkey = os.environ['X509_USER_KEY']
-        except KeyError:
+        except:
             if os.path.exists(str(os.environ['HOME'])
                               + '/.globus/userkey.pem'):
                 userprivkey = str(os.environ['HOME']) \
                     + '/.globus/userkey.pem'
             else:
-                raise FileNotFoundException('Key file', 'Could not locate the private key file')
+                raise FileNotFoundException('Key file',
+                        'Could not locate the private key file')
     else:
         userprivkey = args.userprivkey
 
     if os.path.exists(userprivkey):
         pass
     else:
-        raise FileNotFoundException(userprivkey, 'Could not locate the private key file')
+        raise FileNotFoundException(userprivkey,
+                                    'Could not locate the private key file'
+                                    )
     if args.usercert is None:
         try:
             usercert = os.environ['X509_USER_CERT']
-        except KeyError:
+        except:
             usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
             if os.path.exists(str(os.environ['HOME'])
                               + '/.globus/usercert.pem'):
                 usercert = str(os.environ['HOME']) \
                     + '/.globus/usercert.pem'
             else:
-                raise FileNotFoundException('Certificate File', 'Could not locate the certificate file')
+                raise FileNotFoundException('Certificate File',
+                        'Could not locate the certificate file')
     else:
         usercert = args.usercert
 
     if os.path.exists(usercert):
         pass
     else:
-        raise FileNotFoundException(usercert, 'Could not locate the certificate file')
-
+        raise FileNotFoundException(usercert,
+                                    'Could not locate the certificate file'
+                                    )
     if not args.hostname:
         if os.path.exists(hostfile):
             pass
         else:
-            raise FileNotFoundException(hostfile, 'Could not locate the hostfile')
+            raise FileNotFoundException(hostfile,
+                    'Could not locate the hostfile')
     if args.test:
         OIM = True
     else:
@@ -260,7 +279,6 @@ or specify from a file using -f/--hostfile.''')
         print 'The timeout is set to %s' % arguments['timeout']
     if vars().has_key('num_requests'):
         arguments.update({'num_requests': num_requests})
-    arguments.update({'alt_names': args.alt_names})
     arguments.update({'usercert': usercert})
     arguments.update({'userprivkey': userprivkey})
     arguments.update({'certdir': certdir})
@@ -334,7 +352,7 @@ def write_certificate(**arguments):
         #charlimit_textwrap('The file %s already exists.' % pem_filename)
         old_pem_filename = hostname + "-old.pem"
         subprocess.call(['mv', pem_filename, old_pem_filename])
-        print "Renaming existing file to " + old_pem_filename
+        print("Renaming existing file to " + old_pem_filename)
         #pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem'
                 #)
     subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename])  ### fix for move the file to desired name ###
@@ -362,28 +380,50 @@ def process_pkcs7(pkcs7, num_requests, **arguments):
         cert_num = cert_num + 1
 
     if cert_num != num_requests:
-        raise CertificateMismatchException(num_requests, cert_num, 'Request and certificate received mismatch')
+        raise CertificateMismatchException(num_requests, cert_num,
+                'Request and certificate received mismatch')
     return
 
 
-def create_certificate_request(hostname, reqid, config_items):
+def create_certificate_request(line, reqid, config_items):
     """This function accepts hostname, request id and a dictionary of config_items for the CSR.
     It writes the key and creates the CSR."""
 
     print 'Generating certificate...'
-    keypath = os.path.join(arguments['certdir'], hostname + '-key.pem')
-    # Handle already existing key file...
-    if os.path.exists(keypath):
-        old_keypath = os.path.join(arguments['certdir'], hostname + "-key-old.pem")
-        print "Renaming existing key from %s to %s" % (keypath, old_keypath)
-        os.rename(keypath, old_keypath)
+    try:
+        keyname = line + '-key.pem'
+        if os.path.exists(keyname):  ### Fix for already existing key file ###
+
+            old_keyname = line + "-key-old.pem"
+            subprocess.call(['mv', keyname, old_keyname])
+            print("Renaming existing key to " + old_keyname)
+            #keyname = line + '-' + str(reqid) + '-key.pem'
+            #charlimit_textwrap('Writing key to %s '% (keyname))
+    except EOFError, e:
+        charlimit_textwrap('End of File Error: Check if the standard input is enabled\nError %s'
+                            % e)
+        raise e
     cert_obj = OSGPKIUtils.Cert()
-    cert_obj.CreatePKey(keypath)
-    charlimit_textwrap('Writing key to %s' % keypath)
+    cwd = os.getcwd()
+    try:
+        os.chdir(arguments['certdir'])
+        os.getcwd()
+    except OSError, e:
+        charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
+    .Please report the bug to goc@opensciencegrid.org.a
+    %s''',
+                           arguments['certdir'], e)
+        raise OSError
+    cert_obj.CreatePKey(keyname)
+    charlimit_textwrap('Writing key to %s%s '% (arguments['certdir'],keyname))
+    os.chdir(cwd)
     new_csr = cert_obj.CreateX509Request(**config_items)
     csr = \
-        new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n', '').\
-        replace('-----END CERTIFICATE REQUEST-----\n', '')
+        new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n'
+                                 , ''
+                                 ).replace('-----END CERTIFICATE REQUEST-----\n'
+            , '')
+
     return csr
 
 
@@ -392,7 +432,8 @@ def check_quota_limit(request_count, arguments):
 
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'], ssl_context=arguments['ssl_context'])
+    conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
+            ssl_context=arguments['ssl_context'])
     try:
         conn.request('GET', arguments['quotaurl'], None, headers)
         response = conn.getresponse()
@@ -405,8 +446,9 @@ def check_quota_limit(request_count, arguments):
 
     except Exception, e:
         if "sslv3 alert bad certificate" in e:
-            raise BadCertificateException("Error connecting to server: %s.\n" + \
-                                          "Your certificate is not trusted by the server" % e)
+            raise BadCertificateException('Error connecting to server: %s.\n\
+                                          Your certificate is not trusted by the server'
+                 % e)
         else:
             print e.__class__.__name__
             raise
@@ -415,7 +457,8 @@ def check_quota_limit(request_count, arguments):
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
             print_failure_reason_exit(data)
-    charlimit_textwrap('Waiting for response from Quota Check API. Please wait.')
+    charlimit_textwrap('Waiting for response from Quota Check API. Please wait.'
+                       )
     iterations = 0
     while 'PENDING' in data:
         conn.request('GET', arguments['quotaurl'], headers)
@@ -458,7 +501,7 @@ def process_csr(num_requests, bulk_csr, **arguments):
     capi = ConnectAPI.ConnectAPI()
 
     try:
-        reqid = capi.request_authenticated(bulk_csr, **arguments)
+        reqid = capi.request_authenticated( bulk_csr, **arguments)
     except KeyError, e:
         raise
     except httplib.HTTPException, e:
@@ -471,8 +514,9 @@ def process_csr(num_requests, bulk_csr, **arguments):
 
     except Exception, e:
         if 'sslv3 alert bad certificate' in e:
-            raise BadCertificateException("Error connecting to server: %s.\n" + \
-                                          "Your certificate is not trusted by the server" % e)
+            raise BadCertificateException('Error connecting to server: %s.\n\
+                                          Your certificate is not trusted by the server'
+                     % e)
         else:
             raise
 
@@ -485,7 +529,7 @@ def process_csr(num_requests, bulk_csr, **arguments):
         capi.approve(**arguments)
 
         print 'Issuing certificate...'
-        pkcs7raw = capi.retrieve_authenticated(**arguments)
+        pkcs7raw = capi.retrieve_authenticated( **arguments)
         process_pkcs7(pkcs7raw, num_requests, **arguments)
 
     except KeyError, e:
@@ -501,68 +545,90 @@ def process_csr(num_requests, bulk_csr, **arguments):
         raise e
     except Exception, e:
         if 'sslv3 alert bad certificate' in e:
-            raise BadCertificateException("Error connecting to server: %s.\n" + \
-                                          "Your certificate is not trusted by the server" % e)
+            raise BadCertificateException('Error connecting to server: %s.\n\
+                                          Your certificate is not trusted by the server'
+                     % e)
         else:
             raise
     return
 
 def process_single_host_mode(**arguments):
-    '''Create and process a single CSR with the --hostname option treated as
-    the CN and the --altname's treated as the alternative names'''
-
-    num_requests = 1
+    """The processing is split into two parts depending upon
+    the mode of the request i.e. using a single host request or
+    using a file mode. This function handles the processing of a
+    single host mode"""
+    bulk_csr = list()
+    count = 0
+    num_requests = 0
+    host_set = set()
     config_items = {}
-
-    if check_quota_limit(num_requests, arguments):
+    status = check_quota_limit(1, arguments)
+    if status:
         pass
     else:
-        raise QuotaException('Your request would exceed your quota. Aborting')
-    hostname = arguments['hostname'].strip()
-    config_items.update({'CN': hostname, 'alt_names': arguments['alt_names']})
+        raise QuotaException('Your request would exceed your quota. Aborting'
+                             )
+    hostname = arguments['hostname'].rstrip('\n')
+    config_items.update({'CN': hostname})  # ### New CN for every host#######
+    num_requests = 1
     charlimit_textwrap('Beginning request process for %s' % hostname)
-    # Remove / from service requests for proper FQDN formatting
-    csr = create_certificate_request(hostname.replace('/', '-'), num_requests, config_items)
-    process_csr(num_requests, csr, **arguments)
+    csr = create_certificate_request(hostname.replace('/', '-'), count,
+            config_items)
+    process_csr(1, csr, **arguments)
     return
 
 
 def process_hostfile_mode(**arguments):
-    '''Create and process CSRs for each line in the user-specified hostfile.
-    Each line may contain multiple hostnames (space delimited), the first one
-    is considered the CN and the rest are considered alternative names'''
+    """The processing is split into two parts depending upon
+    the mode of the request i.e. using a single host request or
+    using a file mode. This function handles the processing of a
+    hostfile mode"""
 
     bulk_csr = list()
+    count = 0
     num_requests = 0
     host_set = set()
     config_items = {}
+    hosts = open(arguments['hostfile'], 'rb')
     request_count = get_request_count(arguments['hostfile'])
 
-    hosts_file = open(arguments['hostfile'], 'rb')
-    hosts = hosts_file.readlines()
-    hosts_file.close()
-
-    if check_quota_limit(request_count, arguments):
+    status = check_quota_limit(request_count, arguments)
+    if status:
         pass
     else:
-        raise QuotaException('Your request would exceed your quota. Aborting')
+        raise QuotaException('Your request would exceed your quota. Aborting'
+                             )
     for line in hosts:
-        line = line.strip()
-        if line != '' and line not in host_set:
+        if re.match('\s*$', line):
+            continue
+        line = line.strip(' \n')
+        if count == 0:
+                temp_file = find_existing_file_count(line)
+                temp_file = temp_file[:-4] ### to strip the filename of .pem ###
+        if not line in host_set:
             host_set.add(line)
-            num_requests += 1
-            # Take the first hostname as the CN and the rest as SANs
-            sans = line.split()
-            hostname = sans.pop(0)
-            config_items.update({'CN': hostname, 'alt_names': sans})
-            charlimit_textwrap('Beginning request process for %s' % line)
-            # Remove / from service requests for proper FQDN formatting
-            csr = create_certificate_request(hostname.replace('/', '-'), num_requests, config_items)
+            count += 1  # ## as a check for number of request and certs retrieved ###
+            config_items.update({'CN': line})  # ### New Config item list for every host#######
+            charlimit_textwrap('Beginning request process for %s'
+                               % line)
+            csr = create_certificate_request(line.replace('/', '-'),
+                    count, config_items)
             bulk_csr.append(csr)
-            if num_requests == 50: # OIM limits bulk requests to 50 CSRs
-                break
-    if num_requests > 0:
+            num_requests = num_requests + 1  # ## as a check for number of request and certs retrieved ###
+            if count == 50:  # ## Processing max of 50 requests in bulk ###
+                process_csr(request_count, bulk_csr, **arguments)
+                bulk_csr = ''
+                count = 0
+        else:
+            charlimit_textwrap('''Duplicate Hostname entry for %s.
+Skipping process for %s
+'''
+                               % (line, line))
+    if count != 0 and count != 50:
         process_csr(request_count, bulk_csr, **arguments)
+    hosts.close()
+    return
+
 
 if __name__ == '__main__':
     try:
@@ -597,15 +663,17 @@ if __name__ == '__main__':
         charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
     except TimeoutException, e:
-        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % e.timeout)
-        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
+        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.'
+                            % e.timeout)
+        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
+                           )
         sys.exit(1)
     except KeyError, e:
         print_exception_message(e)
         charlimit_textwrap('Key %s not found' % e)
     except httplib.HTTPException, e:
         print_exception_message(e)
-        charlimit_textwrap('Connection failed: %s' % (e))
+        charlimit_textwrap('Connection failed: %s' % ( e))
     except FileWriteException, e:
         charlimit_textwrap(e.message)
         charlimit_textwrap("The script will exit now\n")
@@ -647,14 +715,16 @@ if __name__ == '__main__':
         print_exception_message(e)
         sys.exit(1)
     except InsufficientArgumentException, e:
-        # I agree with mat on JIRA Software 1072 on that if a user enters
-        # the script without options, there is no bug and shouldn't be
+        # I agree with mat on JIRA Software 1072 on that if a user enters 
+        # the script without options, there is no bug and shouldn't be 
         # reported to goc. Hence bypassing call to print exception message
+        
         charlimit_textwrap(e.message)
         sys.stderr.write("Usage: osg-gridadmin-cert-request -h for help \n")
         sys.exit(2) # Fix for returning exit code of 2 as in all the other scripts.
     except Exception, e:
         print_uncaught_exception()
-        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
+        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
+                           )
         sys.exit(1)
     sys.exit(0)
