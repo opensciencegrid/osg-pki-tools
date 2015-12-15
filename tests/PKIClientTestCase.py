@@ -1,208 +1,201 @@
 """PKIClientTestCase: OSG PKI Command line client test case base class"""
 
 import os
-import os.path
-import scripttest  # pip install scripttest
+import re
+import shutil
 import stat
 import sys
-import unittest
+import tempfile
 
-class PKIClientTestCase(unittest.TestCase):
-    """OSG PKI CLI TestCase bass class"""
+from copy import deepcopy
+from subprocess import Popen, PIPE
+from M2Crypto import RSA, X509
 
-    # Flag to indicate we are testing an RPM install
-    testing_rpm_install=False
+# Flag to indicate we are testing an RPM install
+TESTING_RPM_INSTALL = False
 
-    # Path to certificate and private key to use for authentication
-    # See README for details
-    cert_path = os.path.abspath("./test-cert.pem")
-    key_path = os.path.abspath("./test-key.pem")
+# Path to certificate and private key to use for authentication as a Grid Admin
+# See README for details
+GA_CERT_PATH = os.path.abspath("./test-cert.pem")
+GA_KEY_PATH = os.path.abspath("./test-key.pem")
 
-    # Information to provide with requests
-    email = "osg-pki-cli-test@example.com"
-    name = "OSG PKI CLI Test Suite"
-    phone = "555-555-5555"
+# Information to provide with requests
+EMAIL = "osg-pki-cli-test@example.com"
+NAME = "OSG PKI CLI Test Suite"
+PHONE = "555-555-5555"
 
-    # Domain to use with host certificate requests
-    # The test credentials are registered in OIM-ITB for this domain,
-    # it is not arbitrary.
-    domain = "pki-test.opensciencegrid.org"
+# Domain to use with host certificate requests
+# The test credentials are registered in OIM-ITB for this domain,
+# it is not arbitrary.
+DOMAIN = "pki-test.opensciencegrid.org"
 
-    # Private key pass phrase
-    pass_phrase = None
+# Where the scripts are relative to the tests/ directory
+SCRIPTS_PATH = os.path.abspath("../osgpkitools")
 
-    # Openssl binary
-    openssl = "openssl"
+# Scripts import from osgpkitools, and it is up a directory
+PYPATH = os.path.abspath("..")
 
-    # Where the scripts are relative to the tests/ directory
-    scripts_path = os.path.abspath("../osgpkitools")
+# Our test directory
+TEST_PATH = "./test-output"
 
-    # Scripts import from osgpkitools, and it is up a directory
-    pypath = os.path.abspath("..")
+# TODO: chdir strategy is a little silly
+def test_env_setup():
+    """Create a dir for tests to play in"""
+    ini_file = os.path.join(SCRIPTS_PATH, 'pki-clients.ini')
+    temp_dir = tempfile.mkdtemp(dir=os.getcwd())
+    shutil.copy2(ini_file, temp_dir)
+    os.chdir(temp_dir)
 
-    # Our test directory
-    test_path = "./test-output"
+def test_env_teardown():
+    """Blow up the test dir"""
+    temp_dir = os.getcwd()
+    os.chdir('..')
+    shutil.rmtree(temp_dir)
 
-    @classmethod
-    def get_test_env(cls):
-        """Return a scripttest.TestFileEnvironment instance"""
-        # Make sure our source path is in PYTHONPATH so we can
-        # find imports
-        env = dict(os.environ)
-        if cls.pypath is not None:
-            if env.has_key("PYTHONPATH"):
-                env["PYTHONPATH"] += ":" + cls.pypath
+def run_script(script, *args):
+    '''Run osg-pki-tools script '''
+    script_path = os.path.join(SCRIPTS_PATH, script)
+    cmd = (sys.executable, script_path) + args
+    test_env = deepcopy(os.environ)
+    try:
+        test_env['PYTHONPATH'] += ':%s' % PYPATH
+    except KeyError:
+        test_env['PYTHONPATH'] = PYPATH
+
+    script_proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_env)
+    stdout, stderr = script_proc.communicate()
+    rc = script_proc.returncode
+    diagnostic = "Command: %s\n" % ' '.join(cmd[1:]) \
+                 + "Return code: %d\n" % rc \
+                 + "STDOUT:\n" + stdout \
+                 + "STDERR:\n" + stderr
+    return rc, stdout, stderr, diagnostic
+
+class OIM(object):
+    """OIM and cert/key pair interface"""
+    def __init__(self):
+        """Create a cert instance"""
+        self.reqid = ''
+        self.certs = list()
+        self.keys = list()
+
+    def request(self, *opts):
+        """Run osg-cert-request"""
+        rc, stdout, stderr, msg = run_script('osg-cert-request',
+                                             '--test',
+                                             '--hostname', 'test.' + DOMAIN,
+                                             '--email', EMAIL,
+                                             '--name', NAME,
+                                             '--phone', PHONE,
+                                             '--comment', 'This is a comment',
+                                             '--cc', 'test@example.com,test2@example.com',
+                                             *opts)
+        attr_regex = r'Writing key to ([^\n]+).*Request Id#: (\d+)'
+        try:
+            key_path, self.reqid = re.search(attr_regex, stdout, re.MULTILINE|re.DOTALL).groups()
+        except AttributeError:
+            msg = 'Could not parse stdout for key or request ID\n' + msg
+        else:
+            try:
+                key = OIM.verify_key(key_path)
+                self.keys.append(key)
+            except KeyFileError, key_err:
+                raise KeyFileError(key_err.message + msg)
+        return rc, stdout, stderr, msg
+
+    def gridadmin_request(self, *opts):
+        """Run osg-gridadmin-request"""
+        rc, stdout, stderr, msg = run_script('osg-gridadmin-cert-request',
+                                             '--test',
+                                             '--cert', GA_CERT_PATH,
+                                             '--pkey', GA_KEY_PATH,
+                                             *opts)
+        # Populate instance attr
+        try:
+            self.reqid = re.search(r'Id is: (\d+)', stdout).group(1)
+        except AttributeError:
+            msg = 'Could not parse stdout for request ID\n' + msg
+        certs = re.findall(r'Certificate written to (.*)', stdout)
+        keys = re.findall(r'Writing key to (.*)', stdout)
+        if len(certs) != len(keys):
+            raise AssertionError('Mismatched number of issued certs and keys\n' + msg)
+
+        # Verify permissions of created files, if any
+        for cert_path, key_path in zip(certs, keys):
+            try:
+                cert = OIM.verify_cert(cert_path)
+                key = OIM.verify_key(key_path)
+            except CertFileError, cert_err:
+                raise CertFileError(cert_err.message + msg)
+            except KeyFileError, key_err:
+                raise KeyFileError(key_err.message + msg)
             else:
-                env["PYTHONPATH"] = cls.pypath
-        test_env = scripttest.TestFileEnvironment(
-            cls.test_path,
-            environ=env,
-            template_path=cls.scripts_path)
-        if not cls.testing_rpm_install:  # Should be installed by RPM
-            # Copy in configuration file
-            test_env.writefile("pki-clients.ini", frompath="pki-clients.ini")
-        return test_env
+                self.certs.append(cert)
+                self.keys.append(key)
+        return rc, stdout, stderr, msg
 
-    @classmethod
-    def run_cmd(cls, env, *args):
-        """Run given command.
+    def retrieve(self, *opts):
+        """Run osg-cert-retrieve"""
+        args = list(opts + (self.reqid))
+        return run_script('osg-cert-retrieve', '--test', *args)
 
-        This is a wrapper around env.run() that won't throw an exception
-        on error so we can handle errors in the test framework.
+    def user_renew(self, *opts):
+        """Run osg-user-cert-renew"""
+        return run_script('osg-user-cert-renew', '--test', *opts)
 
-        Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
-        # Python 2.4 requires kwargs to be defined in variable and then
-        # expanded in call to env.run instead of being supplied as keywords
-        kwargs = {
-            # Don't raise exception on error
-            "expect_error" : True,
-            "expect_stderr" : True,
-            "quiet" : True,
-	    #"test" : True,
-            }
-        result = env.run(*args, **kwargs)
-        return result
+    def revoke(self, *opts):
+        """Run osg-cert-revoke"""
+        args = opts + ('--test',
+                       '--cert', GA_CERT_PATH,
+                       '--pkey', GA_KEY_PATH,
+                       self.reqid, 'osg-pki-tools unit test - revoke')
+        return run_script('osg-cert-revoke', *args)
 
-    @classmethod
-    def run_script(cls, env, script, *args):
-        """Run script with given arguments.
+    def user_revoke(self, *opts):
+        """Run osg-user-cert-revoke"""
+        args = list(opts + ('--test', self.reqid, 'osg-pki-tools unit test - revoke'))
+        return run_script('osg-user-cert-revoke', *args)
 
-        Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
-        # Python 2.4 requires kwargs to be defined in variable and then
-        # expanded in call to env.run instead of being supplied as keywords
-        kwargs = {
-            # Don't raise exception on error
-            "expect_error" : True,
-            "expect_stderr" : True,
-            "quiet" : True,
-	    #"test" : True,
-            }
-        result = env.run(sys.executable,  # In case script is not executable
-                         os.path.join(cls.scripts_path, script), "-T",
-                         *args, **kwargs)
-        return result
+    @staticmethod
+    def verify_key(path):
+        """Ensure proper key permission bits and ability to unlock the key"""
+        fail_prefix = 'VerificationFailure: '
+        if not os.path.exists(path):
+            raise KeyFileError(fail_prefix + "No associated key file")
+        permissions = os.stat(path).st_mode & 0777 # Mask non-permission bits
+        if permissions != 0600:
+            raise KeyFileError(fail_prefix + "Bad permissions (%o) on key '%s'" % (permissions, path))
+        try:
+            key = RSA.load_key(path, OIM.simple_pass_callback)
+        except RSA.RSAError, exc:
+            if 'no start line' in exc.message:
+                raise KeyFileError(fail_prefix + "Could not load key file '%s'" % path)
+            elif 'bad pass' in exc.message:
+                raise KeyFileError(fail_prefix + "Incorrect pass for key file %s" % path)
+        return key
 
-    def run_python(cls, code, *args):
-        """Run given python code
+    @staticmethod
+    def verify_cert(path):
+        """Ensure proper cert permissions, returns"""
+        fail_prefix = 'VerificationFailure: '
+        if not os.path.exists(path):
+            raise CertFileError(fail_prefix + "No associated cert file")
+        mode = os.stat(path).st_mode
+        if mode & (stat.S_IWGRP | stat.S_IWOTH):
+            raise CertFileError(fail_prefix + "Cert file '%s' is excessively writable: %o" %(path, mode & 0777))
+        try:
+            cert = X509.load_cert(path)
+        except X509.X509Error:
+            raise CertFileError('Malformed cert: %s\n' % path)
+        return cert
 
-        Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
-        env = cls.get_test_env()
-        # Python 2.4 requires kwargs to be defined in variable and then
-        # expanded in call to env.run instead of being supplied as keywords
-        kwargs = {
-            # Don't raise exception on error
-            "expect_error" : True,
-            "expect_stderr" : True,
-            "quiet" : True,
-	    #"test" : True,
-            }
-        result = env.run("env")
-        result = env.run(sys.executable, "-c", code, "-T" ,*args, **kwargs)
-        return result
+    @staticmethod
+    def simple_pass_callback(verify):
+        """Callback for unlocking keys with passwords in plaintext for testing."""
+        return ''
 
-    @classmethod
-    def run_error_msg(cls, result):
-        """Return an error message from a result"""
-        return "Return code: %d\n" % result.returncode \
-            + "STDOUT:\n" + result.stdout \
-            + "STDERR:\n" + result.stderr
+class KeyFileError(AssertionError):
+    pass
 
-    @classmethod
-    def set_cert_path(cls, path):
-        """Set path to use for user certificate"""
-        cls.cert_path = os.path.abspath(path)
-
-    @classmethod
-    def get_cert_path(cls):
-        """Return path to user certificate to use for authentication
-
-        Search order is:
-           Path specified by user on commandline
-           ./test-cert.pem"""
-        return cls.cert_path
-
-    @classmethod
-    def set_key_path(cls, path):
-        """Set path to use for user private key"""
-        cls.key_path = os.path.abspath(path)
-
-    @classmethod
-    def get_key_path(cls):
-        """Return path to user private key to use for authentication
-
-        Search order is:
-           Path specified by user on commandline
-           ./test-key.pem"""
-        return cls.key_path
-
-    @classmethod
-    def set_scripts_path(cls, path):
-        """Set the path to where the scripts are"""
-        cls.scripts_path = os.path.abspath(path)
-
-    @classmethod
-    def get_scripts_path(cls):
-        """Get the path to where the scripts are"""
-        return cls.scripts_path
-
-    def check_private_key(self, env, path):
-	"""Check the given private key in the given test environment using openssl
-
-        Also asserts permissions of key file are 0600
-
-	Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
-        mode = os.stat(os.path.join(self.test_path, path)).st_mode
-        self.assertEqual(mode & 0777,  # Filter out non-permission bits
-                         0600,
-                         "Key file '%s' permissions are not 0600: %o" %(path, mode))
-	result = self.run_cmd(env,
-                              "openssl", "rsa",
-                              "-in", path,
-                              "-noout", "-check",
-                              # This will cause us not to block on
-                              # input if the key is encrypted. It will
-                              # be ignored if the key isn't encrypted.
-                              "-passin", "pass:null")
-        return result
-
-    def check_certificate(self, env, path):
-        """Check the given certificate in the given test environment using openssl
-
-        Also asserts certificate file is not group or world writable.
-
-	Returns scriptTest.ProcResult instance from TestFileEnvironment.run()"""
-        mode = os.stat(os.path.join(self.test_path, path)).st_mode
-        self.assertEqual(mode & (stat.S_IWGRP | stat.S_IWOTH), 0,
-                         "Cert file '%s' is excessively writable: %o" %(path, mode))
-        result = self.run_cmd(env, "openssl", "x509", "-in", path, '-noout', '-text')
-        return result
-
-    @classmethod
-    def setup_rpm_test(cls, path="/usr/bin/"):
-        """Test an RPM install instead of from source."""
-        # Override where to look for scripts
-        cls.scripts_path = path
-        # Don't override PYTHONPATH
-        cls.pypath = None
-        # And finally a flag for other things...
-        cls.testing_rpm_install = True
+class CertFileError(AssertionError):
+    pass
