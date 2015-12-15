@@ -52,8 +52,8 @@ class GridadminCertRequestTests(unittest.TestCase):
     def test_help(self):
         """Test running with -h to get help"""
         rc, stdout, _, msg = OIM().gridadmin_request('--help')
-        self.assert_(re.search(r'[Uu]sage:', stdout), msg)
         self.assertEqual(rc, 0, "Bad return code when requesting help\n%s" % msg)
+        self.assert_(re.search(r'[Uu]sage:', stdout), msg)
 
     def test_no_args(self):
         """Ensure failure when no args are provided"""
