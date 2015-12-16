@@ -2,43 +2,38 @@
 
 import re
 import sys
+import unittest
 
-from PKIClientTestCase import PKIClientTestCase
+from pkiunittest import DOMAIN, EMAIL
 
 # Allow import of OSGPKIUtilsTests. Hacky.
-sys.path.insert(1, PKIClientTestCase.scripts_path) 
-from OSGPKIUtils import Cert
+sys.path.insert(1, PYPATH)
+from osgpkitools.OSGPKIUtils import Cert
 
-class OSGPKIUtilsTests(PKIClientTestCase):
-    fqdn = 'test.' + PKIClientTestCase.domain
+class OSGPKIUtilsTests(unittest.TestCase):
+    FQDN = 'test.' + DOMAIN
     
     def __generate_csr(self, config):
         '''Helper for CSR generation'''
         test_cert = Cert()
-        key_file = self.fqdn + '-key.pem'
+        key_file = self.FQDN + '-key.pem'
         test_cert.CreatePKey(key_file)
         csr = test_cert.CreateX509Request(**config)
         self.assert_(csr, 'Could not create CSR')
         return csr
         
-    def test_import(self):
-        """Test osgpkitools.OSGPKIUtils import"""
-        result = self.run_python("from osgpkitools.OSGPKIUtils import *")
-        self.assertEqual(result.returncode, 0,
-                         self.run_error_msg(result))
-
     def test_csr_generation(self):
         '''Generate a basic CSR'''
-        config = {'CN': self.fqdn,
-                  'emailAddress': self.email,
+        config = {'CN': self.FQDN,
+                  'emailAddress': EMAIL,
                   'alt_names': []}
         self.__generate_csr(config)
         
     def test_alt_name_csr_generation(self):
         '''Generate a CSR with multiple SANs'''
-        alias = 'test-san.' + self.domain
-        config = {'CN': self.fqdn,
-                  'emailAddress': self.email,
+        alias = 'test-san.' + DOMAIN
+        config = {'CN': self.FQDN,
+                  'emailAddress': EMAIL,
                   'alt_names': [alias]}
         csr_contents = self.__generate_csr(config).as_text()
         self.assert_(re.search(r'X509v3 Subject Alternative Name: critical', csr_contents), 
@@ -50,5 +45,4 @@ class OSGPKIUtilsTests(PKIClientTestCase):
                          (list(expected_names), csr_contents)) # printed lists are prettier than printed sets
 
 if __name__ == '__main__':
-    import unittest
     unittest.main()
