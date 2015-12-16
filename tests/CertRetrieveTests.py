@@ -20,14 +20,6 @@ class CertRetrieveTests(unittest.TestCase):
         self.assertEqual(rc, 0, "Bad return code when requesting help\n%s" % msg)
         self.assert_(re.search(r'[Uu]sage:', stdout), msg)
 
-    def test_retrieve(self):
-        """Test retrieving a certificate"""
-        oim = OIM()
-        hostname = 'test.' + DOMAIN
-        rc, _, _, msg = oim.request('--hostname', hostname)
-        self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
-        self.assert_(oim.reqid != '', msg)
-
     # TODO: Request cert, approve it (see osgpkiutils/ConnectAPI.py), and then retrieve it.
 
 if __name__ == '__main__':
