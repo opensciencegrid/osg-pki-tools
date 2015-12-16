@@ -4,7 +4,7 @@ import re
 import unittest
 from M2Crypto import X509, RSA
 
-from PKIClientTestCase import OIM, DOMAIN, test_env_setup, test_env_teardown
+from pkiunittest import OIM, DOMAIN, test_env_setup, test_env_teardown
 
 class GridadminCertRequestTests(unittest.TestCase):
 
@@ -30,25 +30,6 @@ class GridadminCertRequestTests(unittest.TestCase):
         f.close()
         return hosts_filename
 
-    def verify_num_certs(self, found_certs, expected_certs, msg):
-        """Verify expected number of certs. If not, throw an AssertionError with details and msg"""
-        num_found_certs = len(found_certs)
-        num_expected_certs = len(expected_certs)
-        self.assertEqual(num_found_certs, num_expected_certs,
-                         'Expected %s cert(s), received %s\n%s' % (num_found_certs, num_expected_certs, msg))
-
-    def verify_sans(self, certs, hosts, msg):
-        """Verify that the we have the correct number of certs and expected SAN contents for each cert.
-        If not, throw an AssertionError with details and msg"""
-        self.verify_num_certs(certs, hosts, msg)
-        for cert, expected_names in zip(certs, hosts):
-            # Verify list of SANs are as expected
-            san_contents = cert.get_ext('subjectAltName').get_value()
-            found_names = set(match.group(1) for match in re.finditer(r'DNS:([\w\-\.]+)', san_contents))
-            self.assertEqual(found_names, set(expected_names),
-                             "Did not find expected SAN contents %s:\n%s\n%s" %
-                             (expected_names, cert.as_text(), msg))
-
     def test_help(self):
         """Test running with -h to get help"""
         rc, stdout, _, msg = OIM().gridadmin_request('--help')
@@ -72,12 +53,12 @@ class GridadminCertRequestTests(unittest.TestCase):
         hostname = 'test.' + DOMAIN
         san = 'test-san.' + DOMAIN
         second_san = 'test-san2.' + DOMAIN
-        request = OIM()
-        rc, _, _, msg = request.gridadmin_request('--hostname', hostname,
+        oim = OIM()
+        rc, _, _, msg = oim.gridadmin_request('--hostname', hostname,
                                                   '--altname', san,
                                                   '--altname', second_san)
         self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
-        self.verify_sans(request.certs, [[hostname, san, second_san]], msg)
+        oim.assertSans([[hostname, san, second_san]], msg)
 
     def test_rename_old_certs(self):
         """Test repeated requests for the same host to make sure
@@ -118,11 +99,11 @@ class GridadminCertRequestTests(unittest.TestCase):
         hosts_file = self.write_hostsfile(hosts)
 
         # Request the certs
-        request = OIM()
-        rc, _, _, msg = request.gridadmin_request("--hostfile", hosts_file)
+        oim = OIM()
+        rc, _, _, msg = oim.gridadmin_request("--hostfile", hosts_file)
 
         self.assertEqual(rc, 0, "Failed to request certificate\n" + msg)
-        self.verify_num_certs(request.certs, hosts, msg)
+        oim.assertNumCerts(hosts, msg)
 
     def test_duplicate_host_request(self):
         """Ignore duplicate hosts"""
@@ -131,11 +112,11 @@ class GridadminCertRequestTests(unittest.TestCase):
         hosts_file = self.write_hostsfile(extra_hosts)
 
         # Request the certs
-        request = OIM()
-        rc, _, _, msg = request.gridadmin_request("--hostfile", hosts_file)
+        oim = OIM()
+        rc, _, _, msg = oim.gridadmin_request("--hostfile", hosts_file)
 
         self.assertEqual(rc, 0, "Failed to request certificate\n" + msg)
-        self.verify_sans(request.certs, hosts, msg)
+        oim.verify_sans(request.certs, hosts, msg)
 
     def test_multihost_sans_request(self):
         """Submit cert request for multiple hosts with SANs for each host"""
@@ -147,11 +128,11 @@ class GridadminCertRequestTests(unittest.TestCase):
         hosts_file = self.write_hostsfile(hosts)
 
         # Request the certs
-        request = OIM()
-        rc, _, _, msg = request.gridadmin_request("--hostfile", hosts_file)
+        oim = OIM()
+        rc, _, _, msg = oim.gridadmin_request("--hostfile", hosts_file)
 
         self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
-        self.verify_sans(request.certs, hosts, msg)
+        oim.assertSans(hosts, msg)
 
     def test_multihost_mixed_request(self):
         """Submit cert request for multiple hosts with SANs for some hosts """
@@ -166,11 +147,11 @@ class GridadminCertRequestTests(unittest.TestCase):
         hosts_file = self.write_hostsfile(hosts)
 
         # Request the certs
-        request = OIM()
-        rc, _, _, msg = request.gridadmin_request("--hostfile", hosts_file)
+        oim = OIM()
+        rc, _, _, msg = oim.gridadmin_request("--hostfile", hosts_file)
 
         self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
-        self.verify_sans(request.certs, hosts, msg)
+        oim.assertSans(hosts, msg)
 
 if __name__ == '__main__':
     unittest.main()
