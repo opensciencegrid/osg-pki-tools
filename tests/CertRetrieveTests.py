@@ -1,69 +1,34 @@
 """Test cert-retrieve script"""
 
-import PKIClientTestCase
+import re
+import unittest
+from pkiunittest import OIM, DOMAIN, test_env_setup, test_env_teardown
 
-class CertRetrieveTests(PKIClientTestCase.PKIClientTestCase):
+class CertRetrieveTests(unittest.TestCase):
 
-    command = "osg-cert-retrieve"
+    def setUp(self):
+        """Run each test in its own dir"""
+        test_env_setup()
+
+    def tearDown(self):
+        """Remove personal test dir"""
+        test_env_teardown()
 
     def test_help(self):
-        """Test running with -h to get help"""
-        env = self.get_test_env()
-        result = self.run_script(env, self.command, "-h")
-        err_msg = self.run_error_msg(result)
-        self.assertEqual(result.returncode, 0, err_msg)
-        # Python 2.4 optpase prints "usage" instead of "Usage"
-        self.assertTrue("Usage:" in result.stdout or "usage:" in result.stdout,
-                        err_msg)
-
-    def test_no_args(self):
-        """Test running without arguments and seeing usage"""
-        env = self.get_test_env()
-        result = self.run_script(env, self.command)
-        err_msg = self.run_error_msg(result)
-        self.assertNotEqual(result.returncode, 0, err_msg)
-        # Python 2.4 optpase prints "usage" instead of "Usage"
-        self.assertTrue("Usage:" in result.stderr or "usage:" in result.stderr,
-                        err_msg)
+        """Run with -h to get help"""
+        rc, stdout, _, msg = OIM().retrieve('--help')
+        self.assertEqual(rc, 0, "Bad return code when requesting help\n%s" % msg)
+        self.assert_(re.search(r'[Uu]sage:', stdout), msg)
 
     def test_retrieve(self):
         """Test retrieving a certificate"""
-        # 83 is a known good certificate but otherwise arbitrary
-        # Cert 83 is for: tinge.hpcc.ttu.edu (099CA8A28EC4496A2644A78C5F1DFDCD)
-        env = self.get_test_env()
-        result = self.run_script(env, self.command, "-i", "83")
-        err_msg = self.run_error_msg(result)
-        self.assertEqual(result.returncode, 0, err_msg)
-        # Make sure certificate looks OK
-        self.assertTrue(result.files_created.has_key("hostcert.pem"),
-                        "Cannot find retrieved certificate\n" + err_msg)
-        cert_file = "hostcert.pem"
-        cert_result = self.check_certificate(env, cert_file)
-        err_msg = self.run_error_msg(result)
-        self.assertEqual(result.returncode, 0,
-                         "Failed checking certificate %s: %s" % (cert_file,
-                                                                 err_msg))
+        oim = OIM()
+        hostname = 'test.' + DOMAIN
+        rc, _, _, msg = oim.request('--hostname', hostname)
+        self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
+        self.assert_(oim.reqid != '', msg)
 
-    def test_retrieve_duplication(self):
-        """Test retrieving a certificate with existing file"""
-        # 83 is a known good certificate but otherwise arbitrary
-        # Cert 83 is for: tinge.hpcc.ttu.edu (099CA8A28EC4496A2644A78C5F1DFDCD)
-        env = self.get_test_env()
-        result = self.run_script(env, self.command, "-i", "83")
-        err_msg = self.run_error_msg(result)
-        self.assertEqual(result.returncode, 0, err_msg)
-        self.assertTrue(result.files_created.has_key("hostcert.pem"),
-                        "Cannot find retrieve certificate\n" + err_msg)
-        # Now get a second certificate, which should cause first to be renamed
-        result = self.run_script(env, self.command, "-i", "83")
-        err_msg = self.run_error_msg(result)
-        self.assertEqual(result.returncode, 0, err_msg)
-        # Make sure we see moved aside certificate
-        # (Note that result won't have hostcert.pem as created because it
-        #  already existed)
-        self.assertTrue(result.files_created.has_key("hostcert-old.pem"),
-                        "Cannot find renamed certificate\n" + err_msg)
+    # TODO: Request cert, approve it (see osgpkiutils/ConnectAPI.py), and then retrieve it.
 
 if __name__ == '__main__':
-    import unittest
     unittest.main()
