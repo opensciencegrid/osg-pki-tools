@@ -42,17 +42,30 @@ TEST_PATH = "./test-output"
 
 # TODO: chdir strategy is a little silly
 def test_env_setup():
-    """Create a dir for tests to play in"""
+    """Create a test dir and environment"""
+    # Required for cleanup and tests
+    global test_dir
+    global orig_env
+    
+    # Set path and python path for tests
+    orig_env = deepcopy(os.environ)
+    try:
+        os.environ['PYTHONPATH'] += ':%s' % PYPATH
+    except KeyError:
+        os.environ['PYTHONPATH'] = PYPATH
+    os.environ['PATH'] += ':%s' % SCRIPTS_PATH
+
+    # Create temp dir and place necessary config in the cwd
     ini_file = os.path.join(SCRIPTS_PATH, 'pki-clients.ini')
-    temp_dir = tempfile.mkdtemp(dir=os.getcwd())
-    shutil.copy2(ini_file, temp_dir)
-    os.chdir(temp_dir)
+    cwd = os.getcwd()
+    shutil.copy2(ini_file, cwd)
+    test_dir = tempfile.mkdtemp(dir=cwd)
 
 def test_env_teardown():
     """Blow up the test dir"""
-    temp_dir = os.getcwd()
-    os.chdir('..')
-    shutil.rmtree(temp_dir)
+    os.environ = deepcopy(orig_env) # restore environment
+    os.unlink('pki-clients.ini')
+    shutil.rmtree(test_dir)
 
 def run_command(cmd, env=None):
     proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=env)
@@ -68,12 +81,7 @@ def run_python(script, *args):
     '''Run osg-pki-tools script '''
     script_path = os.path.join(SCRIPTS_PATH, script)
     full_cmd = (sys.executable, script_path) + args
-    test_env = deepcopy(os.environ)
-    try:
-        test_env['PYTHONPATH'] += ':%s' % PYPATH
-    except KeyError:
-        test_env['PYTHONPATH'] = PYPATH
-    return run_command(full_cmd, test_env)
+    return run_command(full_cmd, env=os.environ)
 
 class OIM(object):
     """OIM and cert/key pair interface"""
@@ -113,19 +121,23 @@ class OIM(object):
                                              '--test',
                                              '--cert', GA_CERT_PATH,
                                              '--pkey', GA_KEY_PATH,
+                                             '--directory', test_dir,
                                              *opts)
         # Populate instance attr
         try:
             self.reqid = re.search(r'Id is: (\d+)', stdout).group(1)
         except AttributeError:
             msg = 'Could not parse stdout for request ID\n' + msg
-        certs = re.findall(r'Certificate written to (.*)', stdout)
-        keys = re.findall(r'Writing key to (.*)', stdout)
+        certs = re.findall(r'Certificate written to (.*?\.pem)\n', stdout, re.MULTILINE|re.DOTALL)
+        keys = re.findall(r'Writing key to (.*?-key\.pem)\n', stdout, re.MULTILINE|re.DOTALL)
         if len(certs) != len(keys):
             raise AssertionError('Mismatched number of issued certs and keys\n' + msg)
 
         # Verify permissions of created files, if any
         for cert_path, key_path in zip(certs, keys):
+            # pki-tools annoyingingly breaks up long paths into multiple lines
+            cert_path = cert_path.replace('\n', '')
+            key_path = key_path.replace('\n', '')
             try:
                 cert = OIM.verify_cert(cert_path)
                 key = OIM.verify_key(key_path)
@@ -140,7 +152,7 @@ class OIM(object):
 
     def retrieve(self, *opts):
         """Run osg-cert-retrieve"""
-        args = list(opts + (self.reqid))
+        args = list(opts + (self.reqid,))
         return run_python('osg-cert-retrieve', '--test', *args)
 
     def user_renew(self, *opts):
@@ -166,17 +178,17 @@ class OIM(object):
         """Ensure proper key permission bits and ability to unlock the key"""
         fail_prefix = 'VerificationFailure: '
         if not os.path.exists(path):
-            raise KeyFileError(fail_prefix + "No associated key file")
+            raise KeyFileError(fail_prefix + "No associated key file\n")
         permissions = os.stat(path).st_mode & 0777 # Mask non-permission bits
         if permissions != 0600:
-            raise KeyFileError(fail_prefix + "Bad permissions (%o) on key '%s'" % (permissions, path))
+            raise KeyFileError(fail_prefix + "Bad permissions (%o) on key '%s'\n" % (permissions, path))
         try:
             key = RSA.load_key(path, OIM.simple_pass_callback)
         except RSA.RSAError, exc:
             if 'no start line' in exc.message:
-                raise KeyFileError(fail_prefix + "Could not load key file '%s'" % path)
+                raise KeyFileError(fail_prefix + "Could not load key file '%s'\n" % path)
             elif 'bad pass' in exc.message:
-                raise KeyFileError(fail_prefix + "Incorrect pass for key file %s" % path)
+                raise KeyFileError(fail_prefix + "Incorrect pass for key file %s\n" % path)
         return key
 
     @staticmethod
@@ -184,10 +196,10 @@ class OIM(object):
         """Ensure proper cert permissions, returns"""
         fail_prefix = 'VerificationFailure: '
         if not os.path.exists(path):
-            raise CertFileError(fail_prefix + "No associated cert file")
+            raise CertFileError(fail_prefix + "No associated cert file\n")
         mode = os.stat(path).st_mode
         if mode & (stat.S_IWGRP | stat.S_IWOTH):
-            raise CertFileError(fail_prefix + "Cert file '%s' is excessively writable: %o" %(path, mode & 0777))
+            raise CertFileError(fail_prefix + "Cert file '%s' is excessively writable: %o\n" %(path, mode & 0777))
         try:
             cert = X509.load_cert(path)
         except X509.X509Error:
