@@ -1,32 +1,39 @@
 """Test osg-user-cert-revoke script"""
 
-import PKIClientTestCase
+import re
+import unittest
+from pkiunittest import OIM, DOMAIN, test_env_setup, test_env_teardown
 
+class CertRevokeTests(unittest.TestCase):
 
-class CertRetrieveTests(PKIClientTestCase.PKIClientTestCase):
+    def setUp(self):
+        """Run each test in its own dir"""
+        test_env_setup()
 
-    command = "osg-cert-revoke"
-
+    def tearDown(self):
+        """Remove personal test dir"""
+        test_env_teardown()
+    
     def test_help(self):
         """Test running with -h to get help"""
-        env = self.get_test_env()
-        result = self.run_script(env, self.command, "-h")
-        err_msg = self.run_error_msg(result)
-        self.assertEqual(result.returncode, 0, err_msg)
-        # Python 2.4 optpase prints "usage" instead of "Usage"
-        self.assertTrue("Usage:" in result.stdout or "usage:" in result.stdout,
-                        err_msg)
+        rc, stdout, _, msg = OIM().revoke('--help')
+        self.assertEqual(rc, 0, "Bad return code when requesting help\n%s" % msg)        
+        self.assert_(re.search(r'[Uu]sage:', stdout), msg)
 
-    def test_no_args(self):
-        """Test running without arguments and seeing usage"""
-        env = self.get_test_env()
-        result = self.run_script(env, self.command)
-        err_msg = self.run_error_msg(result)
-        self.assertNotEqual(result.returncode, 0, err_msg)
-        # Python 2.4 optpase prints "usage" instead of "Usage"
-        self.assertTrue("Usage:" in result.stderr or "usage:" in result.stderr,
-                        err_msg)
+    def test_user_help(self):
+        """Test running with -h to get help"""
+        rc, stdout, _, msg = OIM().user_revoke('--help')
+        self.assertEqual(rc, 0, "Bad return code when requesting help\n%s" % msg)        
+        self.assert_(re.search(r'[Uu]sage:', stdout), msg)
+        
+    def test_revoke(self):
+        """Test basic revocation"""
+        request = OIM()
+        rc, _, _, msg = request.gridadmin_request('--hostname', 'test.' + DOMAIN)
+        self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
+        rc, stdout, _, msg = request.revoke()
+        self.assertEqual(rc, 0, "Failed to revoke certificate\n%s" % msg)
+        print stdout
 
 if __name__ == '__main__':
-    import unittest
     unittest.main()
