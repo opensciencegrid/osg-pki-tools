@@ -1,4 +1,6 @@
-"""PKIClientTestCase: OSG PKI Command line client test case base class"""
+"""For testing the osg-pki-tools. The OIM class acts as an interface to OIM-ITB
+via the osg-pkitools. Each OIM keeps track of its request ID and cert/key pairs
+"""
 
 import os
 import re
@@ -52,24 +54,26 @@ def test_env_teardown():
     os.chdir('..')
     shutil.rmtree(temp_dir)
 
-def run_script(script, *args):
+def run_command(cmd, env=None):
+    proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=env)
+    stdout, stderr = proc.communicate()
+    rc = proc.returncode
+    diagnostic = "Command: %s\n" % ' '.join(cmd) \
+                 + "Return code: %d\n" % rc \
+                 + "STDOUT:\n" + stdout \
+                 + "STDERR:\n" + stderr
+    return rc, stdout, stderr, diagnostic
+
+def run_python(script, *args):
     '''Run osg-pki-tools script '''
     script_path = os.path.join(SCRIPTS_PATH, script)
-    cmd = (sys.executable, script_path) + args
+    full_cmd = (sys.executable, script_path) + args
     test_env = deepcopy(os.environ)
     try:
         test_env['PYTHONPATH'] += ':%s' % PYPATH
     except KeyError:
         test_env['PYTHONPATH'] = PYPATH
-
-    script_proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_env)
-    stdout, stderr = script_proc.communicate()
-    rc = script_proc.returncode
-    diagnostic = "Command: %s\n" % ' '.join(cmd[1:]) \
-                 + "Return code: %d\n" % rc \
-                 + "STDOUT:\n" + stdout \
-                 + "STDERR:\n" + stderr
-    return rc, stdout, stderr, diagnostic
+    return run_command(full_cmd, test_env)
 
 class OIM(object):
     """OIM and cert/key pair interface"""
@@ -81,7 +85,7 @@ class OIM(object):
 
     def request(self, *opts):
         """Run osg-cert-request"""
-        rc, stdout, stderr, msg = run_script('osg-cert-request',
+        rc, stdout, stderr, msg = run_python('osg-cert-request',
                                              '--test',
                                              '--hostname', 'test.' + DOMAIN,
                                              '--email', EMAIL,
@@ -105,7 +109,7 @@ class OIM(object):
 
     def gridadmin_request(self, *opts):
         """Run osg-gridadmin-request"""
-        rc, stdout, stderr, msg = run_script('osg-gridadmin-cert-request',
+        rc, stdout, stderr, msg = run_python('osg-gridadmin-cert-request',
                                              '--test',
                                              '--cert', GA_CERT_PATH,
                                              '--pkey', GA_KEY_PATH,
@@ -137,11 +141,11 @@ class OIM(object):
     def retrieve(self, *opts):
         """Run osg-cert-retrieve"""
         args = list(opts + (self.reqid))
-        return run_script('osg-cert-retrieve', '--test', *args)
+        return run_python('osg-cert-retrieve', '--test', *args)
 
     def user_renew(self, *opts):
         """Run osg-user-cert-renew"""
-        return run_script('osg-user-cert-renew', '--test', *opts)
+        return run_python('osg-user-cert-renew', '--test', *opts)
 
     def revoke(self, *opts):
         """Run osg-cert-revoke"""
@@ -149,12 +153,13 @@ class OIM(object):
                        '--cert', GA_CERT_PATH,
                        '--pkey', GA_KEY_PATH,
                        self.reqid, 'osg-pki-tools unit test - revoke')
-        return run_script('osg-cert-revoke', *args)
+        return run_python('osg-cert-revoke', *args)
 
     def user_revoke(self, *opts):
-        """Run osg-user-cert-revoke"""
-        args = list(opts + ('--test', self.reqid, 'osg-pki-tools unit test - revoke'))
-        return run_script('osg-user-cert-revoke', *args)
+        """Run osg-user-cert-revoke, which is a bash wrapper around osg-cert-revoke"""
+        args = opts + ('--test', self.reqid, 'osg-pki-tools unit test - user revoke')
+        cmd = (os.path.join(SCRIPTS_PATH, 'osg-user-cert-revoke'),) + args
+        return run_command(cmd)
 
     @staticmethod
     def verify_key(path):
@@ -193,6 +198,29 @@ class OIM(object):
     def simple_pass_callback(verify):
         """Callback for unlocking keys with passwords in plaintext for testing."""
         return ''
+
+    def assertNumCerts(self, num_expected_certs, msg):
+        """Verify expected number of certs"""
+        num_found_certs = len(self.certs)
+        if num_found_certs != num_expected_certs:
+            raise AssertionError('Expected %s cert(s), received %s\n%s' %
+                                 (num_found_certs, num_expected_certs, msg))
+
+    def assertSans(self, hosts_list, msg):
+        """Verify that the we have the correct number of certs and expected SAN contents for each cert.
+        If not, throw an AssertionError with details and msg
+
+        hosts: list of lists containing hostname and its SANs
+        msg: string"""
+        self.assertNumCerts(len(hosts_list), msg)
+        for cert, expected_names in zip(self.certs, hosts_list):
+            # Verify list of SANs are as expected
+            san_contents = cert.get_ext('subjectAltName').get_value()
+            found_names = set(match.group(1) for match in re.finditer(r'DNS:([\w\-\.]+)', san_contents))
+            if found_names != set(expected_names):
+                raise AssertionError("Did not find expected SAN contents %s:\n%s\n%s" %
+                                     (expected_names, cert.as_text(), msg))
+
 
 class KeyFileError(AssertionError):
     pass
