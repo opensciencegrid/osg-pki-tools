@@ -341,9 +341,7 @@ def write_certificate(**arguments):
     os.chmod(pem_filename, 0644)
 
     os.chdir(cwd)
-    charlimit_textwrap('''Certificate written to %s%s
-    '''
-                       % (arguments['certdir'], pem_filename))
+    charlimit_textwrap('Certificate written to %s' % os.path.join(arguments['certdir'], pem_filename))
     temp_file.close()
     return
 
