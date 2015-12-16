@@ -1,26 +1,27 @@
 """Test osg-user-cert-renew script"""
 
-import PKIClientTestCase
+import re
+import unittest
 
+from pkiunittest import OIM, DOMAIN, test_env_setup, test_env_teardown
 
-class CertRetrieveTests(PKIClientTestCase.PKIClientTestCase):
+class CertRenewTests(unittest.TestCase):
 
-    command = "osg-user-cert-renew"
+    def setUp(self):
+        """Run each test in its own dir"""
+        test_env_setup()
 
+    def tearDown(self):
+        """Remove personal test dir"""
+        test_env_teardown()
+    
     def test_help(self):
         """Test running with -h to get help"""
-        env = self.get_test_env()
-        result = self.run_script(env, self.command, "-h")
-        err_msg = self.run_error_msg(result)
-        self.assertEqual(result.returncode, 0, err_msg)
-        # Python 2.4 optpase prints "usage" instead of "Usage"
-        self.assertTrue("Usage:" in result.stdout or "usage:" in result.stdout,
-                        err_msg)
+        rc, stdout, _, msg = OIM().user_renew('--help')
+        self.assertEqual(rc, 0, "Bad return code when requesting help\n%s" % msg)
+        self.assert_(re.search(r'[Uu]sage:', stdout), msg)
 
-    # No test with no arguments, because this script doesn't require
-    # arguments and it's behavior will be undefined depending on
-    # whether or not it finds a key and certificate in the default
-    # location.
+    #TODO: Implement tests for actual renew functionality
 
 if __name__ == '__main__':
     import unittest
