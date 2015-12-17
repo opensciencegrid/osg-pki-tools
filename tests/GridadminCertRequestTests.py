@@ -43,12 +43,12 @@ class GridadminCertRequestTests(unittest.TestCase):
         self.assert_(re.search(r'[Uu]sage:', stderr), msg)
         print stdout
 
-    def test_cert_request(self):
+    def test_singlehost(self):
         """Test making a request for a single host"""
         rc, _, _, msg = OIM().gridadmin_request('--hostname', 'test.' + DOMAIN)
         self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
 
-    def test_alt_name_request(self):
+    def test_singlehost_alt_name(self):
         """Test making a request for a single host with an alternative hostname"""
         hostname = 'test.' + DOMAIN
         san = 'test-san.' + DOMAIN
@@ -60,7 +60,7 @@ class GridadminCertRequestTests(unittest.TestCase):
         self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
         oim.assertSans([[hostname, san, second_san]], msg)
 
-    def test_rename_old_certs(self):
+    def test_singlehost_rename_old_certs(self):
         """Test repeated requests for the same host to make sure
         we aren't overwriting files.
 
@@ -92,7 +92,7 @@ class GridadminCertRequestTests(unittest.TestCase):
         self.assertEqual(initial_key_pem, old_key_pem,
                          'Renamed cert is not the same as the initial cert' + msg)
 
-    def test_multihost_request(self):
+    def test_multihost(self):
         """Test making a request for multiple host certificates"""
         # Generate a simple hosts list
         hosts = list(["test-%d.%s" % (i, DOMAIN)] for i in xrange(self.__num_multihost_requests))
@@ -105,7 +105,7 @@ class GridadminCertRequestTests(unittest.TestCase):
         self.assertEqual(rc, 0, "Failed to request certificate\n" + msg)
         oim.assertNumCerts(hosts, msg)
 
-    def test_duplicate_host_request(self):
+    def test_multihost_dupe_host(self):
         """Ignore duplicate hosts"""
         hosts = list(["test-%d.%s" % (i, DOMAIN)] for i in xrange(self.__num_multihost_requests))
         extra_hosts = hosts + [['test-0.%s' % DOMAIN]]
@@ -118,7 +118,7 @@ class GridadminCertRequestTests(unittest.TestCase):
         self.assertEqual(rc, 0, "Failed to request certificate\n" + msg)
         oim.verify_sans(request.certs, hosts, msg)
 
-    def test_multihost_sans_request(self):
+    def test_multihost_sans(self):
         """Submit cert request for multiple hosts with SANs for each host"""
         # Generate the hosts list with SANs for each host
         hosts = list()
@@ -134,7 +134,7 @@ class GridadminCertRequestTests(unittest.TestCase):
         self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
         oim.assertSans(hosts, msg)
 
-    def test_multihost_mixed_request(self):
+    def test_multihost_mixed(self):
         """Submit cert request for multiple hosts with SANs for some hosts """
         # Generate the hosts list with every other host having SANs
         hosts = list()
