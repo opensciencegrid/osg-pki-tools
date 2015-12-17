@@ -101,6 +101,7 @@ class OIM(object):
                                              '--phone', PHONE,
                                              '--comment', 'This is a comment',
                                              '--cc', 'test@example.com,test2@example.com',
+                                             '--directory', test_dir,
                                              *opts)
         attr_regex = r'Writing key to ([^\n]+).*Request Id#: (\d+)'
         try:
@@ -152,8 +153,12 @@ class OIM(object):
 
     def retrieve(self, *opts):
         """Run osg-cert-retrieve"""
+        if not self.reqid:
+            raise CertFileError('Could not revoke cert due to missing request ID\n')
         args = list(opts + (self.reqid,))
-        return run_python('osg-cert-retrieve', '--test', *args)
+        return run_python('osg-cert-retrieve', '--test'
+                          '--directory', test_dir,
+                          *args)
 
     def user_renew(self, *opts):
         """Run osg-user-cert-renew"""
@@ -161,6 +166,8 @@ class OIM(object):
 
     def revoke(self, *opts):
         """Run osg-cert-revoke"""
+        if not self.reqid:
+            raise CertFileError('Could not revoke cert due to missing request ID\n')
         args = opts + ('--test',
                        '--cert', GA_CERT_PATH,
                        '--pkey', GA_KEY_PATH,
@@ -169,6 +176,8 @@ class OIM(object):
 
     def user_revoke(self, *opts):
         """Run osg-user-cert-revoke, which is a bash wrapper around osg-cert-revoke"""
+        if not self.reqid:
+            raise CertFileError('Could not revoke cert due to missing request ID\n')
         args = opts + ('--test', self.reqid, 'osg-pki-tools unit test - user revoke')
         cmd = (os.path.join(SCRIPTS_PATH, 'osg-user-cert-revoke'),) + args
         return run_command(cmd)
