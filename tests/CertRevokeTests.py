@@ -28,12 +28,12 @@ class CertRevokeTests(unittest.TestCase):
         
     def test_revoke(self):
         """Test basic revocation"""
-        request = OIM()
-        rc, _, _, msg = request.gridadmin_request('--hostname', 'test.' + DOMAIN)
+        oim = OIM()
+        rc, _, _, msg = oim.gridadmin_request('--hostname', 'test.' + DOMAIN)
         self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
-        rc, stdout, _, msg = request.revoke()
+        rc, stdout, _, msg = oim.revoke()
         self.assertEqual(rc, 0, "Failed to revoke certificate\n%s" % msg)
-        print stdout
+        self.assert_(re.search(r'Successfully revoked.*%s' % oim.reqid, stdout), msg)
 
 if __name__ == '__main__':
     unittest.main()
