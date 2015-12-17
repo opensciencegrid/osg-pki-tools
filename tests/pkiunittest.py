@@ -153,10 +153,10 @@ class OIM(object):
 
     def retrieve(self, *opts):
         """Run osg-cert-retrieve"""
-        if not self.reqid:
+        if not self.reqid and '--help' not in opts:
             raise CertFileError('Could not revoke cert due to missing request ID\n')
         args = list(opts + (self.reqid,))
-        return run_python('osg-cert-retrieve', '--test'
+        return run_python('osg-cert-retrieve', '--test',
                           '--directory', test_dir,
                           *args)
 
@@ -166,7 +166,7 @@ class OIM(object):
 
     def revoke(self, *opts):
         """Run osg-cert-revoke"""
-        if not self.reqid:
+        if not self.reqid and '--help' not in opts:
             raise CertFileError('Could not revoke cert due to missing request ID\n')
         args = opts + ('--test',
                        '--cert', GA_CERT_PATH,
@@ -176,7 +176,7 @@ class OIM(object):
 
     def user_revoke(self, *opts):
         """Run osg-user-cert-revoke, which is a bash wrapper around osg-cert-revoke"""
-        if not self.reqid:
+        if not self.reqid and '--help' not in opts:
             raise CertFileError('Could not revoke cert due to missing request ID\n')
         args = opts + ('--test', self.reqid, 'osg-pki-tools unit test - user revoke')
         cmd = (os.path.join(SCRIPTS_PATH, 'osg-user-cert-revoke'),) + args
