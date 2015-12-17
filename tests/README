@@ -18,6 +18,9 @@ tests/test-cert.pem and the private key may be obtained from Von Welch
 The test credentials are registered in OIM-ITB and have Grid Admin
 rights in the OIM-ITB instance for pki-test.opensciencegrid.org
 
+You can request Grid Admin rights for pki-test.opensciencegrid.org
+for OIM-ITB and use your own certificate/key pair.
+
 Test credentials registration in OIM-UTB:
 https://oim-itb.grid.iu.edu/oim/contactedit?id=895
 
