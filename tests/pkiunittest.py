@@ -131,17 +131,14 @@ class OIM(object):
             self.reqid = re.search(r'Id is: (\d+)', stdout).group(1)
         except AttributeError:
             msg = 'Could not parse stdout for request ID\n' + msg
-        certs = re.findall(r'Certificate written to (.*?\.pem)\n', stdout, re.MULTILINE|re.DOTALL)
-        keys = re.findall(r'Writing key to (.*?-key\.pem)\n', stdout, re.MULTILINE|re.DOTALL)
+        no_newlines = stdout.replace('\n', '') # osg-pki-tools wraps text on us, blowing up our regex
+        certs = re.findall(r'Certificate written to (.*?\.pem)', no_newlines)
+        keys = re.findall(r'Writing key to (.*?-key\.pem)', no_newlines)
         if len(certs) != len(keys):
             raise AssertionError('Mismatched number of issued certs and keys\n' + msg)
 
         # Verify permissions of created files, if any
         for cert_path, key_path in zip(certs, keys):
-            # pki-tools annoyingingly breaks up long paths into multiple lines
-            # TODO: We could just use re.sub() instead though...
-            cert_path = cert_path.replace('\n', '')
-            key_path = key_path.replace('\n', '')
             try:
                 cert = OIM.verify_cert(cert_path)
                 key = OIM.verify_key(key_path)
