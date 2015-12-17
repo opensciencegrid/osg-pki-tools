@@ -1,10 +1,11 @@
 """Test osg-gridadmin-cert-request script"""
 
+import os
 import re
 import unittest
 from M2Crypto import X509, RSA
 
-from pkiunittest import OIM, DOMAIN, test_env_setup, test_env_teardown
+from pkiunittest import OIM, DOMAIN, TEST_PATH, test_env_setup, test_env_teardown
 
 class GridadminCertRequestTests(unittest.TestCase):
 
@@ -24,7 +25,7 @@ class GridadminCertRequestTests(unittest.TestCase):
         hosts_contents = str()
         for sans in hosts:
             hosts_contents += " ".join(sans) + "\n"
-        f = open(hosts_filename, 'w')
+        f = open(os.path.join(TEST_PATH, hosts_filename), 'w')
         f.write(hosts_contents)
         f.flush()
         f.close()
@@ -41,7 +42,6 @@ class GridadminCertRequestTests(unittest.TestCase):
         rc, _, stderr, msg = OIM().gridadmin_request()
         self.assertNotEqual(rc, 0, 'Unexpected success with no args')
         self.assert_(re.search(r'[Uu]sage:', stderr), msg)
-        print stdout
 
     def test_singlehost(self):
         """Test making a request for a single host"""
@@ -78,19 +78,23 @@ class GridadminCertRequestTests(unittest.TestCase):
 
         # Verify that the moved key/cert pair is the same as in the initial request
         try:
-            old_cert_path = re.search(r'Renaming existing file to (.*)', stdout).group(1)
+            # TODO: The format of the output is not text wrapped like it should be.
+            # When that is fixed, the regex should be updated
+            old_cert_path = re.search(r'Renaming existing file from.*to (.*)', stdout).group(1)
             old_key_path = re.search(r'Renaming existing key from.*to (.*)', stdout).group(1)
         except AttributeError:
             self.fail('Failed to move old cert or key\n' + msg)
 
+        # Cert objects don't seem to handle equality checks well, compare the pem versions
         old_cert = X509.load_cert(old_cert_path).as_pem()
         self.assertEqual(initial_req.certs[0].as_pem(), old_cert,
-                         'Renamed cert is not the same as the initial cert' + msg)
+                         'Renamed cert is not the same as the initial cert\n' + msg)
+        # Need to grab pem formats without a cipher to compare keys
         old_key = RSA.load_key(old_key_path, OIM.simple_pass_callback)
         old_key_pem = old_key.as_pem(cipher=None, callback=OIM.simple_pass_callback)
         initial_key_pem = initial_req.keys[0].as_pem(cipher=None, callback=OIM.simple_pass_callback)
         self.assertEqual(initial_key_pem, old_key_pem,
-                         'Renamed cert is not the same as the initial cert' + msg)
+                         'Renamed key is not the same as the initial key\n' + msg)
 
     def test_multihost(self):
         """Test making a request for multiple host certificates"""
@@ -101,9 +105,8 @@ class GridadminCertRequestTests(unittest.TestCase):
         # Request the certs
         oim = OIM()
         rc, _, _, msg = oim.gridadmin_request("--hostfile", hosts_file)
-
         self.assertEqual(rc, 0, "Failed to request certificate\n" + msg)
-        oim.assertNumCerts(hosts, msg)
+        oim.assertNumCerts(len(hosts), msg)
 
     def test_multihost_dupe_host(self):
         """Ignore duplicate hosts"""
@@ -116,7 +119,7 @@ class GridadminCertRequestTests(unittest.TestCase):
         rc, _, _, msg = oim.gridadmin_request("--hostfile", hosts_file)
 
         self.assertEqual(rc, 0, "Failed to request certificate\n" + msg)
-        oim.verify_sans(request.certs, hosts, msg)
+        oim.assertSans(hosts, msg)
 
     def test_multihost_sans(self):
         """Submit cert request for multiple hosts with SANs for each host"""

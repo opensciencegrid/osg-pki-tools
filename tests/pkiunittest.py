@@ -13,6 +13,9 @@ from copy import deepcopy
 from subprocess import Popen, PIPE
 from M2Crypto import RSA, X509
 
+global TEST_PATH
+global orig_env
+
 # Flag to indicate we are testing an RPM install
 TESTING_RPM_INSTALL = False
 
@@ -37,16 +40,15 @@ SCRIPTS_PATH = os.path.abspath("../osgpkitools")
 # Scripts import from osgpkitools, and it is up a directory
 PYPATH = os.path.abspath("..")
 
-# Our test directory
-TEST_PATH = "./test-output"
+TEST_PATH = ''
 
 # TODO: chdir strategy is a little silly
 def test_env_setup():
     """Create a test dir and environment"""
     # Required for cleanup and tests
-    global test_dir
+    global TEST_PATH
     global orig_env
-    
+
     # Set path and python path for tests
     orig_env = deepcopy(os.environ)
     try:
@@ -59,13 +61,13 @@ def test_env_setup():
     ini_file = os.path.join(SCRIPTS_PATH, 'pki-clients.ini')
     cwd = os.getcwd()
     shutil.copy2(ini_file, cwd)
-    test_dir = tempfile.mkdtemp(dir=cwd)
+    TEST_PATH = tempfile.mkdtemp(dir=cwd)
 
 def test_env_teardown():
     """Blow up the test dir"""
     os.environ = deepcopy(orig_env) # restore environment
     os.unlink('pki-clients.ini')
-    shutil.rmtree(test_dir)
+    shutil.rmtree(TEST_PATH)
 
 def run_command(cmd, env=None):
     proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=env)
@@ -101,7 +103,7 @@ class OIM(object):
                                              '--phone', PHONE,
                                              '--comment', 'This is a comment',
                                              '--cc', 'test@example.com,test2@example.com',
-                                             '--directory', test_dir,
+                                             '--directory', TEST_PATH,
                                              *opts)
         attr_regex = r'Writing key to ([^\n]+).*Request Id#: (\d+)'
         try:
@@ -122,7 +124,7 @@ class OIM(object):
                                              '--test',
                                              '--cert', GA_CERT_PATH,
                                              '--pkey', GA_KEY_PATH,
-                                             '--directory', test_dir,
+                                             '--directory', TEST_PATH,
                                              *opts)
         # Populate instance attr
         try:
@@ -137,6 +139,7 @@ class OIM(object):
         # Verify permissions of created files, if any
         for cert_path, key_path in zip(certs, keys):
             # pki-tools annoyingingly breaks up long paths into multiple lines
+            # TODO: We could just use re.sub() instead though...
             cert_path = cert_path.replace('\n', '')
             key_path = key_path.replace('\n', '')
             try:
@@ -157,7 +160,7 @@ class OIM(object):
             raise CertFileError('Could not revoke cert due to missing request ID\n')
         args = list(opts + (self.reqid,))
         return run_python('osg-cert-retrieve', '--test',
-                          '--directory', test_dir,
+                          '--directory', TEST_PATH,
                           *args)
 
     def user_renew(self, *opts):
@@ -224,7 +227,7 @@ class OIM(object):
         """Verify expected number of certs"""
         num_found_certs = len(self.certs)
         if num_found_certs != num_expected_certs:
-            raise AssertionError('Expected %s cert(s), received %s\n%s' %
+            raise AssertionError('Expected %s cert(s), found %s\n%s' %
                                  (num_found_certs, num_expected_certs, msg))
 
     def assertSans(self, hosts_list, msg):
