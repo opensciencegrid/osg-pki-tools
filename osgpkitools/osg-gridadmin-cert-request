@@ -334,16 +334,15 @@ def write_certificate(**arguments):
         #charlimit_textwrap('The file %s already exists.' % pem_filename)
         old_pem_filename = hostname + "-old.pem"
         subprocess.call(['mv', pem_filename, old_pem_filename])
-        print "Renaming existing file to " + old_pem_filename
+        print "Renaming existing file from %s to %s" % (os.path.join(arguments['certdir'], pem_filename),
+                                                        os.path.join(arguments['certdir'], old_pem_filename))
         #pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem'
                 #)
     subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename])  ### fix for move the file to desired name ###
     os.chmod(pem_filename, 0644)
 
     os.chdir(cwd)
-    charlimit_textwrap('''Certificate written to %s%s
-    '''
-                       % (arguments['certdir'], pem_filename))
+    charlimit_textwrap('Certificate written to %s' % os.path.join(arguments['certdir'], pem_filename))
     temp_file.close()
     return
 
