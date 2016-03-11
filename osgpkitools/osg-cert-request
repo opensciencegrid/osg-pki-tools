@@ -180,6 +180,8 @@ def parse_args():
         parser.error('-e/--email argument required')
     if not args.hostname and not args.csr:
         parser.error('-t/--hostname or -c/--csr argument required')
+    if args.hostname and args.csr:
+        parser.error('Both -t/--hostname and -c/--csr arguments specified. Choose one')
 
     if args.csr is None:
         if os.path.exists(args.keyfile):
