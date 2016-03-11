@@ -27,6 +27,12 @@ class CertRequestTests(unittest.TestCase):
         self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
         self.assert_(oim.reqid != '', msg)
 
+    def test_arg_conflict(self):
+        """Verify --csr and --hostname conflict"""
+        oim = OIM()
+        rc, _, _, msg = oim.request('--hostname', 'test.' + DOMAIN, '--csr', 'foo')
+        self.assertEqual(rc, 2, "CSR and hostname options do not conflict\n%s" % msg)
+
     def test_alt_name_request(self):
         """Test cert request with alternative name"""
         oim = OIM()
