@@ -101,7 +101,7 @@ class OIM(object):
                                              '--email', EMAIL,
                                              '--name', NAME,
                                              '--phone', PHONE,
-                                             '--comment', 'This is a comment',
+                                             '--comment', 'osg-pki-tools developer testing',
                                              '--cc', 'test@example.com,test2@example.com',
                                              '--directory', TEST_PATH,
                                              *opts)
