@@ -1,4 +1,3 @@
-
 Enhancements in version 1.2:
 
 * Renewal tool for User certificates. OSGPKI-310
@@ -24,6 +23,8 @@ OSGPKI-365
 * Fix VO option when requesting a new cert. SOFTWARE-1386
 * Catch uncaught exceptions when missing request VO (SOFTWARE-1584)
 * Certificate requests fail without setting the CSR version (SOFTWARE-1936)
+* Added --csr and --hostname options conflict to osg-cert-request
+* Change help references in osg-user-cert-revoke to refer to osg-user-cert-revoke instead of osg-cert-revoke
 
 ----------------------------------------------------------------------
 Enhancements in version 1.1:
