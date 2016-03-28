@@ -186,7 +186,6 @@ or specify from a file using -f/--hostfile.''')
             raise ValueError
     except ValueError:
         raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
-    print 'Using timeout of %d minutes' % timeout
 
     if args.write_directory:
         certdir = args.write_directory
