@@ -15,18 +15,6 @@ class Exception_500response(Exception):
     def __str__(self):
         return str(self.message)
 
-class TimeoutException(Exception):
-    """ Exception raised for all timeouts
-
-    Attributes:
-        timeout -- timeout limit set after which the exception took place
-        """
-    def __init__(self,timeout):
-        self.timeout = timeout
-    
-    def __str__(self):
-        return "timeout: " + str(self.timeout)
-
 class FileNotFoundException(Exception):
     """ Exception raised when a file is not found
 
