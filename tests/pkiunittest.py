@@ -82,8 +82,8 @@ def run_command(cmd, env=None):
 def run_python(script, *args):
     '''Run osg-pki-tools script '''
     script_path = os.path.join(SCRIPTS_PATH, script)
-    full_cmd = (sys.executable, script_path) + args
-    return run_command(full_cmd, env=os.environ)
+    py_cmd = (sys.executable, script_path) + args
+    return run_command(py_cmd, env=os.environ)
 
 class OIM(object):
     """OIM and cert/key pair interface"""
@@ -179,7 +179,7 @@ class OIM(object):
         if not self.reqid and '--help' not in opts:
             raise CertFileError('Could not revoke cert due to missing request ID\n')
         args = opts + ('--test', self.reqid, 'osg-pki-tools unit test - user revoke')
-        cmd = (os.path.join(SCRIPTS_PATH, 'osg-user-cert-revoke'),) + args
+        cmd = ('/bin/sh', os.path.join(SCRIPTS_PATH, 'osg-user-cert-revoke'),) + args
         return run_command(cmd)
 
     @staticmethod
