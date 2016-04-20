@@ -602,9 +602,11 @@ if __name__ == '__main__':
     except KeyError, e:
         print_exception_message(e)
         charlimit_textwrap('Key %s not found' % e)
+        sys.exit(1)
     except httplib.HTTPException, e:
         print_exception_message(e)
         charlimit_textwrap('Connection failed: %s' % (e))
+        sys.exit(1)
     except FileWriteException, e:
         charlimit_textwrap(e.message)
         charlimit_textwrap("The script will exit now\n")
