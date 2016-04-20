@@ -3,7 +3,7 @@
 import re
 import unittest
 
-from pkiunittest import OIM, DOMAIN, test_env_setup, test_env_teardown
+from pkiunittest import OIM, test_env_setup, test_env_teardown
 
 class CertRenewTests(unittest.TestCase):
 
@@ -14,7 +14,7 @@ class CertRenewTests(unittest.TestCase):
     def tearDown(self):
         """Remove personal test dir"""
         test_env_teardown()
-    
+
     def test_help(self):
         """Test running with -h to get help"""
         rc, stdout, _, msg = OIM().user_renew('--help')
@@ -24,5 +24,4 @@ class CertRenewTests(unittest.TestCase):
     #TODO: Implement tests for actual renew functionality
 
 if __name__ == '__main__':
-    import unittest
     unittest.main()

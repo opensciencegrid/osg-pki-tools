@@ -11,7 +11,7 @@ class Exception_500response(Exception):
     def __init__(self, status, message):
         self.status = status
         self.message = message
-        
+
     def __str__(self):
         return str(self.message)
 
@@ -22,10 +22,10 @@ class FileNotFoundException(Exception):
         filename -- Name of the file that is not found
         message -- message to be printed for this exception
         """
-    def __init__(self,filename, message):
+    def __init__(self, filename, message):
         self.filename = filename
         self.message = message
-    
+
     def __str__(self):
         return str(self.message)
 
@@ -36,10 +36,10 @@ class NotOKException(Exception):
         status -- Status of the response
         message -- message of the failure reponse
         """
-    def __init__ (self,status,message):
+    def __init__(self, status, message):
         self.status = status
         self.message = message
-        
+
     def __str__(self):
         return "OK not found; status: %d; reason: %s" % (self.status, self.reason)
 
@@ -51,9 +51,9 @@ class UnexpectedBehaviourException(Exception):
     Attributes:
         message -- Message to be displayed
         """
-    def __init__(self,message):
+    def __init__(self, message):
         self.message = message
-        
+
     def __str__(self):
         return str(self.message)
 
@@ -71,7 +71,7 @@ class CertificateMismatchException(Exception):
         self.request_num = request_num
         self.retrieve_num = retrieve_num
         self.message = message
-    
+
     def __str__(self):
         return str(self.message)
 
@@ -81,9 +81,9 @@ class BadCertificateException(Exception):
     Attributes:
         message -- message to be displayed
         """
-    def __init__(self,message):
+    def __init__(self, message):
         self.message = message
-        
+
     def __str__(self):
         return str(self.message)
 
@@ -96,7 +96,7 @@ class BadPassphraseException(Exception):
         """
     def __init__(self, message):
         self.message = message
-    
+
     def __str__(self):
         return str(self.message)
 
@@ -106,9 +106,9 @@ class HandshakeFailureException(Exception):
     Attributes:
         message -- message to be displayed
         """
-    def __init__(self,message):
+    def __init__(self, message):
         self.message = message
-    
+
     def __str__(self):
         return str(self.message)
 
@@ -119,9 +119,9 @@ class QuotaException(Exception):
     Attributes:
         message = message to be displayed"""
 
-    def __init__(self,message):
+    def __init__(self, message):
         self.message = message
-    
+
     def __str__(self):
         return str(self.message)
 
@@ -130,9 +130,9 @@ class ValidationException(Exception):
     Attributes:
         message = message to be displayed"""
 
-    def __init__(self,message):
+    def __init__(self, message):
         self.message = message
-        
+
     def __str__(self):
         return str(self.message)
 
@@ -142,9 +142,9 @@ class InvalidOptionException(Exception):
     Attributes:
         message = message to be displayed"""
 
-    def __init__(self,message):
+    def __init__(self, message):
         self.message = message
-        
+
     def __str__(self):
         return str(self.message)
 
@@ -155,18 +155,18 @@ class NotApprovedException(Exception):
     Attributes:
         message = message to be displayed"""
 
-    def __init__(self,message):
+    def __init__(self, message):
         self.message = message
-        
+
     def __str__(self):
         return str(self.message)
 
 class InsufficientArgumentException(Exception):
     """This exception is raised when insufficient number of arguments are passed to a script."""
 
-    def __init__(self,message):
+    def __init__(self, message):
         self.message = message
-        
+
     def __str__(self):
         return str(self.message)
 
@@ -175,7 +175,7 @@ class FileWriteException(Exception):
 
     def __init__(self, message):
         self.message = message
-        
+
     def __str__(self):
         return str(self.message)
 

@@ -8,30 +8,21 @@ user.
 import urllib
 import httplib
 import sys
-import ConfigParser
 import simplejson
-import base64
 import os
 from optparse import OptionParser
-import M2Crypto
-import textwrap
-import traceback
 import subprocess
 from ssl import SSLError
-from pprint import pprint
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools import ConnectAPI
+from osgpkitools import ExceptionDefinitions
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import check_failed_response
-from osgpkitools.OSGPKIUtils import version_info
-from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
-from osgpkitools.OSGPKIUtils import print_uncaught_exception
-from osgpkitools.ExceptionDefinitions import *
 
 
 # Set up Option Parser
@@ -57,8 +48,7 @@ def parse_args():
         action='store',
         dest='keyfile',
         help='Specify the output filename for the retrieved user certificate.\
-             \nDefault is ./hostkey.pem'
-            ,
+             \nDefault is ./hostkey.pem',
         metavar='OUTPUT KEYFILE',
         default='hostkey.pem',
         )
@@ -67,8 +57,7 @@ def parse_args():
         '--vo',
         action='store',
         dest='vo',
-        help='Specify the VO for the host request'
-            ,
+        help='Specify the VO for the host request',
         metavar='VO name',
         default=None,
         )
@@ -78,8 +67,7 @@ def parse_args():
         action='store',
         dest='cc_list',
         help='Specify the CC list(the email id\'s to be CCed). \
-             Separate values by \',\''
-            ,
+             Separate values by \',\'',
         metavar='CC LIST',
         default='',
         )
@@ -196,9 +184,9 @@ def parse_args():
             pem_filename = args.keyfile
             key_name = pem_filename.split("/")[-1].split(".")[-2]
             pem_filename_old = key_name + "-old.pem"
-            subprocess.call(['mv',  pem_filename , pem_filename_old])
+            subprocess.call(['mv', pem_filename, pem_filename_old])
             charlimit_textwrap("Moving existing file %s to %s "
-                               %(pem_filename ,pem_filename_old))
+                               % (pem_filename, pem_filename_old))
         else:
             pem_filename = args.keyfile
     else:
@@ -217,15 +205,13 @@ def parse_args():
 
     phone_num = phone.replace('-', '')
     if not phone_num.isdigit():
-        raise ValidationException("Phone number should contain \
-                                  only numbers and/or '-'\n"
-                                  )
+        raise ExceptionDefinitions.ValidationException("Phone number should contain only numbers and/or '-'\n")
     if args.csr is None:
         pass
     elif not os.path.exists(args.csr):
-        raise FileNotFoundException(args.csr,
-                                    'The file %s does not exist'
-                                    % args.csr)
+        raise ExceptionDefinitions.FileNotFoundException(args.csr,
+                                                         'The file %s does not exist'
+                                                         % args.csr)
 
     try:
         timeout = int(args.timeout)
@@ -285,12 +271,11 @@ def connect(arguments):
 
     print '\nConnecting to server...'
     params_list = {'name': arguments['name'],
-        'email': arguments['email'],
-        'phone': arguments['phone'],
-        'csrs': arguments['csr'],
-        'request_comment': arguments['comment'],
-        'request_ccs': arguments['cc_list'].split(','),
-        }
+                   'email': arguments['email'],
+                   'phone': arguments['phone'],
+                   'csrs': arguments['csr'],
+                   'request_comment': arguments['comment'],
+                   'request_ccs': arguments['cc_list'].split(',')}
     if 'vo' in arguments:
         params_list['vo'] = arguments['vo']
     params = urllib.urlencode(params_list)
@@ -318,7 +303,8 @@ def connect(arguments):
         print 'Succesfully submitted'
         print 'Request Id#: %s' % ticket
     else:
-        raise UnexpectedBehaviourEception("Unexpected Behavior encountered\nData received is %s" %data)
+        raise ExceptionDefinitions.UnexpectedBehaviourException("Unexpected Behavior encountered\nData received is %s" %
+                                                                data)
     return
 
 
@@ -341,7 +327,7 @@ if __name__ == '__main__':
                             'emailAddress': arguments['email'],
                             'alt_names': arguments['alt_names']}
 
-            if (arguments['certdir'] != "./"):
+            if arguments['certdir'] != "./":
                 cwd = os.getcwd()
 
             if cwd != None:
@@ -362,9 +348,9 @@ if __name__ == '__main__':
                                                      .replace('-----END CERTIFICATE REQUEST-----\n', '')
             arguments.update({'csr': csr})
             capi = ConnectAPI.ConnectAPI()
-            id = capi.request_unauthenticated(**arguments)
-            print 'Request Id#: %s' % id
-            arguments.update({'id':id})
+            reqid = capi.request_unauthenticated(**arguments)
+            print 'Request Id#: %s' % reqid
+            arguments.update({'id': reqid})
 
     except EOFError, e:
         print_exception_message(e)
@@ -386,21 +372,21 @@ if __name__ == '__main__':
         print_exception_message(e)
     except httplib.HTTPException, e:
         charlimit_textwrap('Connection to %s failed: %s' % (arguments['requrl'], repr(e)))
-    except Exception_500response, e:
+    except ExceptionDefinitions.Exception_500response, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
-    except FileNotFoundException, e:
+    except ExceptionDefinitions.FileNotFoundException, e:
         charlimit_textwrap(e.message + ':' + e.filename)
         sys.exit(1)
     except ValueError, e:
         print_exception_message(e)
         sys.exit(1)
-    except NotOKException, e:
+    except ExceptionDefinitions.NotOKException, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
-    except CertificateMismatchException, e:
+    except ExceptionDefinitions.CertificateMismatchException, e:
         print 'The number of requests made was ', e.request_num
         print 'The number of certificates received is ', e.retrieve_num
         charlimit_textwrap(e.message)
@@ -408,19 +394,19 @@ if __name__ == '__main__':
     except EOFError, e:
         print_exception_message(e)
         sys.exit(1)
-    except BadCertificateException, e:
+    except ExceptionDefinitions.BadCertificateException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except BadPassphraseException, e:
+    except ExceptionDefinitions.BadPassphraseException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except HandshakeFailureException, e:
+    except ExceptionDefinitions.HandshakeFailureException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except UnexpectedBehaviourException, e:
+    except ExceptionDefinitions.UnexpectedBehaviourException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except InvalidOptionException, e:
+    except ExceptionDefinitions.InvalidOptionException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
     except IOError, e:

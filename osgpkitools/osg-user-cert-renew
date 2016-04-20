@@ -14,6 +14,8 @@ import M2Crypto
 from optparse import OptionParser
 from ssl import SSLError
 
+from osgpkitools import OSGPKIUtils
+from osgpkitools import ExceptionDefinitions
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import get_ssl_context
 from osgpkitools.OSGPKIUtils import check_response_500
@@ -24,7 +26,6 @@ from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import print_exception_message
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.OSGPKIUtils import version_info
-from osgpkitools.ExceptionDefinitions import *
 
 
 
@@ -123,7 +124,7 @@ def parse_args():
                 userprivkey = ''
 
     if not os.path.exists(userprivkey):
-        raise FileNotFoundException(userprivkey, 'Could not locate the private key file')
+        raise ExceptionDefinitions.FileNotFoundException(userprivkey, 'Could not locate the private key file')
 
     if args.usercert:
         usercert = args.usercert
@@ -137,15 +138,15 @@ def parse_args():
                 usercert = ''
 
     if not os.path.exists(usercert):
-        raise FileNotFoundException(usercert, 'Could not locate the certificate file')
+        raise ExceptionDefinitions.FileNotFoundException(usercert, 'Could not locate the certificate file')
 
     # Check write directory existence and write permission
     try:
         if not os.access(args.write_directory, os.W_OK):
-            raise FileWriteException('Do not have write permissions to %s' % args.write_directory)
+            raise ExceptionDefinitions.FileWriteException('Do not have write permissions to %s' % args.write_directory)
     except OSError, e:
         if e.errno == errno.ENOENT:
-            raise FileNotFoundException(args.write_directory, 'Could not locate the output directory')
+            raise ExceptionDefinitions.FileNotFoundException(args.write_directory, 'Could not locate the output directory')
         else:
             raise
 
@@ -217,7 +218,7 @@ def connect_renew(**arguments):
     return_data = simplejson.loads(data)
     request_id = return_data['request_id']
     if not request_id:
-        raise UnexpectedBehaviourException("Request Id not found in data. Script will now exit")
+        raise ExceptionDefinitions.UnexpectedBehaviourException("Request Id not found in data. Script will now exit")
     arguments.update({'reqid': request_id})
     return arguments
 
@@ -309,8 +310,8 @@ def process_csr(**arguments):
         arguments = connect_renew(**arguments)
     except Exception, e:
         if 'sslv3 alert bad certificate' in e:
-            raise BadCertificateException('Error connecting to server: %s.\n' +
-                                          'Your certificate is not trusted by the server' % e)
+            raise ExceptionDefinitions.BadCertificateException('Error connecting to server: %s.\n' +
+                                                               'Your certificate is not trusted by the server' % e)
         else:
             print_uncaught_exception()
             raise
@@ -357,24 +358,24 @@ if __name__ == '__main__':
     except OSError, e:
         print_exception_message(e)
         sys.exit(1)
-    except Exception_500response, e:
+    except ExceptionDefinitions.Exception_500response, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
-    except FileNotFoundException, e:
+    except ExceptionDefinitions.FileNotFoundException, e:
         charlimit_textwrap(e.message + ':' + e.filename)
         sys.exit(1)
-    except FileWriteException, e:
+    except ExceptionDefinitions.FileWriteException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
     except ValueError, e:
         print_exception_message(e)
         sys.exit(1)
-    except NotOKException, e:
+    except ExceptionDefinitions.NotOKException, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
-    except CertificateMismatchException, e:
+    except ExceptionDefinitions.CertificateMismatchException, e:
         print 'The number of requests made was ', e.request_num
         print 'The number of certificates received is ', e.retrieve_num
         charlimit_textwrap(e.message)
@@ -382,22 +383,22 @@ if __name__ == '__main__':
     except EOFError, e:
         print_exception_message(e)
         sys.exit(1)
-    except BadCertificateException, e:
+    except ExceptionDefinitions.BadCertificateException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except BadPassphraseException, e:
+    except ExceptionDefinitions.BadPassphraseException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except HandshakeFailureException, e:
+    except ExceptionDefinitions.HandshakeFailureException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except QuotaException, e:
+    except ExceptionDefinitions.QuotaException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except UnexpectedBehaviourException, e:
+    except ExceptionDefinitions.UnexpectedBehaviourException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except InsufficientArgumentException, e:
+    except ExceptionDefinitions.InsufficientArgumentException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
     except Exception, e:

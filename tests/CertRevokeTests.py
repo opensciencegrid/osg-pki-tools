@@ -13,19 +13,19 @@ class CertRevokeTests(unittest.TestCase):
     def tearDown(self):
         """Remove personal test dir"""
         test_env_teardown()
-    
+
     def test_help(self):
         """Test running with -h to get help"""
         rc, stdout, _, msg = OIM().revoke('--help')
-        self.assertEqual(rc, 0, "Bad return code when requesting help\n%s" % msg)        
+        self.assertEqual(rc, 0, "Bad return code when requesting help\n%s" % msg)
         self.assert_(re.search(r'[Uu]sage:', stdout), msg)
 
     def test_user_help(self):
         """Test running with -h to get help"""
         rc, stdout, _, msg = OIM().user_revoke('--help')
-        self.assertEqual(rc, 0, "Bad return code when requesting help\n%s" % msg)        
+        self.assertEqual(rc, 0, "Bad return code when requesting help\n%s" % msg)
         self.assert_(re.search(r'[Uu]sage:', stdout), msg)
-        
+
     def test_revoke(self):
         """Test basic revocation"""
         oim = OIM()
