@@ -1,17 +1,18 @@
 #!/usr/bin/python
 
-from M2Crypto import SSL, m2, RSA, EVP, X509
-import base64
 import ConfigParser
+from osgpkitools import ExceptionDefinitions
 import os
 import time
 import sys
 import textwrap
 import simplejson
+import signal
 import traceback
 import getpass
 
-from ExceptionDefinitions import *
+from M2Crypto import SSL, m2, RSA, EVP, X509
+from optparse import OptionParser
 
 # These flags are for the purpose of passing to the M2Crypto calls and are used later in the script
 
@@ -20,7 +21,7 @@ MBSTRING_ASC = MBSTRING_FLAG | 1
 MBSTRING_BMP = MBSTRING_FLAG | 2
 
 # The variable for storing version number for the scripts
-Version_Number = "1.2.15"
+VERSION_NUMBER = "1.2.15"
 
 
 def get_ssl_context(**arguments):
@@ -35,10 +36,9 @@ def get_ssl_context(**arguments):
     ssl_context - ssl context for the HTTPS connection.
 
     """
-    first = True
     count = 0
     pass_str = 'Please enter the pass phrase for'
-    while(True):
+    while True:
         try:
             def prompt_for_password(verify):
                 return getpass.getpass(pass_str+" '%s':"
@@ -52,19 +52,18 @@ def get_ssl_context(**arguments):
             break
         except Exception, e:
             if 'sslv3 alert bad certificate' in e:
-                raise BadCertificateException('Error connecting to server: %s.\n\
-                                          Your certificate is not trusted by the server'
-                 % e)
+                raise ExceptionDefinitions.BadCertificateException('Error connecting to server: %s.\n' +
+                                                                   'Your certificate is not trusted by the server'
+                                                                   % e)
             elif 'handshake failure' in e:
-                raise HandshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
-                 % e)
-            first = False
+                raise ExceptionDefinitions.HandshakeFailureException('Failure: %s.\n' +
+                                                                     'Please check for valid certificate/key pairs.'
+                                                                     % e)
             count = count + 1
             pass_str = 'Incorrect password. Please enter the password again for'
             if count > 1:
-                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
-                        )
-                break
+                err_msg = 'Incorrect passphrase. Attempt failed twice. Exiting script'
+                raise ExceptionDefinitions.BadPassphraseException(err_msg)
     return ssl_context
 
 
@@ -74,7 +73,7 @@ def print_exception_message(e):
     and traceback.
     """
 
-    if(str(e) != ""):
+    if str(e) != "":
         charlimit_textwrap("Got an exception %s" % e.__class__.__name__)
         charlimit_textwrap(e)
         charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
@@ -90,22 +89,23 @@ def print_uncaught_exception():
 def handle_empty_exceptions(e):
     """The method handles all empty exceptions and displays a meaningful message and
     traceback for such exceptions."""
-    
+
     print traceback.format_exc()
     charlimit_textwrap('Encountered exception of type %s' % e.__class__.__name__)
     charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
 
 def version_info():
     """ Print the version number and exit"""
-    print "OSG CLI Scripts Version :", Version_Number
+    print "OSG CLI Scripts Version :", VERSION_NUMBER
 
 def check_permissions(path):
     """The function checks for write permissions for the given path to verify if the user has write permissions
     """
-    if(os.access(path, os.W_OK)):
+    if os.access(path, os.W_OK):
         return
     else:
-        raise FileWriteException("User does not have appropriate permissions for writing to current directory.")
+        err_msg = "User does not have appropriate permissions for writing to current directory."
+        raise ExceptionDefinitions.FileWriteException(err_msg)
 
 def find_existing_file_count(filename):
     '''Check if filename and revisions of the filename exists. If so, increment the revision number and return
@@ -113,16 +113,16 @@ def find_existing_file_count(filename):
     temp_name = filename.split(".")[-2]
     trimmed_name = temp_name
     version_count = 0
-    if(os.path.exists(filename)):
-        while(os.path.exists(temp_name + '.pem')):
-            if (version_count == 0):
+    if os.path.exists(filename):
+        while os.path.exists(temp_name + '.pem'):
+            if version_count == 0:
                 temp_name = temp_name +'-'+str(version_count)
             else:
                 temp_name = trimmed_name
                 temp_name = temp_name + '-' + str(version_count)
             version_count = version_count + 1
 
-    if (version_count > 0):
+    if version_count > 0:
         version_count -= 1
         new_file = trimmed_name + '-' +str(version_count) + '.pem'
         return new_file
@@ -133,7 +133,7 @@ def check_response_500(response):
     """ This functions handles the 500 error response from the server"""
 
     if response.status == 500:
-        raise Exception_500response(response.status, response.reason)
+        raise ExceptionDefinitions.Exception_500response(response.status, response.reason)
 
 
 def check_failed_response(data):
@@ -148,17 +148,16 @@ def print_failure_reason_exit(data):
 
     try:
         charlimit_textwrap('The request has failed for the following reason:\n%s'
-                            % simplejson.loads(data)['detail'
-                           ].split('--')[1].lstrip())
-    except IndexError, e:
+                           % simplejson.loads(data)['detail'].split('--')[1].lstrip())
+    except IndexError:
         charlimit_textwrap('The request has failed for the following reason:\n%s'
-                            % simplejson.loads(data)['detail'].lstrip())
+                           % simplejson.loads(data)['detail'].lstrip())
         charlimit_textwrap('Status : %s '
                            % simplejson.loads(data)['status'])
     sys.exit(1)
 
 
-def check_for_pending(data, iterations, **arguments):
+def check_for_pending(iterations):
     """ This function is a centralized location to print the in process output indication"""
 
     time.sleep(5)
@@ -166,23 +165,24 @@ def check_for_pending(data, iterations, **arguments):
     if iterations % 6 == 0:
         print '.',
         sys.stdout.flush()
-    check_timeout(iterations, arguments['timeout'])
     return iterations
 
+def sigalrm_handler(signum, frame):
+    sys.exit('Exiting due to timeout')
 
-def check_timeout(iterations, timeout):
-    """This function checks for a timeout. If timeout has occurred it raises a TIMEOUT EXCEPTION"""
-
-    if iterations > timeout * 12:
-        raise TimeoutException(timeout)
+def start_timeout_clock(minutes):
+    """Initiates a timer that exits the process with return code 1 after 'minutes'"""
+    seconds = minutes*60
+    signal.signal(signal.SIGALRM, sigalrm_handler)
+    if seconds == 0: # Work around signal.alarm(0) cancelling the signal timer
+        os.kill(os.getpid(), signal.SIGALRM)
     else:
-        return
-
+        signal.alarm(seconds)
 
 def charlimit_textwrap(string):
     """This function wraps up the output to 80 characters. Accepts string and print the wrapped output"""
 
-    list_string = textwrap.wrap(str(string))
+    list_string = textwrap.wrap(str(string), width=80)
     for line in list_string:
         print line
     return
@@ -220,8 +220,8 @@ def extractHostname(certString):
             if not 'DigiCert' in subStr.split('/CN=')[1].split('\n')[0]:
                 hostname = subStr.split('/CN=')[1].split('\n')[0]
     if hostname == '':
-        raise UnexpectedBehaviourException('Unexpected behaviour by OIM retrive API. EEC certificate not found'
-                )
+        err_msg = 'Unexpected behaviour by OIM retrive API. EEC certificate not found'
+        raise ExceptionDefinitions.UnexpectedBehaviourException(err_msg)
     return hostname
 
 
@@ -256,10 +256,10 @@ def CreateOIMConfig(isITB, **OIMConfig):
     ### Fix for pki-clients.ini not found in /etc/osg/
     elif os.path.exists('/etc/osg/pki-clients.ini'):
         Config.read('/etc/osg/pki-clients.ini')
-        
+
     else:
-        raise FileNotFoundException('pki-clients.ini',
-                                    'Could not locate the file')
+        raise ExceptionDefinitions.FileNotFoundException('pki-clients.ini',
+                                                         'Could not locate the file')
     if isITB:
         print 'Running in test mode'
         OIM = 'OIMData_ITB'
@@ -303,9 +303,9 @@ class Cert:
 ........It write the private key to the specified file name without ciphering it."""
 
         self.KeyPair = RSA.gen_key(self.RsaKey['KeyLength'],
-                self.RsaKey['PubExponent'],
-                self.RsaKey['keygen_callback'])
-        PubKey = RSA.new_pub_key(self.KeyPair.pub())
+                                   self.RsaKey['PubExponent'],
+                                   self.RsaKey['keygen_callback'])
+        RSA.new_pub_key(self.KeyPair.pub())
         self.KeyPair.save_key(filename, cipher=None)
         self.PKey = EVP.PKey(md='sha1')
         self.PKey.assign_rsa(self.KeyPair)

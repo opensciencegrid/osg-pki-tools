@@ -16,42 +16,26 @@ This script checks to see if the output file exists and prompts the
 user if it does.
 """
 
-import urllib
 import httplib
-import sys
-import ConfigParser
-from optparse import OptionParser
-import simplejson
-import time
-import re
 import os
-import textwrap
-import traceback
-import subprocess
+from optparse import OptionParser
 from ssl import SSLError
+import subprocess
+import sys
 import tempfile
 
-from osgpkitools import OSGPKIUtils
 from osgpkitools import ConnectAPI
+from osgpkitools import OSGPKIUtils
+from osgpkitools import ExceptionDefinitions
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import extractEEC
 from osgpkitools.OSGPKIUtils import extractHostname
-from osgpkitools.OSGPKIUtils import check_failed_response
-from osgpkitools.OSGPKIUtils import check_response_500
-from osgpkitools.OSGPKIUtils import print_failure_reason_exit
-from osgpkitools.OSGPKIUtils import check_for_pending
 from osgpkitools.OSGPKIUtils import check_permissions
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import find_existing_file_count
-from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
-
-from osgpkitools.ExceptionDefinitions import *
-
-
-
 
 # Set up Option Parser
 #
@@ -67,8 +51,7 @@ def parse_args():
         '--certfile',
         action='store',
         dest='certfile',
-        help='Specify the output filename for the retrieved user certificate\n. Default is ./hostcert.pem'
-            ,
+        help='Specify the output filename for the retrieved user certificate\n. Default is ./hostcert.pem',
         metavar='ID',
         default='hostcert.pem',
         )
@@ -137,19 +120,17 @@ def parse_args():
     else:
         parser.error("Wrong number of arguments (%s of 1): %s"
                      % (num_args, ', '.join(str(value) for value in values)))
-    
+
     if args.id:
         charlimit_textwrap("The '-i' flag is deprecated and no longer needed when specifying a request ID.")
 
     try:
         timeout = int(args.timeout)
         if not timeout >= 0:
-            raise ValidationException('Your timeout value cannot be a negative integer.\nExiting now'
-                    )
-    except ValueError, e:
-        charlimit_textwrap('Invalid timeout value. Please enter a non-negative integer.\n'
-                           )
-        raise e
+            raise ExceptionDefinitions.ValidationException('Your timeout value cannot be a negative integer.')
+    except ValueError:
+        raise ExceptionDefinitions.ValidationException('Invalid timeout value. Please enter a non-negative integer.')
+
     print 'Using timeout of %d minutes' % timeout
 
     pem_filename = args.certfile
@@ -180,9 +161,8 @@ def parse_args():
 
     if vars().has_key('pem_filename'):
         arguments.update({'pem_filename': pem_filename})
-    if vars().has_key('timeout'):
-        arguments.update({'timeout': timeout})
 
+    arguments.update({'timeout': timeout})
     arguments.update({'id': reqid})
     arguments.update({'filetype': filetype})
     arguments.update({'fileext': fileext})
@@ -196,7 +176,7 @@ def write_certificate(pkcs7raw):
     """Separating the writing logic for user certificate and process the pkcs7raw string."""
     temp_filename = tempfile.NamedTemporaryFile()
     cwd = None
-    if (arguments['certdir'] != "./"):
+    if arguments['certdir'] != "./":
         cwd = os.getcwd()
     try:
         temp_filename.write(pkcs7raw)
@@ -223,11 +203,11 @@ def write_certificate(pkcs7raw):
         if cwd != None:
             os.chdir(cwd)
     except OSError, e:
-        charlimit_textwrap('You may not have permission to write on the file system. \nPlease report the bug to goc@opensciencegrid.org.'
-                           )
+        charlimit_textwrap('You may not have permission to write on the file system.\n' +
+                           'Please report the bug to goc@opensciencegrid.org.')
         raise e
     charlimit_textwrap('Certificate written to %s%s \n'
-                       %( arguments['certdir'],arguments['pem_filename']))
+                       % (arguments['certdir'], arguments['pem_filename']))
     return
 
 
@@ -235,25 +215,24 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
+        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         path = os.getcwd()
         check_permissions(path)
         capi = ConnectAPI.ConnectAPI()
         print 'Connecting server to retrieve certificate...'
         pkcs7raw = capi.retrieve_unauthenticated(**arguments)
-        if(os.path.exists(arguments['pem_filename'])):
+        if os.path.exists(arguments['pem_filename']):
             pem_filename = arguments['pem_filename']
             temp_name = pem_filename.split("/")[-1].split(".")[-2]
             pem_filename_old = temp_name + "-old.pem"
             subprocess.call(['mv', pem_filename, pem_filename_old])
             charlimit_textwrap("Moving existing file %s to %s "
-                               %(arguments['pem_filename'] ,pem_filename_old))
+                               % (arguments['pem_filename'], pem_filename_old))
         new_file_name = find_existing_file_count(arguments['pem_filename'])
         if new_file_name != arguments['pem_filename']:
-            subprocess.call([
-            'mv',
-            arguments['pem_filename'],
-            new_file_name
-            ])
+            subprocess.call(['mv',
+                             arguments['pem_filename'],
+                             new_file_name])
             print 'Moving existing file ' + arguments['pem_filename'] + ' to ' + new_file_name
         write_certificate(pkcs7raw)
 
@@ -270,21 +249,15 @@ if __name__ == '__main__':
     except SSLError, e:
         print_exception_message(e)
         sys.exit('Please check for valid certificate.\n')
-    except Exception_500response, e:
+    except ExceptionDefinitions.Exception_500response, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
-    except TimeoutException, e:
-        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.'
-                            % e.timeout)
-        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
-                           )
-        sys.exit(1)
-    except FileWriteException, e:
+    except ExceptionDefinitions.FileWriteException, e:
         charlimit_textwrap(e.message)
         charlimit_textwrap("The script will exit now\n")
         sys.exit(1)
-    except FileNotFoundException, e:
+    except ExceptionDefinitions.FileNotFoundException, e:
         charlimit_textwrap(e.message + ':' + e.filename)
         sys.exit(1)
     except ValueError, e:
@@ -293,28 +266,27 @@ if __name__ == '__main__':
     except KeyError, e:
         print_exception_message(e)
     except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s' % (returl, e))
-    except NotOKException, e:
+        charlimit_textwrap('Connection to %s failed: %s' % (arguments['returl'], e))
+    except ExceptionDefinitions.NotOKException, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
-    except ValidationException, e:
+    except ExceptionDefinitions.ValidationException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except InvalidOptionException, e:
+    except ExceptionDefinitions.InvalidOptionException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except NotApprovedException, e:
+    except ExceptionDefinitions.NotApprovedException, e:
         charlimit_textwrap(e.message)
     except OSError, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except UnexpectedBehaviourException, e:
+    except ExceptionDefinitions.UnexpectedBehaviourException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
     except Exception, e:
         print_uncaught_exception()
-        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.'
-                           )
+        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
         sys.exit(1)
     sys.exit(0)

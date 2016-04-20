@@ -55,8 +55,8 @@ class GridadminCertRequestTests(unittest.TestCase):
         second_san = 'test-san2.' + DOMAIN
         oim = OIM()
         rc, _, _, msg = oim.gridadmin_request('--hostname', hostname,
-                                                  '--altname', san,
-                                                  '--altname', second_san)
+                                              '--altname', san,
+                                              '--altname', second_san)
         self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
         oim.assertSans([[hostname, san, second_san]], msg)
 

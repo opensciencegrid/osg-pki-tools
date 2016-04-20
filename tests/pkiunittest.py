@@ -82,8 +82,8 @@ def run_command(cmd, env=None):
 def run_python(script, *args):
     '''Run osg-pki-tools script '''
     script_path = os.path.join(SCRIPTS_PATH, script)
-    full_cmd = (sys.executable, script_path) + args
-    return run_command(full_cmd, env=os.environ)
+    py_cmd = (sys.executable, script_path) + args
+    return run_command(py_cmd, env=os.environ)
 
 class OIM(object):
     """OIM and cert/key pair interface"""
@@ -153,8 +153,6 @@ class OIM(object):
 
     def retrieve(self, *opts):
         """Run osg-cert-retrieve"""
-        if not self.reqid and '--help' not in opts:
-            raise CertFileError('Could not revoke cert due to missing request ID\n')
         args = list(opts + (self.reqid,))
         return run_python('osg-cert-retrieve', '--test',
                           '--directory', TEST_PATH,
@@ -166,8 +164,6 @@ class OIM(object):
 
     def revoke(self, *opts):
         """Run osg-cert-revoke"""
-        if not self.reqid and '--help' not in opts:
-            raise CertFileError('Could not revoke cert due to missing request ID\n')
         args = opts + ('--test',
                        '--cert', GA_CERT_PATH,
                        '--pkey', GA_KEY_PATH,
@@ -179,7 +175,7 @@ class OIM(object):
         if not self.reqid and '--help' not in opts:
             raise CertFileError('Could not revoke cert due to missing request ID\n')
         args = opts + ('--test', self.reqid, 'osg-pki-tools unit test - user revoke')
-        cmd = (os.path.join(SCRIPTS_PATH, 'osg-user-cert-revoke'),) + args
+        cmd = ('/bin/sh', os.path.join(SCRIPTS_PATH, 'osg-user-cert-revoke'),) + args
         return run_command(cmd)
 
     @staticmethod
@@ -217,7 +213,7 @@ class OIM(object):
 
     @staticmethod
     def simple_pass_callback(verify):
-        """Callback for unlocking keys with passwords in plaintext for testing."""
+        """Callback for unlocking keys with passwords in plaintext."""
         return ''
 
     def assertNumCerts(self, num_expected_certs, msg):

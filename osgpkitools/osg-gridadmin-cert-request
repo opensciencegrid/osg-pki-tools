@@ -14,7 +14,6 @@ This script works in two modes:
 import httplib
 import sys
 import simplejson
-import re
 import os
 import M2Crypto
 from optparse import OptionParser, OptionGroup
@@ -22,6 +21,8 @@ import subprocess
 from ssl import SSLError
 import tempfile
 
+from osgpkitools import ConnectAPI
+from osgpkitools import ExceptionDefinitions
 from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import extractHostname
@@ -32,14 +33,11 @@ from osgpkitools.OSGPKIUtils import check_failed_response
 from osgpkitools.OSGPKIUtils import check_for_pending
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import check_permissions
-from osgpkitools.OSGPKIUtils import find_existing_file_count
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import print_exception_message
+from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.OSGPKIUtils import get_ssl_context
-from osgpkitools.ExceptionDefinitions import *
-from osgpkitools import ConnectAPI
-
 
 # Set up Option Parser
 #
@@ -172,7 +170,7 @@ or specify from a file using -f/--hostfile.''')
 
     if not args.hostname:
         if args.hostfile is None:
-            raise InsufficientArgumentException("InsufficientArgumentException: " + \
+            raise ExceptionDefinitions.InsufficientArgumentException("InsufficientArgumentException: " + \
                                                 "Please provide hostname(-H) or file name containing hosts(-f)\n")
         else:
             hostfile = args.hostfile
@@ -182,11 +180,10 @@ or specify from a file using -f/--hostfile.''')
     try:
         timeout = int(args.timeout)
         if not timeout >= 0:
-            charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
+            charlimit_textwrap('Your timeout value cannot be a negative integer.\n')
             raise ValueError
     except ValueError:
         raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
-    print 'Using timeout of %d minutes' % timeout
 
     if args.write_directory:
         certdir = args.write_directory
@@ -204,14 +201,14 @@ or specify from a file using -f/--hostfile.''')
                 userprivkey = str(os.environ['HOME']) \
                     + '/.globus/userkey.pem'
             else:
-                raise FileNotFoundException('Key file', 'Could not locate the private key file')
+                raise ExceptionDefinitions.FileNotFoundException('Key file', 'Could not locate the private key file')
     else:
         userprivkey = args.userprivkey
 
     if os.path.exists(userprivkey):
         pass
     else:
-        raise FileNotFoundException(userprivkey, 'Could not locate the private key file')
+        raise ExceptionDefinitions.FileNotFoundException(userprivkey, 'Could not locate the private key file')
     if args.usercert is None:
         try:
             usercert = os.environ['X509_USER_CERT']
@@ -222,20 +219,20 @@ or specify from a file using -f/--hostfile.''')
                 usercert = str(os.environ['HOME']) \
                     + '/.globus/usercert.pem'
             else:
-                raise FileNotFoundException('Certificate File', 'Could not locate the certificate file')
+                raise ExceptionDefinitions.FileNotFoundException('Certificate File', 'Could not locate the certificate file')
     else:
         usercert = args.usercert
 
     if os.path.exists(usercert):
         pass
     else:
-        raise FileNotFoundException(usercert, 'Could not locate the certificate file')
+        raise ExceptionDefinitions.FileNotFoundException(usercert, 'Could not locate the certificate file')
 
     if not args.hostname:
         if os.path.exists(hostfile):
             pass
         else:
-            raise FileNotFoundException(hostfile, 'Could not locate the hostfile')
+            raise ExceptionDefinitions.FileNotFoundException(hostfile, 'Could not locate the hostfile')
     if args.test:
         OIM = True
     else:
@@ -251,15 +248,8 @@ or specify from a file using -f/--hostfile.''')
         arguments.update({'values': values})
     if vars().has_key('hostname'):
         arguments.update({'hostname': hostname})
-    if vars().has_key('domain'):
-        arguments.update({'domain': domain})
-    if vars().has_key('outkeyfile'):
-        arguments.update({'outkeyfile': outkeyfile})
-    if vars().has_key('timeout'):
-        arguments.update({'timeout': timeout})
-        print 'The timeout is set to %s' % arguments['timeout']
-    if vars().has_key('num_requests'):
-        arguments.update({'num_requests': num_requests})
+    arguments.update({'timeout': timeout})
+    print 'The timeout is set to %s' % arguments['timeout']
     arguments.update({'alt_names': args.alt_names})
     arguments.update({'usercert': usercert})
     arguments.update({'userprivkey': userprivkey})
@@ -318,9 +308,8 @@ def write_certificate(**arguments):
         os.getcwd()
     except OSError, e:
         charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
-    .Please report the bug to goc@opensciencegrid.org.a
-    %s''',
-                           arguments['certdir'], e)
+    . Please report the bug to goc@opensciencegrid.org:
+    %s''' % (arguments['certdir'], e))
         raise OSError
     hostname = arguments['hostname']
     eecString = arguments['eecString']
@@ -361,7 +350,7 @@ def process_pkcs7(pkcs7, num_requests, **arguments):
         cert_num = cert_num + 1
 
     if cert_num != num_requests:
-        raise CertificateMismatchException(num_requests, cert_num, 'Request and certificate received mismatch')
+        raise ExceptionDefinitions.CertificateMismatchException(num_requests, cert_num, 'Request and certificate received mismatch')
     return
 
 
@@ -404,7 +393,7 @@ def check_quota_limit(request_count, arguments):
 
     except Exception, e:
         if "sslv3 alert bad certificate" in e:
-            raise BadCertificateException("Error connecting to server: %s.\n" + \
+            raise ExceptionDefinitions.BadCertificateException("Error connecting to server: %s.\n" + \
                                           "Your certificate is not trusted by the server" % e)
         else:
             print e.__class__.__name__
@@ -427,7 +416,7 @@ def check_quota_limit(request_count, arguments):
         check_response_500(response)
         data = response.read()
         conn.close()
-        iterations = check_for_pending(data, iterations, **arguments)
+        iterations = check_for_pending(iterations)
     check_failed_response(data)
     global_hostcert_year_max = \
         simplejson.loads(data)['global_hostcert_year_max']
@@ -461,16 +450,12 @@ def process_csr(num_requests, bulk_csr, **arguments):
     except KeyError, e:
         raise
     except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
-        raise e
-    except Exception_500response, e:
-        raise e
-    except NotOKException, e:
+        charlimit_textwrap('Connection to %s failed : %s' % (arguments['requrl'], e))
         raise e
 
     except Exception, e:
         if 'sslv3 alert bad certificate' in e:
-            raise BadCertificateException("Error connecting to server: %s.\n" + \
+            raise ExceptionDefinitions.BadCertificateException("Error connecting to server: %s.\n" + \
                                           "Your certificate is not trusted by the server" % e)
         else:
             raise
@@ -487,20 +472,12 @@ def process_csr(num_requests, bulk_csr, **arguments):
         pkcs7raw = capi.retrieve_authenticated(**arguments)
         process_pkcs7(pkcs7raw, num_requests, **arguments)
 
-    except KeyError, e:
-        raise
     except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s'% (newrequrl, e))
-        raise e
-    except Exception_500response, e:
-        raise e
-    except NotOKException, e:
-        raise e
-    except CertificateMismatchException, e:
+        charlimit_textwrap('Connection to %s failed: %s'% (arguments['newrequrl'], e))
         raise e
     except Exception, e:
         if 'sslv3 alert bad certificate' in e:
-            raise BadCertificateException("Error connecting to server: %s.\n" + \
+            raise ExceptionDefinitions.BadCertificateException("Error connecting to server: %s.\n" + \
                                           "Your certificate is not trusted by the server" % e)
         else:
             raise
@@ -513,10 +490,8 @@ def process_single_host_mode(**arguments):
     num_requests = 1
     config_items = {}
 
-    if check_quota_limit(num_requests, arguments):
-        pass
-    else:
-        raise QuotaException('Your request would exceed your quota. Aborting')
+    if not check_quota_limit(num_requests, arguments):
+        raise ExceptionDefinitions.QuotaException('Your request would exceed your quota. Aborting')
     hostname = arguments['hostname'].strip()
     config_items.update({'CN': hostname, 'alt_names': arguments['alt_names']})
     charlimit_textwrap('Beginning request process for %s' % hostname)
@@ -541,10 +516,8 @@ def process_hostfile_mode(**arguments):
     hosts = hosts_file.readlines()
     hosts_file.close()
 
-    if check_quota_limit(request_count, arguments):
-        pass
-    else:
-        raise QuotaException('Your request would exceed your quota. Aborting')
+    if not check_quota_limit(request_count, arguments):
+        raise ExceptionDefinitions.QuotaException('Your request would exceed your quota. Aborting')
     for line in hosts:
         line = line.strip()
         if line != '' and line not in host_set:
@@ -567,9 +540,12 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
+        OSGPKIUtils.start_timeout_clock(arguments['timeout']*60)
         check_permissions(arguments['certdir'])
         ssl_context = get_ssl_context(**arguments)
         arguments.update({'ssl_context':ssl_context})
+
+        # Request cert(s)
         if not arguments.has_key('hostname'):
             process_hostfile_mode(**arguments)
         else:
@@ -585,41 +561,39 @@ if __name__ == '__main__':
     except SSLError, e:
         print_exception_message(e)
         sys.exit('Please check for valid certificate.\n')
-    except KeyboardInterrupt, k:
-        print_exception_message(e)
+    except KeyboardInterrupt, exc:
+        print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
     except OSError, e:
         print_exception_message(e)
         sys.exit(1)
-    except Exception_500response, e:
+    except ExceptionDefinitions.Exception_500response, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
-        sys.exit(1)
-    except TimeoutException, e:
-        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % e.timeout)
-        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
         sys.exit(1)
     except KeyError, e:
         print_exception_message(e)
         charlimit_textwrap('Key %s not found' % e)
+        sys.exit(1)
     except httplib.HTTPException, e:
         print_exception_message(e)
         charlimit_textwrap('Connection failed: %s' % (e))
-    except FileWriteException, e:
+        sys.exit(1)
+    except ExceptionDefinitions.FileWriteException, e:
         charlimit_textwrap(e.message)
         charlimit_textwrap("The script will exit now\n")
         sys.exit(1)
-    except FileNotFoundException, e:
+    except ExceptionDefinitions.FileNotFoundException, e:
         charlimit_textwrap(e.message + ':' + e.filename)
         sys.exit(1)
     except ValueError, e:
         print_exception_message(e)
         sys.exit(1)
-    except NotOKException, e:
+    except ExceptionDefinitions.NotOKException, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
         sys.exit(1)
-    except CertificateMismatchException, e:
+    except ExceptionDefinitions.CertificateMismatchException, e:
         print 'The number of requests made was ', e.request_num
         print 'The number of certificates received is ', e.retrieve_num
         charlimit_textwrap(e.message)
@@ -627,25 +601,25 @@ if __name__ == '__main__':
     except EOFError, e:
         print_exception_message(e)
         sys.exit(1)
-    except BadCertificateException, e:
+    except ExceptionDefinitions.BadCertificateException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except BadPassphraseException, e:
+    except ExceptionDefinitions.BadPassphraseException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except HandshakeFailureException, e:
+    except ExceptionDefinitions.HandshakeFailureException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
-    except QuotaException, e:
+    except ExceptionDefinitions.QuotaException, e:
         charlimit_textwrap(e.message)
         sys.exit(1)
     except M2Crypto.SSL.SSLError, e:
         print_exception_message(e)
         sys.exit(1)
-    except UnexpectedBehaviourException, e:
+    except ExceptionDefinitions.UnexpectedBehaviourException, e:
         print_exception_message(e)
         sys.exit(1)
-    except InsufficientArgumentException, e:
+    except ExceptionDefinitions.InsufficientArgumentException, e:
         # I agree with mat on JIRA Software 1072 on that if a user enters
         # the script without options, there is no bug and shouldn't be
         # reported to goc. Hence bypassing call to print exception message

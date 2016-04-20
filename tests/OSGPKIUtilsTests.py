@@ -1,21 +1,22 @@
 """Test the OSGPKIUtils module"""
 
 import re
+import signal
 import sys
 import unittest
 
-from pkiunittest import DOMAIN, EMAIL
+from pkiunittest import DOMAIN, EMAIL, PYPATH
 
 # Allow import of OSGPKIUtilsTests. Hacky.
 sys.path.insert(1, PYPATH)
-from osgpkitools.OSGPKIUtils import Cert
+from osgpkitools import OSGPKIUtils
 
 class OSGPKIUtilsTests(unittest.TestCase):
     FQDN = 'test.' + DOMAIN
     
     def __generate_csr(self, config):
         '''Helper for CSR generation'''
-        test_cert = Cert()
+        test_cert = OSGPKIUtils.Cert()
         key_file = self.FQDN + '-key.pem'
         test_cert.CreatePKey(key_file)
         csr = test_cert.CreateX509Request(**config)
@@ -42,7 +43,17 @@ class OSGPKIUtilsTests(unittest.TestCase):
         expected_names = set([alias])
         self.assertEqual(found_names, expected_names,
                          "Did not find expected SAN contents (%s):\n%s" %
-                         (list(expected_names), csr_contents)) # printed lists are prettier than printed sets
+                         (list(expected_names), csr_contents)) # printed lists are easier to read` than printed sets
+
+    def test_timeout(self):
+        '''Verify timeout length'''
+        OSGPKIUtils.start_timeout_clock(1) # 1 minute timeout
+        alarm_timer = signal.alarm(0) # cancel alarm and get remaining time of previous alarm
+        self.assertEqual(alarm_timer, 60, 'Expected 1 min timeout, got %ss' % alarm_timer)
+
+    def test_sigalrm_handler(self):
+        '''Verify exiting handler'''
+        self.assertRaises(SystemExit, OSGPKIUtils.start_timeout_clock, 0)
 
 if __name__ == '__main__':
     unittest.main()
