@@ -182,7 +182,7 @@ def start_timeout_clock(minutes):
 def charlimit_textwrap(string):
     """This function wraps up the output to 80 characters. Accepts string and print the wrapped output"""
 
-    list_string = textwrap.wrap(str(string))
+    list_string = textwrap.wrap(str(string), width=80)
     for line in list_string:
         print line
     return
