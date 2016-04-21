@@ -232,7 +232,7 @@ def connect_revoke(**arguments):
 
     charlimit_textwrap('Contacting Server to revoke the %s certificate \n' % revoke_text['cert_type'])
     
-    conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
+    conn = httpslib.HTTPSConnection(arguments['hostsec'],
                                              ssl_context=arguments['ssl_context'])
     try:
         conn.request('POST', arguments[url], params, headers)
