@@ -235,6 +235,7 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
+        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         path = os.getcwd()
         check_permissions(path)
         capi = ConnectAPI.ConnectAPI()
@@ -273,12 +274,6 @@ if __name__ == '__main__':
     except Exception_500response, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
-        sys.exit(1)
-    except TimeoutException, e:
-        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.'
-                            % e.timeout)
-        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n'
-                           )
         sys.exit(1)
     except FileWriteException, e:
         charlimit_textwrap(e.message)

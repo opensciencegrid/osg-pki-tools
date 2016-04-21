@@ -8,6 +8,7 @@ import time
 import sys
 import textwrap
 import simplejson
+import signal
 import traceback
 import getpass
 
@@ -158,7 +159,7 @@ def print_failure_reason_exit(data):
     sys.exit(1)
 
 
-def check_for_pending(data, iterations, **arguments):
+def check_for_pending(iterations):
     """ This function is a centralized location to print the in process output indication"""
 
     time.sleep(5)
@@ -166,18 +167,19 @@ def check_for_pending(data, iterations, **arguments):
     if iterations % 6 == 0:
         print '.',
         sys.stdout.flush()
-    check_timeout(iterations, arguments['timeout'])
     return iterations
 
+def sigalrm_handler(signum, frame):
+    sys.exit('Exiting due to timeout')
 
-def check_timeout(iterations, timeout):
-    """This function checks for a timeout. If timeout has occurred it raises a TIMEOUT EXCEPTION"""
-
-    if iterations > timeout * 12:
-        raise TimeoutException(timeout)
+def start_timeout_clock(minutes):
+    """Initiates a timer that exits the process with return code 1 after 'minutes'"""
+    seconds = minutes*60
+    signal.signal(signal.SIGALRM, sigalrm_handler)
+    if seconds == 0: # Work around signal.alarm(0) cancelling the signal timer
+        os.kill(os.getpid(), signal.SIGALRM)
     else:
-        return
-
+        signal.alarm(seconds)
 
 def charlimit_textwrap(string):
     """This function wraps up the output to 80 characters. Accepts string and print the wrapped output"""

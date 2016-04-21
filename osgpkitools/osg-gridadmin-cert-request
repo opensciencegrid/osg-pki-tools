@@ -182,11 +182,10 @@ or specify from a file using -f/--hostfile.''')
     try:
         timeout = int(args.timeout)
         if not timeout >= 0:
-            charlimit_textwrap('Your timeout value cannot be a negative integer.\nExiting now')
+            charlimit_textwrap('Your timeout value cannot be a negative integer.\n')
             raise ValueError
     except ValueError:
         raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
-    print 'Using timeout of %d minutes' % timeout
 
     if args.write_directory:
         certdir = args.write_directory
@@ -251,15 +250,8 @@ or specify from a file using -f/--hostfile.''')
         arguments.update({'values': values})
     if vars().has_key('hostname'):
         arguments.update({'hostname': hostname})
-    if vars().has_key('domain'):
-        arguments.update({'domain': domain})
-    if vars().has_key('outkeyfile'):
-        arguments.update({'outkeyfile': outkeyfile})
-    if vars().has_key('timeout'):
-        arguments.update({'timeout': timeout})
-        print 'The timeout is set to %s' % arguments['timeout']
-    if vars().has_key('num_requests'):
-        arguments.update({'num_requests': num_requests})
+    arguments.update({'timeout': timeout})
+    print 'The timeout is set to %s' % arguments['timeout']
     arguments.update({'alt_names': args.alt_names})
     arguments.update({'usercert': usercert})
     arguments.update({'userprivkey': userprivkey})
@@ -427,7 +419,7 @@ def check_quota_limit(request_count, arguments):
         check_response_500(response)
         data = response.read()
         conn.close()
-        iterations = check_for_pending(data, iterations, **arguments)
+        iterations = check_for_pending(iterations)
     check_failed_response(data)
     global_hostcert_year_max = \
         simplejson.loads(data)['global_hostcert_year_max']
@@ -567,9 +559,12 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
+        OSGPKIUtils.start_timeout_clock(arguments['timeout']*60)
         check_permissions(arguments['certdir'])
         ssl_context = get_ssl_context(**arguments)
         arguments.update({'ssl_context':ssl_context})
+
+        # Request cert(s)
         if not arguments.has_key('hostname'):
             process_hostfile_mode(**arguments)
         else:
@@ -594,10 +589,6 @@ if __name__ == '__main__':
     except Exception_500response, e:
         charlimit_textwrap('Request Failed. Status %s' % e.status)
         charlimit_textwrap('Reason for failure %s' % e.message)
-        sys.exit(1)
-    except TimeoutException, e:
-        charlimit_textwrap('Timeout reached in %s minutes. This script will now exit.' % e.timeout)
-        charlimit_textwrap(' You can open goc ticket to track this issue by going to https://ticket.grid.iu.edu\n')
         sys.exit(1)
     except KeyError, e:
         print_exception_message(e)
