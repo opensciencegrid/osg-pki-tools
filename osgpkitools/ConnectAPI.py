@@ -153,7 +153,7 @@ class ConnectAPI(object):
             while 'PENDING' in data:
                 response = self.do_connect(conn,'POST', arguments['returl'], params, headers)
                 data = response.read()
-                iterations = check_for_pending(data, iterations, **arguments)
+                iterations = check_for_pending(iterations)
 
             check_failed_response(data)
             pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
@@ -218,7 +218,7 @@ class ConnectAPI(object):
                 response = conn.getresponse()
                 data = response.read()
                 conn.close()
-                iterations = check_for_pending(data, iterations, **arguments)
+                iterations = check_for_pending(iterations)
             check_failed_response(data)
             pkcs7raw = simplejson.loads(data)['pkcs7s'][0]
 
