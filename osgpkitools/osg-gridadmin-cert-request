@@ -585,8 +585,8 @@ if __name__ == '__main__':
     except SSLError, e:
         print_exception_message(e)
         sys.exit('Please check for valid certificate.\n')
-    except KeyboardInterrupt, k:
-        print_exception_message(e)
+    except KeyboardInterrupt, exc:
+        print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
     except OSError, e:
         print_exception_message(e)
@@ -602,9 +602,11 @@ if __name__ == '__main__':
     except KeyError, e:
         print_exception_message(e)
         charlimit_textwrap('Key %s not found' % e)
+        sys.exit(1)
     except httplib.HTTPException, e:
         print_exception_message(e)
         charlimit_textwrap('Connection failed: %s' % (e))
+        sys.exit(1)
     except FileWriteException, e:
         charlimit_textwrap(e.message)
         charlimit_textwrap("The script will exit now\n")
