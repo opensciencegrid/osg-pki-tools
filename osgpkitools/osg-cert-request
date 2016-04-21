@@ -8,17 +8,11 @@ user.
 import urllib
 import httplib
 import sys
-import ConfigParser
 import simplejson
-import base64
 import os
 from optparse import OptionParser
-import M2Crypto
-import textwrap
-import traceback
 import subprocess
 from ssl import SSLError
-from pprint import pprint
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools import ConnectAPI
@@ -27,10 +21,7 @@ from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import check_failed_response
-from osgpkitools.OSGPKIUtils import version_info
-from osgpkitools.OSGPKIUtils import handle_empty_exceptions
 from osgpkitools.OSGPKIUtils import print_exception_message
-from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.ExceptionDefinitions import *
 
 
@@ -57,8 +48,7 @@ def parse_args():
         action='store',
         dest='keyfile',
         help='Specify the output filename for the retrieved user certificate.\
-             \nDefault is ./hostkey.pem'
-            ,
+             \nDefault is ./hostkey.pem',
         metavar='OUTPUT KEYFILE',
         default='hostkey.pem',
         )
@@ -67,8 +57,7 @@ def parse_args():
         '--vo',
         action='store',
         dest='vo',
-        help='Specify the VO for the host request'
-            ,
+        help='Specify the VO for the host request',
         metavar='VO name',
         default=None,
         )
@@ -78,8 +67,7 @@ def parse_args():
         action='store',
         dest='cc_list',
         help='Specify the CC list(the email id\'s to be CCed). \
-             Separate values by \',\''
-            ,
+             Separate values by \',\'',
         metavar='CC LIST',
         default='',
         )
@@ -196,9 +184,9 @@ def parse_args():
             pem_filename = args.keyfile
             key_name = pem_filename.split("/")[-1].split(".")[-2]
             pem_filename_old = key_name + "-old.pem"
-            subprocess.call(['mv',  pem_filename , pem_filename_old])
+            subprocess.call(['mv', pem_filename, pem_filename_old])
             charlimit_textwrap("Moving existing file %s to %s "
-                               %(pem_filename ,pem_filename_old))
+                               % (pem_filename, pem_filename_old))
         else:
             pem_filename = args.keyfile
     else:
@@ -285,12 +273,11 @@ def connect(arguments):
 
     print '\nConnecting to server...'
     params_list = {'name': arguments['name'],
-        'email': arguments['email'],
-        'phone': arguments['phone'],
-        'csrs': arguments['csr'],
-        'request_comment': arguments['comment'],
-        'request_ccs': arguments['cc_list'].split(','),
-        }
+                   'email': arguments['email'],
+                   'phone': arguments['phone'],
+                   'csrs': arguments['csr'],
+                   'request_comment': arguments['comment'],
+                   'request_ccs': arguments['cc_list'].split(',')}
     if 'vo' in arguments:
         params_list['vo'] = arguments['vo']
     params = urllib.urlencode(params_list)
@@ -300,14 +287,14 @@ def connect(arguments):
     try:
         conn.request('POST', arguments['requrl'], params, headers)
         response = conn.getresponse()
-    except httplib.HTTPException, e:
+    except httplib.HTTPException, exc:
         charlimit_textwrap('Connection to %s failed: %s'
-                           % (arguments['requrl'], repr(e)))
-        raise e
-    except Exception, e:
+                           % (arguments['requrl'], repr(exc)))
+        raise exc
+    except Exception, exc:
         charlimit_textwrap('Error during request to %s. Reason %s'
-                           % (arguments['requrl'], repr(e)))
-        raise e
+                           % (arguments['requrl'], repr(exc)))
+        raise exc
     check_response_500(response)
     data = response.read()
     check_failed_response(data)
@@ -318,7 +305,7 @@ def connect(arguments):
         print 'Succesfully submitted'
         print 'Request Id#: %s' % ticket
     else:
-        raise UnexpectedBehaviourEception("Unexpected Behavior encountered\nData received is %s" %data)
+        raise UnexpectedBehaviourException("Unexpected Behavior encountered\nData received is %s" %data)
     return
 
 
@@ -341,7 +328,7 @@ if __name__ == '__main__':
                             'emailAddress': arguments['email'],
                             'alt_names': arguments['alt_names']}
 
-            if (arguments['certdir'] != "./"):
+            if arguments['certdir'] != "./":
                 cwd = os.getcwd()
 
             if cwd != None:
@@ -362,71 +349,71 @@ if __name__ == '__main__':
                                                      .replace('-----END CERTIFICATE REQUEST-----\n', '')
             arguments.update({'csr': csr})
             capi = ConnectAPI.ConnectAPI()
-            id = capi.request_unauthenticated(**arguments)
-            print 'Request Id#: %s' % id
-            arguments.update({'id':id})
+            reqid = capi.request_unauthenticated(**arguments)
+            print 'Request Id#: %s' % reqid
+            arguments.update({'id':reqid})
 
-    except EOFError, e:
-        print_exception_message(e)
+    except EOFError, exc:
+        print_exception_message(exc)
         sys.exit(1)
-    except KeyboardInterrupt, e:
-        print_exception_message(e)
+    except KeyboardInterrupt, exc:
+        print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
-    except SystemExit, e:
+    except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
         raise
-    except SSLError, e:
-        print_exception_message(e)
+    except SSLError, exc:
+        print_exception_message(exc)
         sys.exit('Please check for valid certificate.\n')
-    except OSError, e:
-        print_exception_message(e)
+    except OSError, exc:
+        print_exception_message(exc)
         sys.exit(1)
-    except KeyError, e:
-        print_exception_message(e)
-    except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s' % (arguments['requrl'], repr(e)))
-    except Exception_500response, e:
-        charlimit_textwrap('Request Failed. Status %s' % e.status)
-        charlimit_textwrap('Reason for failure %s' % e.message)
+    except KeyError, exc:
+        print_exception_message(exc)
+    except httplib.HTTPException, exc:
+        charlimit_textwrap('Connection to %s failed: %s' % (arguments['requrl'], repr(exc)))
+    except Exception_500response, exc:
+        charlimit_textwrap('Request Failed. Status %s' % exc.status)
+        charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
-    except FileNotFoundException, e:
-        charlimit_textwrap(e.message + ':' + e.filename)
+    except FileNotFoundException, exc:
+        charlimit_textwrap(exc.message + ':' + exc.filename)
         sys.exit(1)
-    except ValueError, e:
-        print_exception_message(e)
+    except ValueError, exc:
+        print_exception_message(exc)
         sys.exit(1)
-    except NotOKException, e:
-        charlimit_textwrap('Request Failed. Status %s' % e.status)
-        charlimit_textwrap('Reason for failure %s' % e.message)
+    except NotOKException, exc:
+        charlimit_textwrap('Request Failed. Status %s' % exc.status)
+        charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
-    except CertificateMismatchException, e:
-        print 'The number of requests made was ', e.request_num
-        print 'The number of certificates received is ', e.retrieve_num
-        charlimit_textwrap(e.message)
+    except CertificateMismatchException, exc:
+        print 'The number of requests made was ', exc.request_num
+        print 'The number of certificates received is ', exc.retrieve_num
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except EOFError, e:
-        print_exception_message(e)
+    except EOFError, exc:
+        print_exception_message(exc)
         sys.exit(1)
-    except BadCertificateException, e:
-        charlimit_textwrap(e.message)
+    except BadCertificateException, exc:
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except BadPassphraseException, e:
-        charlimit_textwrap(e.message)
+    except BadPassphraseException, exc:
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except HandshakeFailureException, e:
-        charlimit_textwrap(e.message)
+    except HandshakeFailureException, exc:
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except UnexpectedBehaviourException, e:
-        charlimit_textwrap(e.message)
+    except UnexpectedBehaviourException, exc:
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except InvalidOptionException, e:
-        charlimit_textwrap(e.message)
+    except InvalidOptionException, exc:
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except IOError, e:
-        charlimit_textwrap(e)
+    except IOError, exc:
+        charlimit_textwrap(exc)
         sys.exit(1)
-    except Exception, e:
-        print_exception_message(e)
+    except Exception, exc:
+        print_exception_message(exc)
         sys.exit(1)
     sys.exit(0)

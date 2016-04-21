@@ -14,6 +14,7 @@ import M2Crypto
 from optparse import OptionParser
 from ssl import SSLError
 
+from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import get_ssl_context
 from osgpkitools.OSGPKIUtils import check_response_500
@@ -96,7 +97,7 @@ def parse_args():
         dest='version_info',
         help="Print version information and exit",
         )
-    (args, values) = parser.parse_args()
+    args, _ = parser.parse_args()
     arguments = dict()
 
     if args.version_info:
@@ -143,8 +144,8 @@ def parse_args():
     try:
         if not os.access(args.write_directory, os.W_OK):
             raise FileWriteException('Do not have write permissions to %s' % args.write_directory)
-    except OSError, e:
-        if e.errno == errno.ENOENT:
+    except OSError, exc:
+        if exc.errno == errno.ENOENT:
             raise FileNotFoundException(args.write_directory, 'Could not locate the output directory')
         else:
             raise
@@ -198,9 +199,9 @@ def connect_renew(**arguments):
             except AttributeError:
                 arguments['ssl_session'] = conn.sock.get_session()
             response = conn.getresponse()
-        except httplib.HTTPException, e:
-            charlimit_textwrap('Connection to %s failed : %s' % (arguments['renewurl'], e))
-            raise e
+        except httplib.HTTPException, exc:
+            charlimit_textwrap('Connection to %s failed : %s' % (arguments['renewurl'], exc))
+            raise
         data = response.read()
         if re.search('Password is too weak', data):
             charlimit_textwrap('Passwords must be > 12 characters and have no easy or repeating sequences. Please try again.')
@@ -261,15 +262,15 @@ def connect_retrieve(**arguments):
             conn.session = arguments['ssl_session']
         conn.request('POST', arguments['userreturl'], params, headers)
         response = conn.getresponse()
-    except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s%s failed: %s' % (arguments['hostsec'], arguments['userreturl'], e))
+    except httplib.HTTPException, exc:
+        charlimit_textwrap('Connection to %s%s failed: %s' % (arguments['hostsec'], arguments['userreturl'], exc))
         raise httplib.HTTPException
     check_response_500(response)
     json = response.read()
 
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
-            print_failure_reason_exit(data)
+            print_failure_reason_exit(json)
     conn.close()
     charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
 
@@ -284,8 +285,8 @@ def connect_retrieve(**arguments):
         conn.request('POST', arguments['userreturl'], params, headers)
         try:
             response = conn.getresponse()
-        except httplib.HTTPException, e:
-            charlimit_textwrap('Connection to %s%s failed: %s' % (arguments['hostsec'], arguments['userreturl'], e))
+        except httplib.HTTPException, exc:
+            charlimit_textwrap('Connection to %s%s failed: %s' % (arguments['hostsec'], arguments['userreturl'], exc))
             raise httplib.HTTPException
         check_response_500(response)
         json = response.read()
@@ -307,10 +308,10 @@ def process_csr(**arguments):
     requesting and then retrieving in sequence"""
     try:
         arguments = connect_renew(**arguments)
-    except Exception, e:
-        if 'sslv3 alert bad certificate' in e:
+    except Exception, exc:
+        if 'sslv3 alert bad certificate' in exc:
             raise BadCertificateException('Error connecting to server: %s.\n' +
-                                          'Your certificate is not trusted by the server' % e)
+                                          'Your certificate is not trusted by the server' % exc)
         else:
             print_uncaught_exception()
             raise
@@ -329,8 +330,8 @@ def extract_info(**arguments):
     dec_sid = x509.get_serial_number()
     hex_sid = "%032X" % dec_sid
     arguments.update({'serial_number':hex_sid})
-    DN = x509.get_issuer()
-    arguments.update({'DN':DN})
+    dn = x509.get_issuer()
+    arguments.update({'DN':dn})
     return arguments
 
 if __name__ == '__main__':
@@ -341,66 +342,66 @@ if __name__ == '__main__':
         arguments['ssl_context'] = get_ssl_context(**arguments)
         arguments = extract_info(**arguments)
         process_renew(**arguments)
-    except AttributeError, e:
-        print_exception_message(e)
+    except AttributeError, exc:
+        print_exception_message(exc)
         sys.exit(1)
-    except SystemExit, e:
+    except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
         raise
-    except SSLError, e:
-        print_exception_message(e)
+    except SSLError, exc:
+        print_exception_message(exc)
         sys.exit('Please check for valid certificate.\n')
-    except KeyboardInterrupt, e:
-        print_exception_message(e)
+    except KeyboardInterrupt, exc:
+        print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
-    except OSError, e:
-        print_exception_message(e)
+    except OSError, exc:
+        print_exception_message(exc)
         sys.exit(1)
-    except Exception_500response, e:
-        charlimit_textwrap('Request Failed. Status %s' % e.status)
-        charlimit_textwrap('Reason for failure %s' % e.message)
+    except Exception_500response, exc:
+        charlimit_textwrap('Request Failed. Status %s' % exc.status)
+        charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
-    except FileNotFoundException, e:
-        charlimit_textwrap(e.message + ':' + e.filename)
+    except FileNotFoundException, exc:
+        charlimit_textwrap(exc.message + ':' + exc.filename)
         sys.exit(1)
-    except FileWriteException, e:
-        charlimit_textwrap(e.message)
+    except FileWriteException, exc:
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except ValueError, e:
-        print_exception_message(e)
+    except ValueError, exc:
+        print_exception_message(exc)
         sys.exit(1)
-    except NotOKException, e:
-        charlimit_textwrap('Request Failed. Status %s' % e.status)
-        charlimit_textwrap('Reason for failure %s' % e.message)
+    except NotOKException, exc:
+        charlimit_textwrap('Request Failed. Status %s' % exc.status)
+        charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
-    except CertificateMismatchException, e:
-        print 'The number of requests made was ', e.request_num
-        print 'The number of certificates received is ', e.retrieve_num
-        charlimit_textwrap(e.message)
+    except CertificateMismatchException, exc:
+        print 'The number of requests made was ', exc.request_num
+        print 'The number of certificates received is ', exc.retrieve_num
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except EOFError, e:
-        print_exception_message(e)
+    except EOFError, exc:
+        print_exception_message(exc)
         sys.exit(1)
-    except BadCertificateException, e:
-        charlimit_textwrap(e.message)
+    except BadCertificateException, exc:
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except BadPassphraseException, e:
-        charlimit_textwrap(e.message)
+    except BadPassphraseException, exc:
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except HandshakeFailureException, e:
-        charlimit_textwrap(e.message)
+    except HandshakeFailureException, exc:
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except QuotaException, e:
-        charlimit_textwrap(e.message)
+    except QuotaException, exc:
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except UnexpectedBehaviourException, e:
-        charlimit_textwrap(e.message)
+    except UnexpectedBehaviourException, exc:
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except InsufficientArgumentException, e:
-        charlimit_textwrap(e.message)
+    except InsufficientArgumentException, exc:
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except Exception, e:
+    except Exception, exc:
         print_uncaught_exception()
         charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
         sys.exit(1)
