@@ -326,7 +326,7 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-        OSGPKIUtils.start_timeout_clock(arguments['timeout']*60)
+        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         # The two modes in which the script is run are
         # 1. The user doesn't provide a csr:
         # Here we generate a private key for the user and also a
