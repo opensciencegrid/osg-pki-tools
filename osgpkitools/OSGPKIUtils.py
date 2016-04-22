@@ -4,6 +4,7 @@ from M2Crypto import SSL, m2, RSA, EVP, X509
 import base64
 import ConfigParser
 import os
+import re
 import time
 import sys
 import textwrap
@@ -146,17 +147,20 @@ def check_failed_response(data):
 
 def print_failure_reason_exit(data):
     """This functions prints the failure reasons and exits"""
-
     try:
-        charlimit_textwrap('The request has failed for the following reason:\n%s'
-                            % simplejson.loads(data)['detail'
-                           ].split('--')[1].lstrip())
-    except IndexError, e:
-        charlimit_textwrap('The request has failed for the following reason:\n%s'
-                            % simplejson.loads(data)['detail'].lstrip())
-        charlimit_textwrap('Status : %s '
-                           % simplejson.loads(data)['status'])
-    sys.exit(1)
+        msg = 'The request has failed for the following reason: %s' % \
+              simplejson.loads(data)['detail'].split('--')[1].lstrip()
+    except IndexError:
+        msg = 'The request has failed for the following reason: %s' % simplejson.loads(data)['detail'].lstrip() + \
+              'Status : %s ' % simplejson.loads(data)['status']
+
+    # Print a helpful error message if OIM responds that the user needs to
+    # provide a VO in their request. We cannot handle this in the arg parsing
+    # because not all domains require VO information (SOFTWARE-2292)
+    if re.search(r'Couldn\'t find GridAdmin group under specified VO', msg):
+        msg = "Failed to request certificate due to missing VO information. Did you forget to specify the -v/--vo option?"
+    separator = '='*80
+    sys.exit('\n'.join(textwrap.wrap(separator + msg, width=80)))
 
 
 def check_for_pending(iterations):
