@@ -15,7 +15,7 @@ import httplib
 import sys
 import simplejson
 import os
-import M2Crypto
+from M2Crypto import SSL, httpslib
 from optparse import OptionParser, OptionGroup
 import subprocess
 from ssl import SSLError
@@ -380,7 +380,7 @@ def check_quota_limit(request_count, arguments):
 
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'], ssl_context=arguments['ssl_context'])
+    conn = httpslib.HTTPSConnection(arguments['host'], ssl_context=arguments['ssl_context'])
     try:
         conn.request('GET', arguments['quotaurl'], None, headers)
         response = conn.getresponse()
