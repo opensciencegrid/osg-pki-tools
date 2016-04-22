@@ -189,6 +189,10 @@ def parse_args():
                                % (pem_filename, pem_filename_old))
         else:
             pem_filename = args.keyfile
+    elif not os.path.exists(args.csr):
+        raise FileNotFoundException(args.csr,
+                                    'The file %s does not exist'
+                                    % args.csr)
     else:
         charlimit_textwrap('CSR input found. Skipping creation of the primary key\n')
 
@@ -206,14 +210,7 @@ def parse_args():
     phone_num = phone.replace('-', '')
     if not phone_num.isdigit():
         raise ValidationException("Phone number should contain \
-                                  only numbers and/or '-'\n"
-                                  )
-    if args.csr is None:
-        pass
-    elif not os.path.exists(args.csr):
-        raise FileNotFoundException(args.csr,
-                                    'The file %s does not exist'
-                                    % args.csr)
+                                  only numbers and/or '-'\n")
 
     try:
         timeout = int(args.timeout)
