@@ -179,7 +179,7 @@ class OIM(object):
         if not self.reqid and '--help' not in opts:
             raise CertFileError('Could not revoke cert due to missing request ID\n')
         args = opts + ('--test', self.reqid, 'osg-pki-tools unit test - user revoke')
-        cmd = ('/bin/sh', os.path.join(SCRIPTS_PATH, 'osg-user-cert-revoke'),) + args
+        cmd = (os.path.join(SCRIPTS_PATH, 'osg-user-cert-revoke'),) + args
         return run_command(cmd)
 
     @staticmethod
