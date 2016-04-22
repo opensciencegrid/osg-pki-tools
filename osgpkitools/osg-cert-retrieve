@@ -240,9 +240,6 @@ if __name__ == '__main__':
             print 'Moving existing file ' + arguments['pem_filename'] + ' to ' + new_file_name
         write_certificate(pkcs7raw)
 
-    except EOFError, exc:
-        print_exception_message(exc)
-        sys.exit(1)
     except SystemExit, exc:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
@@ -253,10 +250,6 @@ if __name__ == '__main__':
     except SSLError, exc:
         print_exception_message(exc)
         sys.exit('Please check for valid certificate.\n')
-    except Exception_500response, exc:
-        charlimit_textwrap('Request Failed. Status %s' % exc.status)
-        charlimit_textwrap('Reason for failure %s' % exc.message)
-        sys.exit(1)
     except FileWriteException, exc:
         charlimit_textwrap(exc.message)
         charlimit_textwrap("The script will exit now\n")
@@ -264,29 +257,18 @@ if __name__ == '__main__':
     except FileNotFoundException, exc:
         charlimit_textwrap(exc.message + ':' + exc.filenamexc)
         sys.exit(1)
-    except ValueError, exc:
+    except (EOFError, ValueError, KeyError), exc:
         print_exception_message(exc)
         sys.exit(1)
-    except KeyError, exc:
-        print_exception_message(exc)
     except httplib.HTTPException, exc:
         charlimit_textwrap('Connection to %s failed: %s' % (arguments['returl'], exc))
-    except NotOKException, exc:
+        sys.exit(1)
+    except (Exception_500response, NotOKException), exc:
         charlimit_textwrap('Request Failed. Status %s' % exc.status)
         charlimit_textwrap('Reason for failure %s' % exc.messagexc)
         sys.exit(1)
-    except ValidationException, exc:
-        charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except InvalidOptionException, exc:
-        charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except NotApprovedException, exc:
-        charlimit_textwrap(exc.message)
-    except OSError, exc:
-        charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except UnexpectedBehaviourException, exc:
+    except (ValidationException, InvalidOptionException, NotApprovedException,
+            OSError, UnexpectedBehaviourException), exc:
         charlimit_textwrap(exc.message)
         sys.exit(1)
     except Exception, exc:

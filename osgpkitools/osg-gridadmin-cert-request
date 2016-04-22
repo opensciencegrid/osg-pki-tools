@@ -543,11 +543,7 @@ if __name__ == '__main__':
             process_hostfile_mode(**arguments)
         else:
             process_single_host_mode(**arguments)
-
-    except AttributeError, exc:
-        print_exception_message(exc)
-        sys.exit(1)
-    except SystemExit, exc:
+    except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
         raise
@@ -557,13 +553,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt, exc:
         print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
-    except OSError, exc:
-        print_exception_message(exc)
-        sys.exit(1)
-    except Exception_500response, exc:
-        charlimit_textwrap('Request Failed. Status %s' % exc.status)
-        charlimit_textwrap('Reason for failure %s' % exc.message)
-        sys.exit(1)
     except KeyError, exc:
         print_exception_message(exc)
         charlimit_textwrap('Key %s not found' % exc)
@@ -579,10 +568,7 @@ if __name__ == '__main__':
     except FileNotFoundException, exc:
         charlimit_textwrap(exc.message + ':' + exc.filename)
         sys.exit(1)
-    except ValueError, exc:
-        print_exception_message(exc)
-        sys.exit(1)
-    except NotOKException, exc:
+    except (Exception_500response, NotOKException), exc:
         charlimit_textwrap('Request Failed. Status %s' % exc.status)
         charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
@@ -591,27 +577,6 @@ if __name__ == '__main__':
         print 'The number of certificates received is ', exc.retrieve_num
         charlimit_textwrap(exc.message)
         sys.exit(1)
-    except EOFError, exc:
-        print_exception_message(exc)
-        sys.exit(1)
-    except BadCertificateException, exc:
-        charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except BadPassphraseException, exc:
-        charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except HandshakeFailureException, exc:
-        charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except QuotaException, exc:
-        charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except M2Crypto.SSL.SSLError, exc:
-        print_exception_message(exc)
-        sys.exit(1)
-    except UnexpectedBehaviourException, exc:
-        print_exception_message(exc)
-        sys.exit(1)
     except InsufficientArgumentException, exc:
         # I agree with mat on JIRA Software 1072 on that if a user enters
         # the script without options, there is no bug and shouldn't be
@@ -619,6 +584,12 @@ if __name__ == '__main__':
         charlimit_textwrap(exc.message)
         sys.stderr.write("Usage: osg-gridadmin-cert-request -h for help \n")
         sys.exit(2) # Fix for returning exit code of 2 as in all the other scripts.
+    except (BadCertificateException, BadPassphraseException, HandshakeFailureException, QuotaException), exc:
+        charlimit_textwrap(exc.message)
+        sys.exit(1)
+    except (AttributeError, OSError, ValueError, EOFError, SSL.SSLError, UnexpectedBehaviourException), exc:
+        print_exception_message(exc)
+        sys.exit(1)
     except Exception:
         print_uncaught_exception()
         charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')

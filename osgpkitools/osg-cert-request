@@ -22,6 +22,7 @@ from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import check_failed_response
 from osgpkitools.OSGPKIUtils import print_exception_message
+from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.ExceptionDefinitions import *
 
 
@@ -350,9 +351,6 @@ if __name__ == '__main__':
             print 'Request Id#: %s' % reqid
             arguments.update({'id':reqid})
 
-    except EOFError, exc:
-        print_exception_message(exc)
-        sys.exit(1)
     except KeyboardInterrupt, exc:
         print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
@@ -363,24 +361,12 @@ if __name__ == '__main__':
     except SSLError, exc:
         print_exception_message(exc)
         sys.exit('Please check for valid certificate.\n')
-    except OSError, exc:
-        print_exception_message(exc)
-        sys.exit(1)
-    except KeyError, exc:
-        print_exception_message(exc)
     except httplib.HTTPException, exc:
         charlimit_textwrap('Connection to %s failed: %s' % (arguments['requrl'], repr(exc)))
-    except Exception_500response, exc:
-        charlimit_textwrap('Request Failed. Status %s' % exc.status)
-        charlimit_textwrap('Reason for failure %s' % exc.message)
-        sys.exit(1)
     except FileNotFoundException, exc:
         charlimit_textwrap(exc.message + ':' + exc.filename)
         sys.exit(1)
-    except ValueError, exc:
-        print_exception_message(exc)
-        sys.exit(1)
-    except NotOKException, exc:
+    except (Exception_500response, NotOKException), exc:
         charlimit_textwrap('Request Failed. Status %s' % exc.status)
         charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
@@ -389,28 +375,14 @@ if __name__ == '__main__':
         print 'The number of certificates received is ', exc.retrieve_num
         charlimit_textwrap(exc.message)
         sys.exit(1)
-    except EOFError, exc:
+    except (BadPassphraseException, HandshakeFailureException, UnexpectedBehaviourException, InvalidOptionException), exc:
+        charlimit_textwrap(exc.message)
+        sys.exit(1)
+    except (EOFError, OSError, KeyError, ValueError, IOError), exc:
         print_exception_message(exc)
         sys.exit(1)
-    except BadCertificateException, exc:
-        charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except BadPassphraseException, exc:
-        charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except HandshakeFailureException, exc:
-        charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except UnexpectedBehaviourException, exc:
-        charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except InvalidOptionException, exc:
-        charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except IOError, exc:
-        charlimit_textwrap(exc)
-        sys.exit(1)
-    except Exception, exc:
-        print_exception_message(exc)
+    except Exception:
+        print_uncaught_exception()
+        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
         sys.exit(1)
     sys.exit(0)

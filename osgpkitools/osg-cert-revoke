@@ -263,25 +263,11 @@ if __name__ == "__main__":
         arguments.update({'ssl_context': ssl_context})
         connect_revoke(**arguments)
 
-    except FileNotFoundException, exc:
-        print_exception_message(exc)
-
-    except BadCertificateException, exc:
-        print_exception_message(exc)
-        sys.exit(1)
-    except HandshakeFailureException, exc:
-        print_exception_message(exc)
-        sys.exit(1)
     except BadPassphraseException, exc:
         charlimit_textwrap("Invalid passphrase entered, please try running the script again.")
         sys.exit(1)
-    except KeyError, exc:
-        print_exception_message(exc)
-        sys.exit(1)
-    except httplib.HTTPException, exc:
-        print_exception_message(exc)
-        sys.exit(1)
-    except AttributeError, exc:
+    except (FileNotFoundException, BadCertificateException, HandshakeFailureException, KeyError,
+            httplib.HTTPException, AttributeError), exc:
         print_exception_message(exc)
         sys.exit(1)
     except NotOKException, exc:
