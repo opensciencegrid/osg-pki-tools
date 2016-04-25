@@ -2,6 +2,7 @@
 
 import re
 import signal
+from simplejson import dumps
 import sys
 import unittest
 
@@ -54,6 +55,24 @@ class OSGPKIUtilsTests(unittest.TestCase):
     def test_sigalrm_handler(self):
         '''Verify exiting handler'''
         self.assertRaises(SystemExit, OSGPKIUtils.start_timeout_clock, 0)
+
+    def test_missing_vo_msg(self):
+        '''Verify helpful error message when user fails to include necessary VO information.'''
+        response = dumps({'status': 'FAILED',
+                          'detail': ' -- '.join(["Failed to find GridAdmins for specified CSRs/VO",
+                                                 "Couldn't find GridAdmin group under specified VO.",
+                                                 "GOC alert will be sent to GOC infrastructure team about this " + \
+                                                 "issue. Meanwhile, feel free to open a GOC ticket at " + \
+                                                 "https://ticket.grid.iu.edu"])})
+        try:
+            OSGPKIUtils.print_failure_reason_exit(response)
+        except SystemExit, exc:
+            self.assertEqual(exc.message.replace('\n', ' '),
+                             "="*80 + " Failed to request certificate due to missing VO information. " + \
+                             "Did you forget to specify the -v/--vo option?")#,
+                             # "print_failure_reason_exit() did not fail with missing VO error message")
+        else:
+            self.fail("print_failure_reason_exit() did not raise SystemExit")
 
 if __name__ == '__main__':
     unittest.main()
