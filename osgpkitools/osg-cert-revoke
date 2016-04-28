@@ -12,7 +12,6 @@ from optparse import OptionParser
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import print_exception_message
-from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import get_ssl_context
 from osgpkitools.OSGPKIUtils import version_info
@@ -90,8 +89,7 @@ def parse_args():
         '--message',
         action='store',
         dest='message',
-        help="Specify the reason for certificate revocation [deprecated]"
-            ,
+        help="Specify the reason for certificate revocation [deprecated]",
         default=None,
         metavar='REASON',
         )
@@ -115,7 +113,7 @@ def parse_args():
         charlimit_textwrap("The '-i' flag is deprecated and no longer needed when specifying a request ID.")
     if args.message:
         charlimit_textwrap("The '-m' flag is deprecated and no longer needed when specifying a message.")
-        
+
     # Get command line arguments
     num_args = len(values)
     if num_args >= 1 and num_args <= 2:
@@ -141,14 +139,13 @@ def parse_args():
     if args.userprivkey is None:
         try:
             userprivkey = os.environ['X509_USER_KEY']
-        except:
+        except KeyError:
             if os.path.exists(str(os.environ['HOME'])
-                                + '/.globus/userkey.pem'):
+                              + '/.globus/userkey.pem'):
                 userprivkey = str(os.environ['HOME']) \
-                    + '/.globus/userkey.pem'
+                              + '/.globus/userkey.pem'
             else:
-                raise FileNotFoundException('Key file',
-                        'Could not locate the private key file')
+                raise FileNotFoundException('Key file', 'Could not locate the private key file')
     else:
         userprivkey = args.userprivkey
 
@@ -157,7 +154,7 @@ def parse_args():
     if args.usercert is None:
         try:
             usercert = os.environ['X509_USER_CERT']
-        except:
+        except KeyError:
             usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
             if os.path.exists(str(os.environ['HOME'])
                               + '/.globus/usercert.pem'):
@@ -165,14 +162,14 @@ def parse_args():
                     + '/.globus/usercert.pem'
             else:
                 raise FileNotFoundException('Certificate File',
-                        'Could not locate the certificate file')
+                                            'Could not locate the certificate file')
     else:
         usercert = args.usercert
 
     if not os.path.exists(usercert):
         raise FileNotFoundException(usercert, 'Could not locate the certificate file')
 
-    arguments.update({'certid': args.certid})    
+    arguments.update({'certid': args.certid})
     arguments.update({'id': reqid})
     arguments.update({'message': args.message})
     arguments.update({'user': args.user})
@@ -208,7 +205,7 @@ def connect_revoke(**arguments):
     OUTPUT:
         Returns nothing, printing if the revocation was successful or not on the terminal.
     """
-    
+
     revoke_text = {}
     if arguments['user']:
         id_type = 'user_request_id'
@@ -218,29 +215,29 @@ def connect_revoke(**arguments):
         id_type = 'host_request_id'
         url = 'revurl'
         revoke_text = {'cert_type': 'host'}
-        
+
     if arguments['certid']:
         id_type = 'serial_id'
         revoke_text['id_type'] = 'certificate'
     else:
         revoke_text['id_type'] = 'request'
-        
+
     params = urllib.urlencode({id_type: arguments['id'],
                                'request_comment':arguments['message']})
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
 
     charlimit_textwrap('Contacting Server to revoke the %s certificate \n' % revoke_text['cert_type'])
-    
+
     conn = httpslib.HTTPSConnection(arguments['hostsec'],
-                                             ssl_context=arguments['ssl_context'])
+                                    ssl_context=arguments['ssl_context'])
     try:
         conn.request('POST', arguments[url], params, headers)
         response = conn.getresponse()
-    except httplib.HTTPException, e:
+    except httplib.HTTPException, exc:
         charlimit_textwrap('Connection to %s failed: %s'
-                           % (arguments[url], repr(e)))
-        raise e
+                           % (arguments[url], repr(exc)))
+        raise
     except SSL.SSLError, exc:
         charlimit_textwrap("="*80 + "ERROR: There was an issue with your credentials!")
         charlimit_textwrap(exc.message)
@@ -251,9 +248,9 @@ def connect_revoke(**arguments):
     data = response.read()
     conn.close()
 
-    if (simplejson.loads(data)['status'] == 'OK'):
-            charlimit_textwrap("Successfully revoked %s certificate with %s ID: %s" %
-                               (revoke_text['cert_type'], revoke_text['id_type'], str(arguments['id'])))
+    if simplejson.loads(data)['status'] == 'OK':
+        charlimit_textwrap("Successfully revoked %s certificate with %s ID: %s" %
+                           (revoke_text['cert_type'], revoke_text['id_type'], str(arguments['id'])))
     else:
         charlimit_textwrap("Failure, could not revoke certificate.")
         charlimit_textwrap(simplejson.loads(data)['detail'])
@@ -266,36 +263,22 @@ if __name__ == "__main__":
         arguments.update({'ssl_context': ssl_context})
         connect_revoke(**arguments)
 
-    except FileNotFoundException, e:
-        print_exception_message(e)
-
-    except BadCertificateException, e:
-        print_exception_message(e)
-        sys.exit(1)
-    except HandshakeFailureException, e:
-        print_exception_message(e)
-        sys.exit(1)
-    except BadPassphraseException, e:
+    except BadPassphraseException, exc:
         charlimit_textwrap("Invalid passphrase entered, please try running the script again.")
         sys.exit(1)
-    except KeyError, e:
-        print_exception_message(e)
+    except (FileNotFoundException, BadCertificateException, HandshakeFailureException, KeyError,
+            httplib.HTTPException, AttributeError), exc:
+        print_exception_message(exc)
         sys.exit(1)
-    except httplib.HTTPException, e:
-        print_exception_message(e)
+    except NotOKException, exc:
+        charlimit_textwrap('Request Failed. Status %s' % exc.status)
+        charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
-    except AttributeError, e:
-        print_exception_message(e)
-        sys.exit(1)
-    except NotOKException, e:
-        charlimit_textwrap('Request Failed. Status %s' % e.status)
-        charlimit_textwrap('Reason for failure %s' % e.message)
-        sys.exit(1)
-    except SystemExit: 
+    except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
         raise
-    except Exception, e:
-        print traceback.print_exc(e)
+    except Exception, exc:
+        print traceback.print_exc(exc)
         charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
     sys.exit(0)

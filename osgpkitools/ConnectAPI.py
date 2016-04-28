@@ -1,17 +1,11 @@
 #! /usr/bin/env python
 
-import sys
-import pprint
 import simplejson
 import urllib
 import httplib
-import textwrap
-import base64
 import M2Crypto
 import time
 
-from osgpkitools import OSGPKIUtils
-from OSGPKIUtils import CreateOIMConfig
 from OSGPKIUtils import charlimit_textwrap
 from OSGPKIUtils import check_response_500
 from OSGPKIUtils import check_failed_response
@@ -39,38 +33,29 @@ class ConnectAPI(object):
 
         OUTPUT: request_id - Request ID for current Certificate request.
         """
-        try:
-            params_list = {
-                'name': arguments['name'],
-                'email': arguments['email'],
-                'phone': arguments['phone'],
-                'csrs': arguments['csr'],
-                'request_comment': arguments['comment'],
-                'request_ccs': arguments['cc_list'].split(','),
-                }
-            if 'vo' in arguments:
-                params_list['vo'] = arguments['vo']
-            params = urllib.urlencode(params_list)
-            headers = {'Content-type': arguments['content_type'],
-                       'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
-            conn = httplib.HTTPConnection(arguments['host'])
+        params_list = {
+            'name': arguments['name'],
+            'email': arguments['email'],
+            'phone': arguments['phone'],
+            'csrs': arguments['csr'],
+            'request_comment': arguments['comment'],
+            'request_ccs': arguments['cc_list'].split(','),
+            }
+        if 'vo' in arguments:
+            params_list['vo'] = arguments['vo']
+        params = urllib.urlencode(params_list)
+        headers = {'Content-type': arguments['content_type'],
+                   'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
+        conn = httplib.HTTPConnection(arguments['host'])
 
-            response = self.do_connect(conn, 'POST', arguments['requrl'], params, headers)
-            data = response.read()
-            check_failed_response(data)
-            conn.close()
+        response = self.do_connect(conn, 'POST', arguments['requrl'], params, headers)
+        data = response.read()
+        check_failed_response(data)
+        conn.close()
 
-            if simplejson.loads(data)['detail'] == 'Nothing to report' \
-                and simplejson.loads(data)['status'] == 'OK' in data:
-                request_id = simplejson.loads(data)['host_request_id']
-        except KeyError:
-            raise
-        except httplib.HTTPException:
-            raise
-        except Exception_500response, e:
-            raise e
-        except Exception, e:
-            raise e
+        if simplejson.loads(data)['detail'] == 'Nothing to report' \
+            and simplejson.loads(data)['status'] == 'OK' in data:
+            request_id = simplejson.loads(data)['host_request_id']
         return request_id
 
     def request_authenticated(self, bulk_csr, **arguments):
@@ -91,31 +76,22 @@ class ConnectAPI(object):
         if arguments['cc_list']:
             params_list['request_ccs'] = arguments['cc_list'].split(',')
 
-        try:
-            params = urllib.urlencode(params_list, doseq=True)
-            headers = {'Content-type': arguments['content_type'],
-                       'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
-            conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
-                    ssl_context=arguments['ssl_context'])
+        params = urllib.urlencode(params_list, doseq=True)
+        headers = {'Content-type': arguments['content_type'],
+                   'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
+        conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
+                                                 ssl_context=arguments['ssl_context'])
 
-            response = self.do_connect(conn,'POST', arguments['requrl'], params, headers)
-            data = response.read()
-            if not 'OK' in response.reason:
-                print_failure_reason_exit(data)
-            conn.close()
-            check_failed_response(data)
-            return_data = simplejson.loads(data)
-            for (key, value) in return_data.iteritems():
-                if 'host_request_id' in key:
-                    reqid = value
-        except KeyError:
-            raise
-        except httplib.HTTPException:
-            raise
-        except Exception_500response, e:
-            raise e
-        except Exception, e:
-            raise e
+        response = self.do_connect(conn, 'POST', arguments['requrl'], params, headers)
+        data = response.read()
+        if not 'OK' in response.reason:
+            print_failure_reason_exit(data)
+        conn.close()
+        check_failed_response(data)
+        return_data = simplejson.loads(data)
+        for (key, value) in return_data.iteritems():
+            if 'host_request_id' in key:
+                reqid = value
         return reqid
 
 
@@ -138,34 +114,24 @@ class ConnectAPI(object):
 
         RETURNS: PKCS7 Certificate String in raw format.
         """
-        try:
-            params = urllib.urlencode({'host_request_id': arguments['reqid']})
-            headers = {'Content-type': arguments['content_type'],
-                       'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
-            conn = httplib.HTTPSConnection(arguments['hostsec'])
-            response = self.do_connect(conn,'POST', arguments['returl'], params, headers)
+        params = urllib.urlencode({'host_request_id': arguments['reqid']})
+        headers = {'Content-type': arguments['content_type'],
+                   'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
+        conn = httplib.HTTPSConnection(arguments['hostsec'])
+        response = self.do_connect(conn, 'POST', arguments['returl'], params, headers)
+        data = response.read()
+        if not 'PENDING' in response.reason:
+            if not 'OK' in response.reason:
+                raise NotOKException(simplejson.loads(data)['status'], simplejson.loads(data)['detail'].lstrip())
+
+        iterations = 0
+        while 'PENDING' in data:
+            response = self.do_connect(conn, 'POST', arguments['returl'], params, headers)
             data = response.read()
-            if not 'PENDING' in response.reason:
-                if not 'OK' in response.reason:
-                    raise NotOKException(simplejson.loads(data)['status'],simplejson.loads(data)['detail'].lstrip())
+            iterations = check_for_pending(iterations)
 
-            iterations = 0
-            while 'PENDING' in data:
-                response = self.do_connect(conn,'POST', arguments['returl'], params, headers)
-                data = response.read()
-                iterations = check_for_pending(iterations)
-
-            check_failed_response(data)
-            pkcs7raw = simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
-
-        except KeyError, e:
-            raise
-        except httplib.HTTPException:
-            raise
-        except Exception_500response:
-            raise
-        except NotOKException:
-            raise
+        check_failed_response(data)
+        simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
         return simplejson.loads(data)['pkcs7s']
 
     def retrieve_unauthenticated(self, **arguments):
@@ -189,47 +155,35 @@ class ConnectAPI(object):
 
         RETURNS: PKCS7 Certificate String in raw format.
         """
-        try:
-            params = urllib.urlencode({'host_request_id': arguments['id']})
-            headers = {'Content-type': arguments['content_type'],
-                       'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
-            conn = httplib.HTTPConnection(arguments['host'])
+        params = urllib.urlencode({'host_request_id': arguments['id']})
+        headers = {'Content-type': arguments['content_type'],
+                   'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
+        conn = httplib.HTTPConnection(arguments['host'])
 
-            response = self.do_connect(conn,'POST', arguments['returl'], params, headers)
+        response = self.do_connect(conn, 'POST', arguments['returl'], params, headers)
+        data = response.read()
+
+        if simplejson.loads(data).has_key('request_status'):
+            if simplejson.loads(data)['request_status'] == 'REQUESTED':
+                raise NotApprovedException('Certificate request is in Requested state. \
+                Needs to be Approved first. Please contact GA to approve this certificate\n')
+            else:
+                charlimit_textwrap('Certificate request is in Approved state. Needs to be issued first\n')
+                self.issue(**arguments)
+
+        conn = httplib.HTTPConnection(arguments['host'])
+        response = self.do_connect(conn, 'POST', arguments['returl'], params, headers)
+        data = response.read()
+        iterations = 0
+
+        while 'PENDING' in data:
+            conn.request('POST', arguments['returl'], params, headers)
+            response = conn.getresponse()
             data = response.read()
-
-            if simplejson.loads(data).has_key('request_status'):
-                if simplejson.loads(data)['request_status'] == 'REQUESTED':
-                    raise NotApprovedException('Certificate request is in Requested state. \
-                    Needs to be Approved first. Please contact GA to approve this certificate\n'
-                            )
-                else:
-                    charlimit_textwrap('Certificate request is in Approved state. Needs to be issued first\n'
-                                       )
-                    self.issue(**arguments)
-
-            conn = httplib.HTTPConnection(arguments['host'])
-            response = self.do_connect(conn,'POST', arguments['returl'], params, headers)
-            data = response.read()
-            iterations = 0
-
-            while 'PENDING' in data:
-                conn.request('POST', arguments['returl'], params, headers)
-                response = conn.getresponse()
-                data = response.read()
-                conn.close()
-                iterations = check_for_pending(iterations)
-            check_failed_response(data)
-            pkcs7raw = simplejson.loads(data)['pkcs7s'][0]
-
-        except KeyError:
-            raise
-        except httplib.HTTPException:
-            raise
-        except Exception_500response, e:
-            raise e
-        except Exception,e:
-            raise
+            conn.close()
+            iterations = check_for_pending(iterations)
+        check_failed_response(data)
+        pkcs7raw = simplejson.loads(data)['pkcs7s'][0]
         return pkcs7raw
 
     def issue(self, **arguments):
@@ -246,28 +200,19 @@ class ConnectAPI(object):
 
            OUTPUT: None
         """
-        try:
-            params = urllib.urlencode({'host_request_id': arguments['id']})
-            headers = {'Content-type': arguments['content_type'],
-                       'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
+        params = urllib.urlencode({'host_request_id': arguments['id']})
+        headers = {'Content-type': arguments['content_type'],
+                   'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
 
-            newrequrl = arguments['issurl']
-            conn = httplib.HTTPConnection(arguments['host'])
-            conn.request('POST', newrequrl, params, headers)
-            time.sleep(10) # Discussed with Rohan, he says it is needed otherwise the issuance of certificate does not happen.
-            response = conn.getresponse()
-            data = response.read()
-            conn.close()
-            if not 'OK' in data:
-                raise NotOKException('Failed',simplejson.loads(data)['detail'])
-        except KeyError, e:
-            raise
-        except httplib.HTTPException, e:
-            raise
-        except NotOKException, e:
-            raise
-
-        return
+        newrequrl = arguments['issurl']
+        conn = httplib.HTTPConnection(arguments['host'])
+        conn.request('POST', newrequrl, params, headers)
+        time.sleep(10) # Discussed with Rohan, he says it is needed otherwise the issuance of certificate does not happen.
+        response = conn.getresponse()
+        data = response.read()
+        conn.close()
+        if not 'OK' in data:
+            raise NotOKException('Failed', simplejson.loads(data)['detail'])
 
     def approve(self, **arguments):
 
@@ -284,65 +229,49 @@ class ConnectAPI(object):
 
         OUTPUT: None
         """
-        try:
-            action = 'approve'
-            params = urllib.urlencode({'host_request_id': arguments['reqid']})
-            headers = {'Content-type': arguments['content_type'],
-                       'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
+        action = 'approve'
+        params = urllib.urlencode({'host_request_id': arguments['reqid']})
+        headers = {'Content-type': arguments['content_type'],
+                   'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
+        conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
+                                                 ssl_context=arguments['ssl_context'])
+        response = self.do_connect(conn, 'POST', arguments['appurl'], params, headers)
+        if not 'OK' in response.reason:
+            raise NotOKException(response.status, response.reason)
+        data = response.read()
+        conn.close()
+        if action == 'approve' and 'OK' in data:
+            newrequrl = arguments['issurl']
             conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
-                    ssl_context=arguments['ssl_context'])
-            response = self.do_connect(conn,'POST', arguments['appurl'], params, headers)
-            if not 'OK' in response.reason:
-                raise NotOKException(response.status, response.reason)
+                                                     ssl_context=arguments['ssl_context'])
+
+            conn.request('POST', newrequrl, params, headers)
+            response = conn.getresponse()
             data = response.read()
             conn.close()
-            issurl = arguments['issurl']
-            if action == 'approve' and 'OK' in data:
-                newrequrl = arguments['issurl']
-                conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
-                        ssl_context=arguments['ssl_context'])
+            check_failed_response(data)
+        elif not 'OK' in data:
+            raise NotOKException('Failed', simplejson.loads(data)['detail'])
 
-                conn.request('POST', newrequrl, params, headers)
-                response = conn.getresponse()
-                data = response.read()
-                conn.close()
-                check_failed_response(data)
-            elif not 'OK' in data:
-                raise NotOKException('Failed', simplejson.loads(data)['detail'])
-        except KeyError:
-            raise
-        except httplib.HTTPException:
-            raise
-        except Exception_500response, e:
-            print e.message
-            raise e
-        except NotOKException:
-            raise
-
-    def renew(self,**arguments):
+    def renew(self, **arguments):
         """This function connects to the user renew API and passes the DN
         and the serial number to API to get back the request ID.
         """
 
         print 'Connecting to server to renew certificate...'
-        params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n'),
-                                   }, doseq=True)
-        ### For testing purpose only###
-        #params = urllib.urlencode({'user_request_id': '214'
-        #                           }, doseq=True)
-        ####
+        params = urllib.urlencode({'serial_id': arguments['serial_number'].strip('\n')}, doseq=True)
         headers = {'Content-type': arguments['content_type'],
                    'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
 
         conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
-                ssl_context=arguments['ssl_context'])
+                                                 ssl_context=arguments['ssl_context'])
         try:
             conn.request('POST', arguments['renewurl'], params, headers)
 
             response = conn.getresponse()
-        except httplib.HTTPException, e:
-            charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
-            raise e
+        except httplib.HTTPException, exc:
+            charlimit_textwrap('Connection to %s failed : %s' % (arguments['requrl'], exc))
+            raise
         data = response.read()
 
         #This if block is to catch failures and would exit the script
@@ -369,16 +298,8 @@ class ConnectAPI(object):
            OUTPUT:
            response   : Dict containing the response from the server.
         """
-        try:
-
-            connection_Handle.request(http_type, url, parameters, headers)
-            response = connection_Handle.getresponse()
-            check_response_500(response)
-            connection_Handle.close()
-        except httplib.HTTPResponse:
-            raise
-        except Exception_500response , e:
-            raise e
+        connection_Handle.request(http_type, url, parameters, headers)
+        response = connection_Handle.getresponse()
+        check_response_500(response)
+        connection_Handle.close()
         return response
-if __name__ == '__main__':
-    pass

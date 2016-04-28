@@ -14,9 +14,8 @@ This script works in two modes:
 import httplib
 import sys
 import simplejson
-import re
 import os
-import M2Crypto
+from M2Crypto import SSL, httpslib
 from optparse import OptionParser, OptionGroup
 import subprocess
 from ssl import SSLError
@@ -32,9 +31,9 @@ from osgpkitools.OSGPKIUtils import check_failed_response
 from osgpkitools.OSGPKIUtils import check_for_pending
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import check_permissions
-from osgpkitools.OSGPKIUtils import find_existing_file_count
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import print_exception_message
+from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.OSGPKIUtils import get_ssl_context
 from osgpkitools.ExceptionDefinitions import *
@@ -236,14 +235,14 @@ or specify from a file using -f/--hostfile.''')
         else:
             raise FileNotFoundException(hostfile, 'Could not locate the hostfile')
     if args.test:
-        OIM = True
+        oim = True
     else:
-        OIM = False
+        oim = False
 
     arguments.update({'vo' : args.vo})
-    arguments.update({'mode': OIM})
+    arguments.update({'mode': oim})
     arguments.update({'cc_list': args.cc_list})
-    arguments = CreateOIMConfig(OIM, **arguments)
+    arguments = CreateOIMConfig(oim, **arguments)
     if vars().has_key('args'):
         arguments.update({'args': args})
     if vars().has_key('values'):
@@ -287,19 +286,18 @@ def extract_certs(pkcs7raw, **arguments):
         os.path.abspath(temp_file.name),
         ])
     pkcs7_file.close()
-    certString = temp_file.read()
+    cert_string = temp_file.read()
     temp_file.close()
     ### Extracting the hostname ###
 
-    hostname = extractHostname(certString)
+    hostname = extractHostname(cert_string)
 
     ### Extracting the EEC certificate ###
 
-    eecString = extractEEC(certString, hostname)
+    eec_string = extractEEC(cert_string, hostname)
     arguments.update({'hostname': hostname})
-    arguments.update({'eecString': eecString})
+    arguments.update({'eecString': eec_string})
     write_certificate(**arguments)
-    return
 
 
 def write_certificate(**arguments):
@@ -308,18 +306,17 @@ def write_certificate(**arguments):
     try:
         os.chdir(arguments['certdir'])
         os.getcwd()
-    except OSError, e:
+    except OSError, exc:
         charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
-    .Please report the bug to goc@opensciencegrid.org.a
-    %s''',
-                           arguments['certdir'], e)
-        raise OSError
+        . Please report the bug to goc@opensciencegrid.org.
+        %s''' % (arguments['certdir'], exc))
+        raise
     hostname = arguments['hostname']
-    eecString = arguments['eecString']
+    eec_string = arguments['eecString']
     hostname = hostname.strip(' \n').replace('/', '-')
     pem_filename = hostname + '.pem'
     temp_file = tempfile.NamedTemporaryFile()
-    temp_file.write(eecString)
+    temp_file.write(eec_string)
     temp_file.flush()
     if os.path.exists(pem_filename): ###Fix for already existing cert file ###
 
@@ -383,23 +380,20 @@ def check_quota_limit(request_count, arguments):
 
     headers = {'Content-type': arguments['content_type'],
                'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'], ssl_context=arguments['ssl_context'])
+    conn = httpslib.HTTPSConnection(arguments['host'], ssl_context=arguments['ssl_context'])
     try:
         conn.request('GET', arguments['quotaurl'], None, headers)
         response = conn.getresponse()
-    except httplib.HTTPException, e:
+    except httplib.HTTPException, exc:
         charlimit_textwrap('Connection to %s failed: %s'
-                           % (arguments['quotaurl'], e))
-        raise httplib.HTTPException
-    except M2Crypto.SSL.SSLError, e:
-        raise M2Crypto.SSL.SSLError, e
-
-    except Exception, e:
-        if "sslv3 alert bad certificate" in e:
+                           % (arguments['quotaurl'], exc))
+        raise
+    except Exception, exc:
+        if "sslv3 alert bad certificate" in exc:
             raise BadCertificateException("Error connecting to server: %s.\n" + \
-                                          "Your certificate is not trusted by the server" % e)
+                                          "Your certificate is not trusted by the server" % exc)
         else:
-            print e.__class__.__name__
+            print exc.__class__.__name__
             raise
     check_response_500(response)
     data = response.read()
@@ -412,10 +406,10 @@ def check_quota_limit(request_count, arguments):
         conn.request('GET', arguments['quotaurl'], headers)
         try:
             response = conn.getresponse()
-        except httplib.HTTPException, e:
+        except httplib.HTTPException, exc:
             charlimit_textwrap('Connection to %s failed: %s'
-                               % (arguments['quotaurl'], e))
-            raise httplib.HTTPException
+                               % (arguments['quotaurl'], exc))
+            raise
         check_response_500(response)
         data = response.read()
         conn.close()
@@ -450,20 +444,10 @@ def process_csr(num_requests, bulk_csr, **arguments):
 
     try:
         reqid = capi.request_authenticated(bulk_csr, **arguments)
-    except KeyError, e:
-        raise
-    except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed : %s' % (requrl, e))
-        raise e
-    except Exception_500response, e:
-        raise e
-    except NotOKException, e:
-        raise e
-
-    except Exception, e:
-        if 'sslv3 alert bad certificate' in e:
+    except Exception, exc:
+        if 'sslv3 alert bad certificate' in exc:
             raise BadCertificateException("Error connecting to server: %s.\n" + \
-                                          "Your certificate is not trusted by the server" % e)
+                                          "Your certificate is not trusted by the server" % exc)
         else:
             raise
 
@@ -478,25 +462,15 @@ def process_csr(num_requests, bulk_csr, **arguments):
         print 'Issuing certificate...'
         pkcs7raw = capi.retrieve_authenticated(**arguments)
         process_pkcs7(pkcs7raw, num_requests, **arguments)
-
-    except KeyError, e:
+    except httplib.HTTPException, exc:
+        charlimit_textwrap('Connection to %s failed: %s'% (arguments['newrequrl'], exc))
         raise
-    except httplib.HTTPException, e:
-        charlimit_textwrap('Connection to %s failed: %s'% (newrequrl, e))
-        raise e
-    except Exception_500response, e:
-        raise e
-    except NotOKException, e:
-        raise e
-    except CertificateMismatchException, e:
-        raise e
-    except Exception, e:
-        if 'sslv3 alert bad certificate' in e:
+    except Exception, exc:
+        if 'sslv3 alert bad certificate' in exc:
             raise BadCertificateException("Error connecting to server: %s.\n" + \
-                                          "Your certificate is not trusted by the server" % e)
+                                          "Your certificate is not trusted by the server" % exc)
         else:
             raise
-    return
 
 def process_single_host_mode(**arguments):
     '''Create and process a single CSR with the --hostname option treated as
@@ -569,83 +543,54 @@ if __name__ == '__main__':
             process_hostfile_mode(**arguments)
         else:
             process_single_host_mode(**arguments)
-
-    except AttributeError, e:
-        print_exception_message(e)
-        sys.exit(1)
-    except SystemExit, e:
+    except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
-        raise e
-    except SSLError, e:
-        print_exception_message(e)
+        raise
+    except SSLError, exc:
+        print_exception_message(exc)
         sys.exit('Please check for valid certificate.\n')
     except KeyboardInterrupt, exc:
         print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
-    except OSError, e:
-        print_exception_message(e)
+    except KeyError, exc:
+        print_exception_message(exc)
+        charlimit_textwrap('Key %s not found' % exc)
         sys.exit(1)
-    except Exception_500response, e:
-        charlimit_textwrap('Request Failed. Status %s' % e.status)
-        charlimit_textwrap('Reason for failure %s' % e.message)
+    except httplib.HTTPException, exc:
+        print_exception_message(exc)
+        charlimit_textwrap('Connection failed: %s' % (exc))
         sys.exit(1)
-    except KeyError, e:
-        print_exception_message(e)
-        charlimit_textwrap('Key %s not found' % e)
-        sys.exit(1)
-    except httplib.HTTPException, e:
-        print_exception_message(e)
-        charlimit_textwrap('Connection failed: %s' % (e))
-        sys.exit(1)
-    except FileWriteException, e:
-        charlimit_textwrap(e.message)
+    except FileWriteException, exc:
+        charlimit_textwrap(exc.message)
         charlimit_textwrap("The script will exit now\n")
         sys.exit(1)
-    except FileNotFoundException, e:
-        charlimit_textwrap(e.message + ':' + e.filename)
+    except FileNotFoundException, exc:
+        charlimit_textwrap(exc.message + ':' + exc.filename)
         sys.exit(1)
-    except ValueError, e:
-        print_exception_message(e)
+    except (Exception_500response, NotOKException), exc:
+        charlimit_textwrap('Request Failed. Status %s' % exc.status)
+        charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
-    except NotOKException, e:
-        charlimit_textwrap('Request Failed. Status %s' % e.status)
-        charlimit_textwrap('Reason for failure %s' % e.message)
+    except CertificateMismatchException, exc:
+        print 'The number of requests made was ', exc.request_num
+        print 'The number of certificates received is ', exc.retrieve_num
+        charlimit_textwrap(exc.message)
         sys.exit(1)
-    except CertificateMismatchException, e:
-        print 'The number of requests made was ', e.request_num
-        print 'The number of certificates received is ', e.retrieve_num
-        charlimit_textwrap(e.message)
-        sys.exit(1)
-    except EOFError, e:
-        print_exception_message(e)
-        sys.exit(1)
-    except BadCertificateException, e:
-        charlimit_textwrap(e.message)
-        sys.exit(1)
-    except BadPassphraseException, e:
-        charlimit_textwrap(e.message)
-        sys.exit(1)
-    except HandshakeFailureException, e:
-        charlimit_textwrap(e.message)
-        sys.exit(1)
-    except QuotaException, e:
-        charlimit_textwrap(e.message)
-        sys.exit(1)
-    except M2Crypto.SSL.SSLError, e:
-        print_exception_message(e)
-        sys.exit(1)
-    except UnexpectedBehaviourException, e:
-        print_exception_message(e)
-        sys.exit(1)
-    except InsufficientArgumentException, e:
+    except InsufficientArgumentException, exc:
         # I agree with mat on JIRA Software 1072 on that if a user enters
         # the script without options, there is no bug and shouldn't be
         # reported to goc. Hence bypassing call to print exception message
-        charlimit_textwrap(e.message)
+        charlimit_textwrap(exc.message)
         sys.stderr.write("Usage: osg-gridadmin-cert-request -h for help \n")
         sys.exit(2) # Fix for returning exit code of 2 as in all the other scripts.
-    except Exception, e:
+    except (BadCertificateException, BadPassphraseException, HandshakeFailureException, QuotaException), exc:
+        charlimit_textwrap(exc.message)
+        sys.exit(1)
+    except (AttributeError, OSError, ValueError, EOFError, SSL.SSLError, UnexpectedBehaviourException), exc:
+        print_exception_message(exc)
+        sys.exit(1)
+    except Exception:
         print_uncaught_exception()
         charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
         sys.exit(1)

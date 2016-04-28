@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 from M2Crypto import SSL, m2, RSA, EVP, X509
-import base64
 import ConfigParser
 import os
 import re
@@ -37,10 +36,9 @@ def get_ssl_context(**arguments):
     ssl_context - ssl context for the HTTPS connection.
 
     """
-    first = True
     count = 0
     pass_str = 'Please enter the pass phrase for'
-    while(True):
+    while True:
         try:
             def prompt_for_password(verify):
                 return getpass.getpass(pass_str+" '%s':"
@@ -52,59 +50,55 @@ def get_ssl_context(**arguments):
                                         arguments['userprivkey'],
                                         callback=prompt_for_password)
             break
-        except Exception, e:
-            if 'sslv3 alert bad certificate' in e:
-                raise BadCertificateException('Error connecting to server: %s.\n\
-                                          Your certificate is not trusted by the server'
-                 % e)
-            elif 'handshake failure' in e:
+        except Exception, exc:
+            if 'sslv3 alert bad certificate' in exc:
+                raise BadCertificateException('Error connecting to server: %s. \n' + \
+                                              'Your certificate is not trusted by the server'
+                                              % exc)
+            elif 'handshake failure' in exc:
                 raise HandshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
-                 % e)
-            first = False
+                                                % exc)
             count = count + 1
             pass_str = 'Incorrect password. Please enter the password again for'
             if count > 1:
-                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script'
-                        )
-                break
+                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script')
     return ssl_context
 
 
-def print_exception_message(e):
+def print_exception_message(exc):
     """Checks if the str representation of the exception is empty or not
     if empty, it prints an generic error message stating the type of exception
     and traceback.
     """
 
-    if(str(e) != ""):
-        charlimit_textwrap("Got an exception %s" % e.__class__.__name__)
-        charlimit_textwrap(e)
+    if str(exc) != "":
+        charlimit_textwrap("Got an exception %s" % exc.__class__.__name__)
+        charlimit_textwrap(exc)
         charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
-
     else:
-        handle_empty_exceptions(e)
+        handle_empty_exceptions(exc)
 
 def print_uncaught_exception():
     """This function prints the stack trace of a failure to aid
     debugging"""
     print traceback.format_exc()
 
-def handle_empty_exceptions(e):
+def handle_empty_exceptions(exc):
     """The method handles all empty exceptions and displays a meaningful message and
     traceback for such exceptions."""
-    
+
     print traceback.format_exc()
-    charlimit_textwrap('Encountered exception of type %s' % e.__class__.__name__)
+    charlimit_textwrap('Encountered exception of type %s' % exc.__class__.__name__)
     charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
 
 def version_info():
     """ Print the version number and exit"""
-    print "OSG CLI Scripts Version :", Version_Number
+    print "OSG CLI Scripts Version :", VERSION_NUMBER
 
 def check_permissions(path):
     """The function checks for write permissions for the given path to verify if the user has write permissions
     """
-    if(os.access(path, os.W_OK)):
+    if os.access(path, os.W_OK):
         return
     else:
         raise FileWriteException("User does not have appropriate permissions for writing to current directory.")
@@ -115,16 +109,16 @@ def find_existing_file_count(filename):
     temp_name = filename.split(".")[-2]
     trimmed_name = temp_name
     version_count = 0
-    if(os.path.exists(filename)):
-        while(os.path.exists(temp_name + '.pem')):
-            if (version_count == 0):
+    if os.path.exists(filename):
+        while os.path.exists(temp_name + '.pem'):
+            if version_count == 0:
                 temp_name = temp_name +'-'+str(version_count)
             else:
                 temp_name = trimmed_name
                 temp_name = temp_name + '-' + str(version_count)
             version_count = version_count + 1
 
-    if (version_count > 0):
+    if version_count > 0:
         version_count -= 1
         new_file = trimmed_name + '-' +str(version_count) + '.pem'
         return new_file
@@ -174,6 +168,7 @@ def check_for_pending(iterations):
     return iterations
 
 def sigalrm_handler(signum, frame):
+    """Exit when SIGALRM is raised (handler functions must take signum and frame args)"""
     sys.exit('Exiting due to timeout')
 
 def start_timeout_clock(minutes):
@@ -213,21 +208,20 @@ def get_request_count(filename):
 ### Checking for /CN= in every line and extracting the term after that if not Digicert i.e. CA would be the hostname
 ### Here we rely on OPenSSL -printcert output format. If it changes our output might be affected
 
-def extractHostname(certString):
+def extractHostname(cert_string):
     """Extracts hostname from the string of certifcate file
-....We take the whole certificate data as a string input
-....Checking for /CN= in every line and extracting the term after that if not Digicert i.e. CA would be the hostname
-....Here we rely on OPenSSL -printcert output format. If it changes our output might be affected"""
+    We take the whole certificate data as a string input
+    Checking for /CN= in every line and extracting the term after that if not Digicert i.e. CA would be the hostname
+    Here we rely on OPenSSL -printcert output format. If it changes our output might be affected"""
 
-    certArray = certString.split(' ')
+    certs = cert_string.split(' ')
     hostname = ''
-    for subStr in certArray:
-        if '/CN=' in subStr:
-            if not 'DigiCert' in subStr.split('/CN=')[1].split('\n')[0]:
-                hostname = subStr.split('/CN=')[1].split('\n')[0]
+    for word in certs:
+        if '/CN=' in word:
+            if not 'DigiCert' in word.split('/CN=')[1].split('\n')[0]:
+                hostname = word.split('/CN=')[1].split('\n')[0]
     if hostname == '':
-        raise UnexpectedBehaviourException('Unexpected behaviour by OIM retrive API. EEC certificate not found'
-                )
+        raise UnexpectedBehaviourException('Unexpected behaviour by OIM retrive API. EEC certificate not found')
     return hostname
 
 
@@ -236,70 +230,70 @@ def extractHostname(certString):
 ### If present then its the host certificate not the CA certificate
 ### Here we rely on OPenSSL -printcert output format. If it changes our output might be affected
 
-def extractEEC(certString, hostname):
+def extractEEC(cert_string, hostname):
     """This function extracts the EEC certificate from the printcerts output that
     contains EEC certificate and CA certificates"""
 
-    certArray = certString.split('''
+    certs = cert_string.split('''
 
 ''')
-    for certArrayString in certArray:
-        if hostname in certArrayString:
-            return certArrayString
+    for line in certs:
+        if hostname in line:
+            return line
 
 
 def CreateOIMConfig(isITB, **OIMConfig):
     """This function is used to centralized the fetching of config file
     It fetches the config file and updates the dictionary of variables"""
 
-    Config = ConfigParser.ConfigParser()
+    config = ConfigParser.ConfigParser()
     if os.path.exists(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini'):
         print 'Overriding INI file with %s/.osg-pki/OSG_PKI.ini' % str(os.environ['HOME'])
-        Config.read(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini')
+        config.read(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini')
     elif os.path.exists('pki-clients.ini'):
-        Config.read('pki-clients.ini')
+        config.read('pki-clients.ini')
 
     ### Fix for pki-clients.ini not found in /etc/osg/
     elif os.path.exists('/etc/osg/pki-clients.ini'):
-        Config.read('/etc/osg/pki-clients.ini')
-        
+        config.read('/etc/osg/pki-clients.ini')
+
     else:
         raise FileNotFoundException('pki-clients.ini',
                                     'Could not locate the file')
     if isITB:
         print 'Running in test mode'
-        OIM = 'OIMData_ITB'
+        oim = 'OIMData_ITB'
         OIMConfig.update({'host': 'oim-itb.grid.iu.edu:80'})
         OIMConfig.update({'hostsec': 'oim-itb.grid.iu.edu:443'})
     else:
-        OIM = 'OIMData'
+        oim = 'OIMData'
         OIMConfig.update({'host': 'oim.grid.iu.edu:80'})
         OIMConfig.update({'hostsec': 'oim.grid.iu.edu:443'})
-    OIMConfig.update({'requrl': Config.get(OIM, 'requrl')})
-    OIMConfig.update({'appurl': Config.get(OIM, 'appurl')})
-    OIMConfig.update({'revurl': Config.get(OIM, 'revurl')})
-    OIMConfig.update({'canurl': Config.get(OIM, 'canurl')})
-    OIMConfig.update({'returl': Config.get(OIM, 'returl')})
-    OIMConfig.update({'renewurl': Config.get(OIM, 'renewurl')})
-    OIMConfig.update({'userreturl': Config.get(OIM, 'userreturl')})
-    OIMConfig.update({'userrevurl': Config.get(OIM, 'userrevurl')})
-    OIMConfig.update({'issurl': Config.get(OIM, 'issurl')})
-    OIMConfig.update({'quotaurl': Config.get(OIM, 'quotaurl')})
-    OIMConfig.update({'content_type': Config.get(OIM, 'content_type')})
+    OIMConfig.update({'requrl': config.get(oim, 'requrl')})
+    OIMConfig.update({'appurl': config.get(oim, 'appurl')})
+    OIMConfig.update({'revurl': config.get(oim, 'revurl')})
+    OIMConfig.update({'canurl': config.get(oim, 'canurl')})
+    OIMConfig.update({'returl': config.get(oim, 'returl')})
+    OIMConfig.update({'renewurl': config.get(oim, 'renewurl')})
+    OIMConfig.update({'userreturl': config.get(oim, 'userreturl')})
+    OIMConfig.update({'userrevurl': config.get(oim, 'userrevurl')})
+    OIMConfig.update({'issurl': config.get(oim, 'issurl')})
+    OIMConfig.update({'quotaurl': config.get(oim, 'quotaurl')})
+    OIMConfig.update({'content_type': config.get(oim, 'content_type')})
     return OIMConfig
 
 
 class Cert:
 
     def __init__(self):
-        self.RsaKey = {'KeyLength': 2048, 'PubExponent': 0x10001,
+        self.rsakey = {'KeyLength': 2048, 'PubExponent': 0x10001,
                        'keygen_callback': self.callback}  # -> 65537
 
-        self.KeyPair = None
-        self.PKey = None
+        self.keypair = None
+        self.pkey = None
 
-        self.X509Request = None
-        self.X509Certificate = None
+        self.x509request = None
+        self.x509certificate = None
 
     def callback(self, *args):
         return None
@@ -308,14 +302,13 @@ class Cert:
         """This function accepts the filename of the key file to write to.
 ........It write the private key to the specified file name without ciphering it."""
 
-        self.KeyPair = RSA.gen_key(self.RsaKey['KeyLength'],
-                self.RsaKey['PubExponent'],
-                self.RsaKey['keygen_callback'])
-        PubKey = RSA.new_pub_key(self.KeyPair.pub())
-        self.KeyPair.save_key(filename, cipher=None)
-        self.PKey = EVP.PKey(md='sha1')
-        self.PKey.assign_rsa(self.KeyPair)
-        return
+        self.keypair = RSA.gen_key(self.rsakey['KeyLength'],
+                                   self.rsakey['PubExponent'],
+                                   self.rsakey['keygen_callback'])
+        RSA.new_pub_key(self.keypair.pub())
+        self.keypair.save_key(filename, cipher=None)
+        self.pkey = EVP.PKey(md='sha1')
+        self.pkey.assign_rsa(self.keypair)
 
 
     def CreateX509Request(self, **config_items):
@@ -326,15 +319,15 @@ class Cert:
         # X509 REQUEST
         #
 
-        self.X509Request = X509.Request()
+        self.x509request = X509.Request()
 
         #
         # subject
         #
 
-        X509Name = X509.X509_Name()
+        x509name = X509.X509_Name()
 
-        X509Name.add_entry_by_txt(  # common name
+        x509name.add_entry_by_txt(  # common name
             field='CN',
             type=MBSTRING_ASC,
             entry=config_items['CN'],
@@ -343,7 +336,7 @@ class Cert:
             set=0,
             )
         if config_items.has_key('emailAddress'):
-            X509Name.add_entry_by_txt(  # pkcs9 email address
+            x509name.add_entry_by_txt(  # pkcs9 email address
                 field='emailAddress',
                 type=MBSTRING_ASC,
                 entry=config_items['emailAddress'],
@@ -352,7 +345,7 @@ class Cert:
                 set=0,
                 )
 
-        self.X509Request.set_subject_name(X509Name)
+        self.x509request.set_subject_name(x509name)
 
         alt_names = config_items.get('alt_names')
         if alt_names:
@@ -361,14 +354,14 @@ class Cert:
                                            ", ".join(['DNS:%s' % name for name in alt_names]))
             extension.set_critical(1)
             extension_stack.push(extension)
-            self.X509Request.add_extensions(extension_stack)
+            self.x509request.add_extensions(extension_stack)
 
         #
         # publickey
         #
 
-        self.X509Request.set_pubkey(pkey=self.PKey)
-        self.X509Request.set_version(0)
-        self.X509Request.sign(pkey=self.PKey, md='sha1')
-        return self.X509Request
+        self.x509request.set_pubkey(pkey=self.pkey)
+        self.x509request.set_version(0)
+        self.x509request.sign(pkey=self.pkey, md='sha1')
+        return self.x509request
 
