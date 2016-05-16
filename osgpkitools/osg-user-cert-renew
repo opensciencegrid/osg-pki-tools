@@ -338,9 +338,9 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         arguments['ssl_context'] = get_ssl_context(**arguments)
         arguments = extract_info(**arguments)
+        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         process_renew(**arguments)
     except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and

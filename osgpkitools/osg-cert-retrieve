@@ -218,11 +218,11 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         path = os.getcwd()
         check_permissions(path)
         capi = ConnectAPI.ConnectAPI()
         print 'Connecting server to retrieve certificate...'
+        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         pkcs7raw = capi.retrieve_unauthenticated(**arguments)
         if os.path.exists(arguments['pem_filename']):
             pem_filename = arguments['pem_filename']

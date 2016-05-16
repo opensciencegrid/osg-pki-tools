@@ -533,12 +533,12 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         check_permissions(arguments['certdir'])
         ssl_context = get_ssl_context(**arguments)
         arguments.update({'ssl_context':ssl_context})
 
         # Request cert(s)
+        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         if not arguments.has_key('hostname'):
             process_hostfile_mode(**arguments)
         else:
