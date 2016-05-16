@@ -145,12 +145,8 @@ def parse_args():
     arguments = dict()
     arguments = CreateOIMConfig(args.test, **arguments)
 
-    try:
-        timeout = int(args.timeout)
-        if not timeout >= 0:
-            charlimit_textwrap('Your timeout value cannot be a negative integer.\n')
-            raise ValueError
-    except ValueError:
+    timeout = int(args.timeout)
+    if not timeout >= 0:
         raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
 
     if args.userprivkey is None:
@@ -193,7 +189,7 @@ def parse_args():
     arguments.update({'usercert': usercert})
     arguments.update({'userprivkey': userprivkey})
     arguments.update({'timeout': timeout})
-    print 'The timeout is set to %s' % arguments['timeout']
+    print 'Using timeout of %d minutes' % timeout
 
     return arguments
 
@@ -287,7 +283,7 @@ if __name__ == "__main__":
         charlimit_textwrap("Invalid passphrase entered, please try running the script again.")
         sys.exit(1)
     except (FileNotFoundException, BadCertificateException, HandshakeFailureException, KeyError,
-            httplib.HTTPException, AttributeError), exc:
+            httplib.HTTPException, AttributeError, ValueError), exc:
         print_exception_message(exc)
         sys.exit(1)
     except NotOKException, exc:

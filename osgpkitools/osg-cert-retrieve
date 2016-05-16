@@ -128,14 +128,9 @@ def parse_args():
     if args.id:
         charlimit_textwrap("The '-i' flag is deprecated and no longer needed when specifying a request ID.")
 
-    try:
-        timeout = int(args.timeout)
-        if not timeout >= 0:
-            raise ValidationException('Your timeout value cannot be a negative integer.\nExiting now')
-    except ValueError:
-        charlimit_textwrap('Invalid timeout value. Please enter a non-negative integer.')
-        raise
-    print 'Using timeout of %d minutes' % timeout
+    timeout = int(args.timeout)
+    if not timeout >= 0:
+        raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
 
     pem_filename = args.certfile
 
@@ -165,9 +160,9 @@ def parse_args():
 
     if vars().has_key('pem_filename'):
         arguments.update({'pem_filename': pem_filename})
-    if vars().has_key('timeout'):
-        arguments.update({'timeout': timeout})
 
+    arguments.update({'timeout': timeout})
+    print 'Using timeout of %d minutes' % timeout
     arguments.update({'id': reqid})
     arguments.update({'filetype': filetype})
     arguments.update({'fileext': fileext})

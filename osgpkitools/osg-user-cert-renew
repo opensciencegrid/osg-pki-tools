@@ -104,13 +104,9 @@ def parse_args():
         version_info()
         sys.exit(1)
 
-    try:
-        timeout = int(args.timeout)
-        if not timeout > 0:
-            raise ValueError
-    except ValueError:
-        raise ValueError('Invalid timeout value. Please enter an integer value greater than zero.\n')
-    print 'Using timeout of %d minutes' % timeout
+    timeout = int(args.timeout)
+    if not timeout >= 0:
+        raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
 
     if args.userprivkey:
         userprivkey = args.userprivkey
@@ -152,6 +148,7 @@ def parse_args():
 
     arguments = CreateOIMConfig(args.test, **arguments)
     arguments.update({'timeout': timeout})
+    print 'Using timeout of %d minutes' % timeout
     arguments.update({'usercert': usercert})
     arguments.update({'userprivkey': userprivkey})
     arguments.update({'certdir': args.write_directory})
