@@ -9,6 +9,7 @@ import traceback
 import os
 from optparse import OptionParser
 
+from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import print_exception_message
@@ -68,6 +69,14 @@ def parse_args():
         dest='test',
         help='Run in test mode',
         default=False,
+        )
+    parser.add_option(
+        '-t',
+        '--timeout',
+        action='store',
+        dest='timeout',
+        help='Specify the timeout in minutes',
+        default=5,
         )
     parser.add_option(
         '-q',
@@ -136,6 +145,10 @@ def parse_args():
     arguments = dict()
     arguments = CreateOIMConfig(args.test, **arguments)
 
+    timeout = int(args.timeout)
+    if not timeout >= 0:
+        raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
+
     if args.userprivkey is None:
         try:
             userprivkey = os.environ['X509_USER_KEY']
@@ -175,6 +188,8 @@ def parse_args():
     arguments.update({'user': args.user})
     arguments.update({'usercert': usercert})
     arguments.update({'userprivkey': userprivkey})
+    arguments.update({'timeout': timeout})
+    print 'Using timeout of %d minutes' % timeout
 
     return arguments
 
@@ -261,13 +276,14 @@ if __name__ == "__main__":
         arguments = parse_args()
         ssl_context = get_ssl_context(**arguments)
         arguments.update({'ssl_context': ssl_context})
+        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         connect_revoke(**arguments)
 
     except BadPassphraseException, exc:
         charlimit_textwrap("Invalid passphrase entered, please try running the script again.")
         sys.exit(1)
     except (FileNotFoundException, BadCertificateException, HandshakeFailureException, KeyError,
-            httplib.HTTPException, AttributeError), exc:
+            httplib.HTTPException, AttributeError, ValueError), exc:
         print_exception_message(exc)
         sys.exit(1)
     except NotOKException, exc:

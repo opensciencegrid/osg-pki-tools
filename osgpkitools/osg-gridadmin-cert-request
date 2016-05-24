@@ -178,12 +178,8 @@ or specify from a file using -f/--hostfile.''')
     else:
         hostname = args.hostname
 
-    try:
-        timeout = int(args.timeout)
-        if not timeout >= 0:
-            charlimit_textwrap('Your timeout value cannot be a negative integer.\n')
-            raise ValueError
-    except ValueError:
+    timeout = int(args.timeout)
+    if not timeout >= 0:
         raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
 
     if args.write_directory:
@@ -250,7 +246,7 @@ or specify from a file using -f/--hostfile.''')
     if vars().has_key('hostname'):
         arguments.update({'hostname': hostname})
     arguments.update({'timeout': timeout})
-    print 'The timeout is set to %s' % arguments['timeout']
+    print 'Using timeout of %d minutes' % timeout
     arguments.update({'alt_names': args.alt_names})
     arguments.update({'usercert': usercert})
     arguments.update({'userprivkey': userprivkey})
@@ -533,12 +529,12 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         check_permissions(arguments['certdir'])
         ssl_context = get_ssl_context(**arguments)
         arguments.update({'ssl_context':ssl_context})
 
         # Request cert(s)
+        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         if not arguments.has_key('hostname'):
             process_hostfile_mode(**arguments)
         else:
