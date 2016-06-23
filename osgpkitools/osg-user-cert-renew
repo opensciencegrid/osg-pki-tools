@@ -53,8 +53,8 @@ def parse_args():
         '--cert',
         action='store',
         dest='usercert',
-        help="Specify Requestor's certificate (PEM Format).\n If not specified\
- will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
+        help="Specify Requestor's certificate (PEM Format). If not specified \
+will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
         default=None,
         metavar='CERT',
         )
