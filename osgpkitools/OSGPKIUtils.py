@@ -152,7 +152,9 @@ def print_failure_reason_exit(data):
     # provide a VO in their request. We cannot handle this in the arg parsing
     # because not all domains require VO information (SOFTWARE-2292)
     if re.search(r'Couldn\'t find GridAdmin group under specified VO', msg):
-        msg = "Failed to request certificate due to missing VO information. Did you forget to specify the -v/--vo option?"
+        msg = "Failed to request certificate due to bad VO information. " + \
+              "Did you specify an acceptable VO for your requested domain? " + \
+              "See http://oim.opensciencegrid.org/oim/gridadmin for a list of VOs per domain"
     separator = '='*80
     sys.exit('\n'.join(textwrap.wrap(separator + msg, width=80)))
 
