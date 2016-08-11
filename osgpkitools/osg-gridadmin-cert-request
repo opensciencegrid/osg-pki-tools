@@ -365,9 +365,7 @@ def create_certificate_request(hostname, reqid, config_items):
     cert_obj.CreatePKey(keypath)
     charlimit_textwrap('Writing key to %s' % keypath)
     new_csr = cert_obj.CreateX509Request(**config_items)
-    csr = \
-        new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n', '').\
-        replace('-----END CERTIFICATE REQUEST-----\n', '')
+    csr = OSGPKIUtils.format_csr(new_csr.as_pem())
     return csr
 
 

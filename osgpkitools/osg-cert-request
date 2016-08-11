@@ -332,15 +332,13 @@ if __name__ == '__main__':
             cert_obj.CreatePKey(arguments['pem_filename'])
             print 'Writing key to %s%s' %(arguments['certdir'], arguments['pem_filename'])
             new_csr = cert_obj.CreateX509Request(**config_items)
-            arguments['csr'] = \
-                new_csr.as_pem().replace('-----BEGIN CERTIFICATE REQUEST-----\n', '')\
-                                .replace('-----END CERTIFICATE REQUEST-----\n', '')
+            arguments['csr'] = OSGPKIUtils.format_csr(new_csr.as_pem())
+
             if cwd != None:
                 os.chdir(cwd)
             connect(arguments)
         else:
-            csr = open(arguments['csr'], 'rb').read().replace('-----BEGIN CERTIFICATE REQUEST-----\n', '')\
-                                                     .replace('-----END CERTIFICATE REQUEST-----\n', '')
+            csr = OSGPKIUtils.format_csr(open(arguments['csr'], 'rb').read())
             arguments.update({'csr': csr})
             capi = ConnectAPI.ConnectAPI()
             reqid = capi.request_unauthenticated(**arguments)
