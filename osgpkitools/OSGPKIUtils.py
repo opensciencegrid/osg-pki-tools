@@ -188,6 +188,11 @@ def charlimit_textwrap(string):
         print line
     return
 
+def format_csr(csr):
+    """Extract the base64 encoded string from the contents of a CSR"""
+    return csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n', '')\
+              .replace('-----END CERTIFICATE REQUEST-----\n', '')\
+              .replace('\n','')
 
 def get_request_count(filename):
     '''Returns the number of hostname requested in the file supplied as -f during bulk certificate request'''
