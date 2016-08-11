@@ -48,8 +48,7 @@ def parse_args():
         '--outkeyfile',
         action='store',
         dest='keyfile',
-        help='Specify the output filename for the retrieved user certificate.\
-             \nDefault is ./hostkey.pem',
+        help='Specify the output filename for the retrieved user certificate. Default is ./hostkey.pem',
         metavar='OUTPUT KEYFILE',
         default='hostkey.pem',
         )

@@ -48,7 +48,7 @@ def parse_args():
     in a dictionary that is used throughout the script."""
 
     usage = \
-        'usage: %prog [options] arg\nUsage:%prog -h/--help [for detailed explanations of options]'
+        'usage: %prog [options] arg\nUsage: %prog -h/--help [for detailed explanations of options]'
     parser = OptionParser(usage)
     group = OptionGroup(parser, 'Hostname Options',
                         '''Use either of these options.
