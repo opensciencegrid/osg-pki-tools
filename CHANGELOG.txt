@@ -7,7 +7,7 @@ Enhancements in version 1.2:
 * Certificates and keys are now always written to file with predictable
 filename with old files renamed. OSGPKI-332
 * Addition of version flag (-V/--version) to specify the version of the scripts.
-OSGPKI-314 
+OSGPKI-314
 * Scripts now have -d option to specify output directory. OSGPKI-330
 * Renew now grabs PKCS12 files from OIM. SOFTWARE-1229
 * Can add CC's in cert request SOFTWARE-1318
@@ -25,6 +25,7 @@ OSGPKI-365
 * Certificate requests fail without setting the CSR version (SOFTWARE-1936)
 * Added --csr and --hostname options conflict to osg-cert-request
 * Change help references in osg-user-cert-revoke to refer to osg-user-cert-revoke instead of osg-cert-revoke
+* Fixed formatting of CSRs (SOFTWARE-2132)
 
 ----------------------------------------------------------------------
 Enhancements in version 1.1:
