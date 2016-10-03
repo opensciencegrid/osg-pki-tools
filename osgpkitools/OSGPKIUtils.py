@@ -312,7 +312,6 @@ class Cert:
         self.keypair = RSA.gen_key(self.rsakey['KeyLength'],
                                    self.rsakey['PubExponent'],
                                    self.rsakey['keygen_callback'])
-        RSA.new_pub_key(self.keypair.pub())
         self.keypair.save_key(filename, cipher=None)
         self.pkey = EVP.PKey(md='sha1')
         self.pkey.assign_rsa(self.keypair)
