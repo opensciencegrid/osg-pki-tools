@@ -312,9 +312,13 @@ class Cert:
         self.keypair = RSA.gen_key(self.rsakey['KeyLength'],
                                    self.rsakey['PubExponent'],
                                    self.rsakey['keygen_callback'])
-        RSA.new_pub_key(self.keypair.pub())
         self.keypair.save_key(filename, cipher=None)
-        self.pkey = EVP.PKey(md='sha1')
+
+        # The message digest shouldn't matter here since we don't use
+        # PKey.sign_*() or PKey.verify_*() but there's no harm in keeping it and
+        # it ensures a strong hashing algo (default is sha1) if we do decide to
+        # sign things in the future
+        self.pkey = EVP.PKey(md='sha256')
         self.pkey.assign_rsa(self.keypair)
 
 
@@ -369,6 +373,6 @@ class Cert:
 
         self.x509request.set_pubkey(pkey=self.pkey)
         self.x509request.set_version(0)
-        self.x509request.sign(pkey=self.pkey, md='sha1')
+        self.x509request.sign(pkey=self.pkey, md='sha256')
         return self.x509request
 
