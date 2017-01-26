@@ -13,27 +13,23 @@ This script works in two modes:
 
 import httplib
 import sys
-import simplejson
 import os
-from M2Crypto import SSL, httpslib
-from optparse import OptionParser, OptionGroup
 import subprocess
-from ssl import SSLError
 import tempfile
+
+from ssl import SSLError
+from optparse import OptionParser, OptionGroup
+from M2Crypto import SSL
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import extractHostname
 from osgpkitools.OSGPKIUtils import extractEEC
 from osgpkitools.OSGPKIUtils import get_request_count
-from osgpkitools.OSGPKIUtils import check_response_500
-from osgpkitools.OSGPKIUtils import check_failed_response
-from osgpkitools.OSGPKIUtils import check_for_pending
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import check_permissions
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import print_exception_message
-from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.OSGPKIUtils import get_ssl_context
 from osgpkitools.ExceptionDefinitions import *
