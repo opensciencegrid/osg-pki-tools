@@ -112,19 +112,6 @@ class HandshakeFailureException(Exception):
     def __str__(self):
         return str(self.message)
 
-class QuotaException(Exception):
-    """This exception occurs when the approval quota of the user is predicted to be exceeded
-    in the current request.
-
-    Attributes:
-        message = message to be displayed"""
-
-    def __init__(self,message):
-        self.message = message
-    
-    def __str__(self):
-        return str(self.message)
-
 class ValidationException(Exception):
     """Exception occurs when validation fails
     Attributes:

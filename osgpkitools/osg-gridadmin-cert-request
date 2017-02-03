@@ -365,71 +365,9 @@ def create_certificate_request(hostname, reqid, config_items):
     return csr
 
 
-def check_quota_limit(request_count, arguments):
-    '''This function checks if the quota requirements for the user is met for the particular request'''
-
-    headers = {'Content-type': arguments['content_type'],
-               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = httpslib.HTTPSConnection(arguments['host'], ssl_context=arguments['ssl_context'])
-    try:
-        conn.request('GET', arguments['quotaurl'], None, headers)
-        response = conn.getresponse()
-    except httplib.HTTPException, exc:
-        charlimit_textwrap('Connection to %s failed: %s'
-                           % (arguments['quotaurl'], exc))
-        raise
-    except Exception, exc:
-        if "sslv3 alert bad certificate" in exc:
-            raise BadCertificateException("Error connecting to server: %s.\n" + \
-                                          "Your certificate is not trusted by the server" % exc)
-        else:
-            print exc.__class__.__name__
-            raise
-    check_response_500(response)
-    data = response.read()
-    if not 'PENDING' in response.reason:
-        if not 'OK' in response.reason:
-            print_failure_reason_exit(data)
-    charlimit_textwrap('Waiting for response from Quota Check API. Please wait.')
-    iterations = 0
-    while 'PENDING' in data:
-        conn.request('GET', arguments['quotaurl'], headers)
-        try:
-            response = conn.getresponse()
-        except httplib.HTTPException, exc:
-            charlimit_textwrap('Connection to %s failed: %s'
-                               % (arguments['quotaurl'], exc))
-            raise
-        check_response_500(response)
-        data = response.read()
-        conn.close()
-        iterations = check_for_pending(iterations)
-    check_failed_response(data)
-    global_hostcert_year_max = \
-        simplejson.loads(data)['global_hostcert_year_max']
-    global_hostcert_year_count = \
-        simplejson.loads(data)['global_hostcert_year_count']
-    count_hostcert_day = simplejson.loads(data)['count_hostcert_day']
-    quota_hostcert_day_max = \
-        simplejson.loads(data)['quota_hostcert_day_max']
-    count_hostcert_year = simplejson.loads(data)['count_hostcert_year']
-    quota_hostcert_year_max = \
-        simplejson.loads(data)['quota_hostcert_year_max']
-    if global_hostcert_year_max >= global_hostcert_year_count \
-        + request_count and count_hostcert_day + request_count \
-        <= quota_hostcert_day_max and count_hostcert_year \
-        + request_count <= quota_hostcert_year_max \
-        and quota_hostcert_day_max >= request_count:
-        status = True
-    else:
-        status = False
-    conn.close()
-    return status
-
-
 def process_csr(num_requests, bulk_csr, **arguments):
     """This function handles the entire processing of the request i.e.
-    requesting. checking for quota limit, approving and then retrieving in sequence"""
+    requesting. approving and then retrieving in sequence"""
     capi = ConnectAPI.ConnectAPI()
 
     try:
@@ -469,10 +407,6 @@ def process_single_host_mode(**arguments):
     num_requests = 1
     config_items = {}
 
-    if check_quota_limit(num_requests, arguments):
-        pass
-    else:
-        raise QuotaException('Your request would exceed your quota. Aborting')
     hostname = arguments['hostname'].strip()
     config_items.update({'CN': hostname, 'alt_names': arguments['alt_names']})
     charlimit_textwrap('Beginning request process for %s' % hostname)
@@ -497,10 +431,6 @@ def process_hostfile_mode(**arguments):
     hosts = hosts_file.readlines()
     hosts_file.close()
 
-    if check_quota_limit(request_count, arguments):
-        pass
-    else:
-        raise QuotaException('Your request would exceed your quota. Aborting')
     for line in hosts:
         line = line.strip()
         if line != '' and line not in host_set:
@@ -514,8 +444,6 @@ def process_hostfile_mode(**arguments):
             # Remove / from service requests for proper FQDN formatting
             csr = create_certificate_request(hostname.replace('/', '-'), num_requests, config_items)
             bulk_csr.append(csr)
-            if num_requests == 50: # OIM limits bulk requests to 50 CSRs
-                break
     if num_requests > 0:
         process_csr(request_count, bulk_csr, **arguments)
 
@@ -574,7 +502,7 @@ if __name__ == '__main__':
         charlimit_textwrap(exc.message)
         sys.stderr.write("Usage: osg-gridadmin-cert-request -h for help \n")
         sys.exit(2) # Fix for returning exit code of 2 as in all the other scripts.
-    except (BadCertificateException, BadPassphraseException, HandshakeFailureException, QuotaException), exc:
+    except (BadCertificateException, BadPassphraseException, HandshakeFailureException), exc:
         charlimit_textwrap(exc.message)
         sys.exit(1)
     except (AttributeError, OSError, ValueError, EOFError, SSL.SSLError, UnexpectedBehaviourException), exc:

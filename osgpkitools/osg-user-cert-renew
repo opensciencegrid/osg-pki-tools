@@ -365,7 +365,7 @@ if __name__ == '__main__':
         print_exception_message(exc)
         sys.exit(1)
     except (FileWriteException, BadCertificateException, BadPassphraseException, HandshakeFailureException,
-            QuotaException, UnexpectedBehaviourException, InsufficientArgumentException), exc:
+            UnexpectedBehaviourException, InsufficientArgumentException), exc:
         charlimit_textwrap(exc.message)
         sys.exit(1)
     except Exception, exc:

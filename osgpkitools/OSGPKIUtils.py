@@ -285,7 +285,6 @@ def CreateOIMConfig(isITB, **OIMConfig):
     OIMConfig.update({'userreturl': config.get(oim, 'userreturl')})
     OIMConfig.update({'userrevurl': config.get(oim, 'userrevurl')})
     OIMConfig.update({'issurl': config.get(oim, 'issurl')})
-    OIMConfig.update({'quotaurl': config.get(oim, 'quotaurl')})
     OIMConfig.update({'content_type': config.get(oim, 'content_type')})
     return OIMConfig
 
