@@ -363,7 +363,7 @@ def create_certificate_request(hostname, alt_names=None):
     return OSGPKIUtils.format_csr(request.as_pem()), keypath
 
 
-def process_csr(num_requests, bulk_csr, **arguments):
+def process_csr(bulk_csr, **arguments):
     """This function handles the entire processing of the request i.e.
     requesting. approving and then retrieving in sequence"""
     capi = ConnectAPI.ConnectAPI()
@@ -387,7 +387,7 @@ def process_csr(num_requests, bulk_csr, **arguments):
 
         print 'Issuing certificate...'
         pkcs7raw = capi.retrieve_authenticated(**arguments)
-        process_pkcs7(pkcs7raw, num_requests, **arguments)
+        process_pkcs7(pkcs7raw, len(bulk_csr), **arguments)
     except httplib.HTTPException, exc:
         charlimit_textwrap('Connection to %s failed: %s'% (arguments['newrequrl'], exc))
         raise
@@ -428,10 +428,9 @@ if __name__ == '__main__':
             keys.append(keypath)
             requests.append(csr)
 
-        num_requests = len(hosts)
-        if num_requests:
+        if len(requests):
             try:
-                process_csr(num_requests, requests, **arguments)
+                process_csr(requests, **arguments)
             except SystemExit, exc:
                 if 'You will exceed your host certificate quota' in exc:
                     for key in keys:
