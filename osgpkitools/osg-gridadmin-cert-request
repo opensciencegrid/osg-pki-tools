@@ -87,7 +87,7 @@ or specify from a file using -f/--hostfile.''')
         help='Specify an alternative hostname for CSR (FQDN). May be used more than ' + \
         'once and if specified, -f/--hostfile will be ignored',
         metavar='HOSTNAME',
-        default=None
+        default=[]
         )
     group.add_option(
         '-f',
@@ -345,8 +345,8 @@ def process_pkcs7(pkcs7, num_requests, **arguments):
     return
 
 
-def create_certificate_request(hostname, reqid, config_items):
-    """This function accepts hostname, request id and a dictionary of config_items for the CSR.
+def create_certificate_request(hostname, alt_names=None):
+    """This function accepts hostname and an optional list of SANs for the CSR.
     It writes the key and creates the CSR."""
 
     print 'Generating certificate...'
@@ -359,9 +359,8 @@ def create_certificate_request(hostname, reqid, config_items):
     cert_obj = OSGPKIUtils.Cert()
     cert_obj.CreatePKey(keypath)
     charlimit_textwrap('Writing key to %s' % keypath)
-    new_csr = cert_obj.CreateX509Request(**config_items)
-    csr = OSGPKIUtils.format_csr(new_csr.as_pem())
-    return csr
+    request = cert_obj.CreateX509Request(hostname, alt_names)
+    return OSGPKIUtils.format_csr(request.as_pem()), keypath
 
 
 def process_csr(num_requests, bulk_csr, **arguments):
@@ -399,53 +398,6 @@ def process_csr(num_requests, bulk_csr, **arguments):
         else:
             raise
 
-def process_single_host_mode(**arguments):
-    '''Create and process a single CSR with the --hostname option treated as
-    the CN and the --altname's treated as the alternative names'''
-
-    num_requests = 1
-    config_items = {}
-
-    hostname = arguments['hostname'].strip()
-    config_items.update({'CN': hostname, 'alt_names': arguments['alt_names']})
-    charlimit_textwrap('Beginning request process for %s' % hostname)
-    # Remove / from service requests for proper FQDN formatting
-    csr = create_certificate_request(hostname.replace('/', '-'), num_requests, config_items)
-    process_csr(num_requests, csr, **arguments)
-    return
-
-
-def process_hostfile_mode(**arguments):
-    '''Create and process CSRs for each line in the user-specified hostfile.
-    Each line may contain multiple hostnames (space delimited), the first one
-    is considered the CN and the rest are considered alternative names'''
-
-    bulk_csr = list()
-    num_requests = 0
-    host_set = set()
-    config_items = {}
-    request_count = get_request_count(arguments['hostfile'])
-
-    hosts_file = open(arguments['hostfile'], 'rb')
-    hosts = hosts_file.readlines()
-    hosts_file.close()
-
-    for line in hosts:
-        line = line.strip()
-        if line != '' and line not in host_set:
-            host_set.add(line)
-            num_requests += 1
-            # Take the first hostname as the CN and the rest as SANs
-            sans = line.split()
-            hostname = sans.pop(0)
-            config_items.update({'CN': hostname, 'alt_names': sans})
-            charlimit_textwrap('Beginning request process for %s' % line)
-            # Remove / from service requests for proper FQDN formatting
-            csr = create_certificate_request(hostname.replace('/', '-'), num_requests, config_items)
-            bulk_csr.append(csr)
-    if num_requests > 0:
-        process_csr(request_count, bulk_csr, **arguments)
-
 if __name__ == '__main__':
     try:
         os.umask(0177)
@@ -454,12 +406,32 @@ if __name__ == '__main__':
         ssl_context = get_ssl_context(**arguments)
         arguments.update({'ssl_context':ssl_context})
 
-        # Request cert(s)
         OSGPKIUtils.start_timeout_clock(arguments['timeout'])
-        if not arguments.has_key('hostname'):
-            process_hostfile_mode(**arguments)
+
+        if 'hostname' in arguments:
+            hosts = [tuple(arguments['hostname'].strip() + arguments['alt_names'])]
         else:
-            process_single_host_mode(**arguments)
+            with open(arguments['hostfile'], 'rb') as hosts_file:
+                host_lines = hosts_file.readlines()
+            hosts = [tuple(line.split()) for line in host_lines if line.strip()]
+
+        # Construct host list, skipping duplicates and empty lines
+        # NOTE: the same host with different SANs are not considered duplicates
+        keys = list()
+        requests = list()
+        for host in set(hosts):
+            cn = host[0]
+            sans = host[1:]
+            charlimit_textwrap('Beginning request process for %s' % cn)
+            # Remove / from service requests for proper FQDN formatting
+            csr, keypath = create_certificate_request(cn.replace('/', '-'), sans)
+            keys.append(keypath)
+            requests.append(csr)
+
+        num_requests = len(hosts)
+        if num_requests:
+            process_csr(num_requests, requests, **arguments)
+
     except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
