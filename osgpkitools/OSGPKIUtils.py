@@ -194,22 +194,7 @@ def format_csr(csr):
     """Extract the base64 encoded string from the contents of a CSR"""
     return csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n', '')\
               .replace('-----END CERTIFICATE REQUEST-----\n', '')\
-              .replace('\n','')
-
-def get_request_count(filename):
-    '''Returns the number of hostname requested in the file supplied as -f during bulk certificate request'''
-
-    hostfile = open(filename, 'rb')
-    name_set = set()
-    count = 0
-    for line in hostfile.readlines():
-        line = line.strip(' \n')
-        if not line in name_set:
-            name_set.add(line)
-            count += 1
-    hostfile.close()
-    return count
-
+              .replace('\n', '')
 
 ### We take the whole certificate data as a string input
 ### Checking for /CN= in every line and extracting the term after that if not Digicert i.e. CA would be the hostname
