@@ -321,7 +321,7 @@ class Cert:
         self.pkey.assign_rsa(self.keypair)
 
 
-    def CreateX509Request(self, **config_items):
+    def CreateX509Request(self, commmon_name, alt_names=None, email=None):
         """This function accepts a dctionary that contains information regarding the CSR.
 ........It creates a CSR and returns it to the calling script."""
 
@@ -340,16 +340,16 @@ class Cert:
         x509name.add_entry_by_txt(  # common name
             field='CN',
             type=MBSTRING_ASC,
-            entry=config_items['CN'],
+            entry=commmon_name,
             len=-1,
             loc=-1,
             set=0,
             )
-        if config_items.has_key('emailAddress'):
+        if email:
             x509name.add_entry_by_txt(  # pkcs9 email address
                 field='emailAddress',
                 type=MBSTRING_ASC,
-                entry=config_items['emailAddress'],
+                entry=email,
                 len=-1,
                 loc=-1,
                 set=0,
@@ -357,7 +357,6 @@ class Cert:
 
         self.x509request.set_subject_name(x509name)
 
-        alt_names = config_items.get('alt_names')
         if alt_names:
             extension_stack = X509.X509_Extension_Stack()
             extension = X509.new_extension('subjectAltName',

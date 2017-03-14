@@ -96,7 +96,7 @@ def parse_args():
         dest='alt_names',
         help='Specify an alternative hostname for the CSR (FQDN). May be used more than once',
         metavar='HOSTNAME',
-        default=None
+        default=[]
         )
     parser.add_option(
         '-e',
@@ -317,10 +317,6 @@ if __name__ == '__main__':
         # lines of the csr and submit the request to the OIM
         cwd = None
         if arguments['csr'] is None:
-            config_items = {'CN': arguments['hostname'],
-                            'emailAddress': arguments['email'],
-                            'alt_names': arguments['alt_names']}
-
             if arguments['certdir'] != "./":
                 cwd = os.getcwd()
 
@@ -330,7 +326,7 @@ if __name__ == '__main__':
             cert_obj = OSGPKIUtils.Cert()
             cert_obj.CreatePKey(arguments['pem_filename'])
             print 'Writing key to %s%s' %(arguments['certdir'], arguments['pem_filename'])
-            new_csr = cert_obj.CreateX509Request(**config_items)
+            new_csr = cert_obj.CreateX509Request(arguments['hostname'], arguments['alt_names'], arguments['email'])
             arguments['csr'] = OSGPKIUtils.format_csr(new_csr.as_pem())
 
             if cwd != None:
