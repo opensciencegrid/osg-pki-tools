@@ -430,7 +430,13 @@ if __name__ == '__main__':
 
         num_requests = len(hosts)
         if num_requests:
-            process_csr(num_requests, requests, **arguments)
+            try:
+                process_csr(num_requests, requests, **arguments)
+            except SystemExit, exc:
+                if 'You will exceed your host certificate quota' in exc:
+                    for key in keys:
+                        os.remove(key)
+                raise
 
     except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
