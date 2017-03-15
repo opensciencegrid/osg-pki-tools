@@ -8,11 +8,11 @@ user.
 import urllib
 import httplib
 import sys
-import simplejson
 import os
 from optparse import OptionParser
 import subprocess
 from ssl import SSLError
+import simplejson
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools import ConnectAPI
