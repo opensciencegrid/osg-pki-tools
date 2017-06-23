@@ -12,6 +12,7 @@ This script works in two modes:
 """
 
 import httplib
+import re
 import sys
 import os
 import subprocess
@@ -345,24 +346,6 @@ def process_pkcs7(pkcs7, num_requests, **arguments):
     return
 
 
-def create_certificate_request(hostname, alt_names=None):
-    """This function accepts hostname and an optional list of SANs for the CSR.
-    It writes the key and creates the CSR."""
-
-    print 'Generating certificate...'
-    keypath = os.path.join(arguments['certdir'], hostname + '-key.pem')
-    # Handle already existing key file...
-    if os.path.exists(keypath):
-        old_keypath = os.path.join(arguments['certdir'], hostname + "-key-old.pem")
-        print "Renaming existing key from %s to %s" % (keypath, old_keypath)
-        os.rename(keypath, old_keypath)
-    cert_obj = OSGPKIUtils.Cert()
-    cert_obj.CreatePKey(keypath)
-    charlimit_textwrap('Writing key to %s' % keypath)
-    request = cert_obj.CreateX509Request(hostname, alt_names)
-    return OSGPKIUtils.format_csr(request.as_pem()), keypath
-
-
 def process_csr(bulk_csr, **arguments):
     """This function handles the entire processing of the request i.e.
     requesting. approving and then retrieving in sequence"""
@@ -391,7 +374,7 @@ def process_csr(bulk_csr, **arguments):
     except httplib.HTTPException, exc:
         charlimit_textwrap('Connection to %s failed: %s'% (arguments['newrequrl'], exc))
         raise
-    except Exception, exc:
+    except SystemExit, exc:
         if 'sslv3 alert bad certificate' in exc:
             raise BadCertificateException("Error connecting to server: %s.\n" + \
                                           "Your certificate is not trusted by the server" % exc)
@@ -417,23 +400,35 @@ if __name__ == '__main__':
 
         # Construct host list, skipping duplicates and empty lines
         # NOTE: the same host with different SANs are not considered duplicates
-        keys = list()
         requests = list()
+        certs = list()
+        charlimit_textwrap('Beginning request process...')
         for host in set(hosts):
             cn = host[0]
             sans = host[1:]
-            charlimit_textwrap('Beginning request process for %s' % cn)
             # Remove / from service requests for proper FQDN formatting
-            csr, keypath = create_certificate_request(cn.replace('/', '-'), sans)
-            keys.append(keypath)
-            requests.append(csr)
+            cert_obj = OSGPKIUtils.Cert(cn.replace('/', '-'),
+                                        keypath=os.path.join(arguments['certdir'], cn + '-key.pem'),
+                                        altnames=sans)
+            certs.append(cert_obj)
 
-        if len(requests):
+        # We choose to write the keys before the request in case there are issues with the certs and only then perform
+        # cleanup if there's a quota failure; it's better to have keys and no certs than it is to have certs and no keys
+        if len(certs):
+            charlimit_textwrap("Writing key(s) to %s" % arguments['certdir'])
+            for cert in certs:
+                # Handle already existing key file...
+                if os.path.exists(cert.keypath):
+                    old_keypath = re.sub(r'\.pem$', '-old.pem', cert.keypath)
+                    print "Renaming existing key from %s to %s" % (cert.keypath, old_keypath)
+                    os.rename(cert.keypath, old_keypath)
+                cert.write_pkey()
             try:
-                process_csr(requests, **arguments)
+                process_csr([cert.base64_csr() for cert in certs], **arguments)
             except SystemExit, exc:
-                if 'You will exceed your host certificate quota' in exc:
-                    for key in keys:
+                if 'certificate quota' in str(exc):
+                    print "Cleaning up key(s) in %s" % arguments['certdir']
+                    for key in [cert.keypath for cert in certs]:
                         os.remove(key)
                 raise
 

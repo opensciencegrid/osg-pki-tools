@@ -323,15 +323,18 @@ if __name__ == '__main__':
             if cwd != None:
                 os.chdir(arguments['certdir'])
 
-            cert_obj = OSGPKIUtils.Cert()
-            cert_obj.CreatePKey(arguments['pem_filename'])
-            print 'Writing key to %s%s' %(arguments['certdir'], arguments['pem_filename'])
-            new_csr = cert_obj.CreateX509Request(arguments['hostname'], arguments['alt_names'], arguments['email'])
-            arguments['csr'] = OSGPKIUtils.format_csr(new_csr.as_pem())
+            keypath = os.path.join(arguments['certdir'], arguments['pem_filename'])
+            cert_obj = OSGPKIUtils.Cert(arguments['hostname'],
+                                        keypath,
+                                        arguments['alt_names'],
+                                        arguments['email'])
+            arguments['csr'] = cert_obj.base64_csr()
 
             if cwd != None:
                 os.chdir(cwd)
             connect(arguments)
+            print 'Writing key to %s' % keypath
+            cert_obj.write_pkey()
         else:
             csr = OSGPKIUtils.format_csr(open(arguments['csr'], 'rb').read())
             arguments.update({'csr': csr})
