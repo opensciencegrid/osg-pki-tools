@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import simplejson
+import json
 import urllib
 import httplib
 import M2Crypto
@@ -53,9 +53,9 @@ class ConnectAPI(object):
         check_failed_response(data)
         conn.close()
 
-        if simplejson.loads(data)['detail'] == 'Nothing to report' \
-            and simplejson.loads(data)['status'] == 'OK' in data:
-            request_id = simplejson.loads(data)['host_request_id']
+        if json.loads(data)['detail'] == 'Nothing to report' \
+            and json.loads(data)['status'] == 'OK' in data:
+            request_id = json.loads(data)['host_request_id']
         return request_id
 
     def request_authenticated(self, bulk_csr, **arguments):
@@ -88,7 +88,7 @@ class ConnectAPI(object):
             print_failure_reason_exit(data)
         conn.close()
         check_failed_response(data)
-        return_data = simplejson.loads(data)
+        return_data = json.loads(data)
         for (key, value) in return_data.iteritems():
             if 'host_request_id' in key:
                 reqid = value
@@ -122,7 +122,7 @@ class ConnectAPI(object):
         data = response.read()
         if not 'PENDING' in response.reason:
             if not 'OK' in response.reason:
-                raise NotOKException(simplejson.loads(data)['status'], simplejson.loads(data)['detail'].lstrip())
+                raise NotOKException(json.loads(data)['status'], json.loads(data)['detail'].lstrip())
 
         iterations = 0
         while 'PENDING' in data:
@@ -131,8 +131,8 @@ class ConnectAPI(object):
             iterations = check_for_pending(iterations)
 
         check_failed_response(data)
-        simplejson.dumps(simplejson.loads(data), sort_keys=True, indent=2)
-        return simplejson.loads(data)['pkcs7s']
+        json.dumps(json.loads(data), sort_keys=True, indent=2)
+        return json.loads(data)['pkcs7s']
 
     def retrieve_unauthenticated(self, **arguments):
         """This function checks if the request by an unauthenticated user
@@ -163,8 +163,8 @@ class ConnectAPI(object):
         response = self.do_connect(conn, 'POST', arguments['returl'], params, headers)
         data = response.read()
 
-        if simplejson.loads(data).has_key('request_status'):
-            if simplejson.loads(data)['request_status'] == 'REQUESTED':
+        if json.loads(data).has_key('request_status'):
+            if json.loads(data)['request_status'] == 'REQUESTED':
                 raise NotApprovedException('Certificate request is in Requested state. \
                 Needs to be Approved first. Please contact GA to approve this certificate\n')
             else:
@@ -183,7 +183,7 @@ class ConnectAPI(object):
             conn.close()
             iterations = check_for_pending(iterations)
         check_failed_response(data)
-        pkcs7raw = simplejson.loads(data)['pkcs7s'][0]
+        pkcs7raw = json.loads(data)['pkcs7s'][0]
         return pkcs7raw
 
     def issue(self, **arguments):
@@ -212,7 +212,7 @@ class ConnectAPI(object):
         data = response.read()
         conn.close()
         if not 'OK' in data:
-            raise NotOKException('Failed', simplejson.loads(data)['detail'])
+            raise NotOKException('Failed', json.loads(data)['detail'])
 
     def approve(self, **arguments):
 
@@ -251,7 +251,7 @@ class ConnectAPI(object):
             conn.close()
             check_failed_response(data)
         elif not 'OK' in data:
-            raise NotOKException('Failed', simplejson.loads(data)['detail'])
+            raise NotOKException('Failed', json.loads(data)['detail'])
 
     def renew(self, **arguments):
         """This function connects to the user renew API and passes the DN
@@ -279,7 +279,7 @@ class ConnectAPI(object):
             print_failure_reason_exit(data)
         conn.close()
         check_failed_response(data)
-        return_data = simplejson.loads(data)
+        return_data = json.loads(data)
         request_id = return_data['request_id']
         if not request_id:
             raise UnexpectedBehaviourException("Request Id not found in data. Script will now exit")

@@ -8,11 +8,11 @@ user.
 import urllib
 import httplib
 import sys
-import simplejson
 import os
 from optparse import OptionParser
 import subprocess
 from ssl import SSLError
+import json
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools import ConnectAPI
@@ -96,7 +96,7 @@ def parse_args():
         dest='alt_names',
         help='Specify an alternative hostname for the CSR (FQDN). May be used more than once',
         metavar='HOSTNAME',
-        default=None
+        default=[]
         )
     parser.add_option(
         '-e',
@@ -292,9 +292,9 @@ def connect(arguments):
     data = response.read()
     check_failed_response(data)
     conn.close()
-    if simplejson.loads(data)['detail'] == 'Nothing to report' \
-        and simplejson.loads(data)['status'] == 'OK' in data:
-        ticket = simplejson.loads(data)['host_request_id']
+    if json.loads(data)['detail'] == 'Nothing to report' \
+        and json.loads(data)['status'] == 'OK' in data:
+        ticket = json.loads(data)['host_request_id']
         print 'Succesfully submitted'
         print 'Request Id#: %s' % ticket
     else:
@@ -317,25 +317,24 @@ if __name__ == '__main__':
         # lines of the csr and submit the request to the OIM
         cwd = None
         if arguments['csr'] is None:
-            config_items = {'CN': arguments['hostname'],
-                            'emailAddress': arguments['email'],
-                            'alt_names': arguments['alt_names']}
-
             if arguments['certdir'] != "./":
                 cwd = os.getcwd()
 
             if cwd != None:
                 os.chdir(arguments['certdir'])
 
-            cert_obj = OSGPKIUtils.Cert()
-            cert_obj.CreatePKey(arguments['pem_filename'])
-            print 'Writing key to %s%s' %(arguments['certdir'], arguments['pem_filename'])
-            new_csr = cert_obj.CreateX509Request(**config_items)
-            arguments['csr'] = OSGPKIUtils.format_csr(new_csr.as_pem())
+            keypath = os.path.join(arguments['certdir'], arguments['pem_filename'])
+            cert_obj = OSGPKIUtils.Cert(arguments['hostname'],
+                                        keypath,
+                                        arguments['alt_names'],
+                                        arguments['email'])
+            arguments['csr'] = cert_obj.base64_csr()
 
             if cwd != None:
                 os.chdir(cwd)
             connect(arguments)
+            print 'Writing key to %s' % keypath
+            cert_obj.write_pkey()
         else:
             csr = OSGPKIUtils.format_csr(open(arguments['csr'], 'rb').read())
             arguments.update({'csr': csr})

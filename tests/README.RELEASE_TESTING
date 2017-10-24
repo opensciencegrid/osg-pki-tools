@@ -120,11 +120,9 @@ One the VM:
 
 3) sudo pip-python install scripttests unittest2  # Needed for testing
 
-4) sudo yum install --enablerepo=osg-development python-simplejson
+4) sudo yum install openssl-devel gcc python-devel  # Needed for pyton ssl
 
-5) sudo yum install openssl-devel gcc python-devel  # Needed for pyton ssl
-
-6) sudo pip-python install ssl
+5) sudo pip-python install ssl
 
 Now test as above.
 

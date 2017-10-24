@@ -4,7 +4,7 @@ import sys
 import urllib
 import httplib
 from M2Crypto import httpslib, SSL
-import simplejson
+import json
 import traceback
 import os
 from optparse import OptionParser
@@ -263,12 +263,12 @@ def connect_revoke(**arguments):
     data = response.read()
     conn.close()
 
-    if simplejson.loads(data)['status'] == 'OK':
+    if json.loads(data)['status'] == 'OK':
         charlimit_textwrap("Successfully revoked %s certificate with %s ID: %s" %
                            (revoke_text['cert_type'], revoke_text['id_type'], str(arguments['id'])))
     else:
         charlimit_textwrap("Failure, could not revoke certificate.")
-        charlimit_textwrap(simplejson.loads(data)['detail'])
+        charlimit_textwrap(json.loads(data)['detail'])
         sys.exit(1)
 
 if __name__ == "__main__":

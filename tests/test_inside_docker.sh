@@ -15,7 +15,7 @@ rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-${OS_VERSION}
 echo "exclude=mirror.beyondhosting.net" >> /etc/yum/pluginconf.d/fastestmirror.conf
 
 yum -y install yum-plugin-priorities
-yum -y install m2crypto python-simplejson
+yum -y install m2crypto
 
 # Run unit tests
 pushd osg-pki-tools/tests/

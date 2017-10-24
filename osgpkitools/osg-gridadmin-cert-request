@@ -12,28 +12,24 @@ This script works in two modes:
 """
 
 import httplib
+import re
 import sys
-import simplejson
 import os
-from M2Crypto import SSL, httpslib
-from optparse import OptionParser, OptionGroup
 import subprocess
-from ssl import SSLError
 import tempfile
+
+from ssl import SSLError
+from optparse import OptionParser, OptionGroup
+from M2Crypto import SSL
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import CreateOIMConfig
 from osgpkitools.OSGPKIUtils import extractHostname
 from osgpkitools.OSGPKIUtils import extractEEC
-from osgpkitools.OSGPKIUtils import get_request_count
-from osgpkitools.OSGPKIUtils import check_response_500
-from osgpkitools.OSGPKIUtils import check_failed_response
-from osgpkitools.OSGPKIUtils import check_for_pending
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import check_permissions
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import print_exception_message
-from osgpkitools.OSGPKIUtils import print_failure_reason_exit
 from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.OSGPKIUtils import get_ssl_context
 from osgpkitools.ExceptionDefinitions import *
@@ -92,7 +88,7 @@ or specify from a file using -f/--hostfile.''')
         help='Specify an alternative hostname for CSR (FQDN). May be used more than ' + \
         'once and if specified, -f/--hostfile will be ignored',
         metavar='HOSTNAME',
-        default=None
+        default=[]
         )
     group.add_option(
         '-f',
@@ -350,90 +346,9 @@ def process_pkcs7(pkcs7, num_requests, **arguments):
     return
 
 
-def create_certificate_request(hostname, reqid, config_items):
-    """This function accepts hostname, request id and a dictionary of config_items for the CSR.
-    It writes the key and creates the CSR."""
-
-    print 'Generating certificate...'
-    keypath = os.path.join(arguments['certdir'], hostname + '-key.pem')
-    # Handle already existing key file...
-    if os.path.exists(keypath):
-        old_keypath = os.path.join(arguments['certdir'], hostname + "-key-old.pem")
-        print "Renaming existing key from %s to %s" % (keypath, old_keypath)
-        os.rename(keypath, old_keypath)
-    cert_obj = OSGPKIUtils.Cert()
-    cert_obj.CreatePKey(keypath)
-    charlimit_textwrap('Writing key to %s' % keypath)
-    new_csr = cert_obj.CreateX509Request(**config_items)
-    csr = OSGPKIUtils.format_csr(new_csr.as_pem())
-    return csr
-
-
-def check_quota_limit(request_count, arguments):
-    '''This function checks if the quota requirements for the user is met for the particular request'''
-
-    headers = {'Content-type': arguments['content_type'],
-               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = httpslib.HTTPSConnection(arguments['host'], ssl_context=arguments['ssl_context'])
-    try:
-        conn.request('GET', arguments['quotaurl'], None, headers)
-        response = conn.getresponse()
-    except httplib.HTTPException, exc:
-        charlimit_textwrap('Connection to %s failed: %s'
-                           % (arguments['quotaurl'], exc))
-        raise
-    except Exception, exc:
-        if "sslv3 alert bad certificate" in exc:
-            raise BadCertificateException("Error connecting to server: %s.\n" + \
-                                          "Your certificate is not trusted by the server" % exc)
-        else:
-            print exc.__class__.__name__
-            raise
-    check_response_500(response)
-    data = response.read()
-    if not 'PENDING' in response.reason:
-        if not 'OK' in response.reason:
-            print_failure_reason_exit(data)
-    charlimit_textwrap('Waiting for response from Quota Check API. Please wait.')
-    iterations = 0
-    while 'PENDING' in data:
-        conn.request('GET', arguments['quotaurl'], headers)
-        try:
-            response = conn.getresponse()
-        except httplib.HTTPException, exc:
-            charlimit_textwrap('Connection to %s failed: %s'
-                               % (arguments['quotaurl'], exc))
-            raise
-        check_response_500(response)
-        data = response.read()
-        conn.close()
-        iterations = check_for_pending(iterations)
-    check_failed_response(data)
-    global_hostcert_year_max = \
-        simplejson.loads(data)['global_hostcert_year_max']
-    global_hostcert_year_count = \
-        simplejson.loads(data)['global_hostcert_year_count']
-    count_hostcert_day = simplejson.loads(data)['count_hostcert_day']
-    quota_hostcert_day_max = \
-        simplejson.loads(data)['quota_hostcert_day_max']
-    count_hostcert_year = simplejson.loads(data)['count_hostcert_year']
-    quota_hostcert_year_max = \
-        simplejson.loads(data)['quota_hostcert_year_max']
-    if global_hostcert_year_max >= global_hostcert_year_count \
-        + request_count and count_hostcert_day + request_count \
-        <= quota_hostcert_day_max and count_hostcert_year \
-        + request_count <= quota_hostcert_year_max \
-        and quota_hostcert_day_max >= request_count:
-        status = True
-    else:
-        status = False
-    conn.close()
-    return status
-
-
-def process_csr(num_requests, bulk_csr, **arguments):
+def process_csr(bulk_csr, **arguments):
     """This function handles the entire processing of the request i.e.
-    requesting. checking for quota limit, approving and then retrieving in sequence"""
+    requesting. approving and then retrieving in sequence"""
     capi = ConnectAPI.ConnectAPI()
 
     try:
@@ -455,73 +370,16 @@ def process_csr(num_requests, bulk_csr, **arguments):
 
         print 'Issuing certificate...'
         pkcs7raw = capi.retrieve_authenticated(**arguments)
-        process_pkcs7(pkcs7raw, num_requests, **arguments)
+        process_pkcs7(pkcs7raw, len(bulk_csr), **arguments)
     except httplib.HTTPException, exc:
         charlimit_textwrap('Connection to %s failed: %s'% (arguments['newrequrl'], exc))
         raise
-    except Exception, exc:
+    except SystemExit, exc:
         if 'sslv3 alert bad certificate' in exc:
             raise BadCertificateException("Error connecting to server: %s.\n" + \
                                           "Your certificate is not trusted by the server" % exc)
         else:
             raise
-
-def process_single_host_mode(**arguments):
-    '''Create and process a single CSR with the --hostname option treated as
-    the CN and the --altname's treated as the alternative names'''
-
-    num_requests = 1
-    config_items = {}
-
-    if check_quota_limit(num_requests, arguments):
-        pass
-    else:
-        raise QuotaException('Your request would exceed your quota. Aborting')
-    hostname = arguments['hostname'].strip()
-    config_items.update({'CN': hostname, 'alt_names': arguments['alt_names']})
-    charlimit_textwrap('Beginning request process for %s' % hostname)
-    # Remove / from service requests for proper FQDN formatting
-    csr = create_certificate_request(hostname.replace('/', '-'), num_requests, config_items)
-    process_csr(num_requests, csr, **arguments)
-    return
-
-
-def process_hostfile_mode(**arguments):
-    '''Create and process CSRs for each line in the user-specified hostfile.
-    Each line may contain multiple hostnames (space delimited), the first one
-    is considered the CN and the rest are considered alternative names'''
-
-    bulk_csr = list()
-    num_requests = 0
-    host_set = set()
-    config_items = {}
-    request_count = get_request_count(arguments['hostfile'])
-
-    hosts_file = open(arguments['hostfile'], 'rb')
-    hosts = hosts_file.readlines()
-    hosts_file.close()
-
-    if check_quota_limit(request_count, arguments):
-        pass
-    else:
-        raise QuotaException('Your request would exceed your quota. Aborting')
-    for line in hosts:
-        line = line.strip()
-        if line != '' and line not in host_set:
-            host_set.add(line)
-            num_requests += 1
-            # Take the first hostname as the CN and the rest as SANs
-            sans = line.split()
-            hostname = sans.pop(0)
-            config_items.update({'CN': hostname, 'alt_names': sans})
-            charlimit_textwrap('Beginning request process for %s' % line)
-            # Remove / from service requests for proper FQDN formatting
-            csr = create_certificate_request(hostname.replace('/', '-'), num_requests, config_items)
-            bulk_csr.append(csr)
-            if num_requests == 50: # OIM limits bulk requests to 50 CSRs
-                break
-    if num_requests > 0:
-        process_csr(request_count, bulk_csr, **arguments)
 
 if __name__ == '__main__':
     try:
@@ -531,12 +389,49 @@ if __name__ == '__main__':
         ssl_context = get_ssl_context(**arguments)
         arguments.update({'ssl_context':ssl_context})
 
-        # Request cert(s)
         OSGPKIUtils.start_timeout_clock(arguments['timeout'])
-        if not arguments.has_key('hostname'):
-            process_hostfile_mode(**arguments)
+
+        if 'hostname' in arguments:
+            hosts = [tuple(arguments['hostname'].strip() + arguments['alt_names'])]
         else:
-            process_single_host_mode(**arguments)
+            with open(arguments['hostfile'], 'rb') as hosts_file:
+                host_lines = hosts_file.readlines()
+            hosts = [tuple(line.split()) for line in host_lines if line.strip()]
+
+        # Construct host list, skipping duplicates and empty lines
+        # NOTE: the same host with different SANs are not considered duplicates
+        requests = list()
+        certs = list()
+        charlimit_textwrap('Beginning request process...')
+        for host in set(hosts):
+            cn = host[0]
+            sans = host[1:]
+            # Remove / from service requests for proper FQDN formatting
+            cert_obj = OSGPKIUtils.Cert(cn.replace('/', '-'),
+                                        keypath=os.path.join(arguments['certdir'], cn + '-key.pem'),
+                                        altnames=sans)
+            certs.append(cert_obj)
+
+        # We choose to write the keys before the request in case there are issues with the certs and only then perform
+        # cleanup if there's a quota failure; it's better to have keys and no certs than it is to have certs and no keys
+        if len(certs):
+            charlimit_textwrap("Writing key(s) to %s" % arguments['certdir'])
+            for cert in certs:
+                # Handle already existing key file...
+                if os.path.exists(cert.keypath):
+                    old_keypath = re.sub(r'\.pem$', '-old.pem', cert.keypath)
+                    print "Renaming existing key from %s to %s" % (cert.keypath, old_keypath)
+                    os.rename(cert.keypath, old_keypath)
+                cert.write_pkey()
+            try:
+                process_csr([cert.base64_csr() for cert in certs], **arguments)
+            except SystemExit, exc:
+                if 'certificate quota' in str(exc):
+                    print "Cleaning up key(s) in %s" % arguments['certdir']
+                    for key in [cert.keypath for cert in certs]:
+                        os.remove(key)
+                raise
+
     except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
@@ -578,7 +473,7 @@ if __name__ == '__main__':
         charlimit_textwrap(exc.message)
         sys.stderr.write("Usage: osg-gridadmin-cert-request -h for help \n")
         sys.exit(2) # Fix for returning exit code of 2 as in all the other scripts.
-    except (BadCertificateException, BadPassphraseException, HandshakeFailureException, QuotaException), exc:
+    except (BadCertificateException, BadPassphraseException, HandshakeFailureException), exc:
         charlimit_textwrap(exc.message)
         sys.exit(1)
     except (AttributeError, OSError, ValueError, EOFError, SSL.SSLError, UnexpectedBehaviourException), exc:

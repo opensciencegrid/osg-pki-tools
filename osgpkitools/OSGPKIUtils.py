@@ -7,7 +7,7 @@ import re
 import time
 import sys
 import textwrap
-import simplejson
+import json
 import signal
 import traceback
 import getpass
@@ -21,7 +21,7 @@ MBSTRING_ASC = MBSTRING_FLAG | 1
 MBSTRING_BMP = MBSTRING_FLAG | 2
 
 # The variable for storing version number for the scripts
-Version_Number = "1.2.20"
+VERSION_NUMBER = "1.2.21"
 
 
 def get_ssl_context(**arguments):
@@ -143,10 +143,10 @@ def print_failure_reason_exit(data):
     """This functions prints the failure reasons and exits"""
     try:
         msg = 'The request has failed for the following reason: %s' % \
-              simplejson.loads(data)['detail'].split('--')[1].lstrip()
+              json.loads(data)['detail'].split('--')[1].lstrip()
     except IndexError:
-        msg = 'The request has failed for the following reason: %s' % simplejson.loads(data)['detail'].lstrip() + \
-              'Status : %s ' % simplejson.loads(data)['status']
+        msg = 'The request has failed for the following reason: %s' % json.loads(data)['detail'].lstrip() + \
+              'Status : %s ' % json.loads(data)['status']
 
     # Print a helpful error message if OIM responds that the user needs to
     # provide a VO in their request. We cannot handle this in the arg parsing
@@ -194,22 +194,7 @@ def format_csr(csr):
     """Extract the base64 encoded string from the contents of a CSR"""
     return csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n', '')\
               .replace('-----END CERTIFICATE REQUEST-----\n', '')\
-              .replace('\n','')
-
-def get_request_count(filename):
-    '''Returns the number of hostname requested in the file supplied as -f during bulk certificate request'''
-
-    hostfile = open(filename, 'rb')
-    name_set = set()
-    count = 0
-    for line in hostfile.readlines():
-        line = line.strip(' \n')
-        if not line in name_set:
-            name_set.add(line)
-            count += 1
-    hostfile.close()
-    return count
-
+              .replace('\n', '')
 
 ### We take the whole certificate data as a string input
 ### Checking for /CN= in every line and extracting the term after that if not Digicert i.e. CA would be the hostname
@@ -285,34 +270,21 @@ def CreateOIMConfig(isITB, **OIMConfig):
     OIMConfig.update({'userreturl': config.get(oim, 'userreturl')})
     OIMConfig.update({'userrevurl': config.get(oim, 'userrevurl')})
     OIMConfig.update({'issurl': config.get(oim, 'issurl')})
-    OIMConfig.update({'quotaurl': config.get(oim, 'quotaurl')})
     OIMConfig.update({'content_type': config.get(oim, 'content_type')})
     return OIMConfig
 
 
 class Cert:
 
-    def __init__(self):
+    def __init__(self, common_name, keypath, altnames=None, email=None):
+        """This function accepts a dictionary that contains information for CSR generation"""
         self.rsakey = {'KeyLength': 2048, 'PubExponent': 0x10001,
                        'keygen_callback': self.callback}  # -> 65537
-
-        self.keypair = None
-        self.pkey = None
-
-        self.x509request = None
-        self.x509certificate = None
-
-    def callback(self, *args):
-        return None
-
-    def CreatePKey(self, filename):
-        """This function accepts the filename of the key file to write to.
-........It write the private key to the specified file name without ciphering it."""
 
         self.keypair = RSA.gen_key(self.rsakey['KeyLength'],
                                    self.rsakey['PubExponent'],
                                    self.rsakey['keygen_callback'])
-        self.keypair.save_key(filename, cipher=None)
+        self.keypath = keypath
 
         # The message digest shouldn't matter here since we don't use
         # PKey.sign_*() or PKey.verify_*() but there's no harm in keeping it and
@@ -321,36 +293,22 @@ class Cert:
         self.pkey = EVP.PKey(md='sha256')
         self.pkey.assign_rsa(self.keypair)
 
-
-    def CreateX509Request(self, **config_items):
-        """This function accepts a dctionary that contains information regarding the CSR.
-........It creates a CSR and returns it to the calling script."""
-
-        #
-        # X509 REQUEST
-        #
-
         self.x509request = X509.Request()
-
-        #
-        # subject
-        #
-
         x509name = X509.X509_Name()
 
         x509name.add_entry_by_txt(  # common name
             field='CN',
             type=MBSTRING_ASC,
-            entry=config_items['CN'],
+            entry=common_name,
             len=-1,
             loc=-1,
             set=0,
             )
-        if config_items.has_key('emailAddress'):
+        if email:
             x509name.add_entry_by_txt(  # pkcs9 email address
                 field='emailAddress',
                 type=MBSTRING_ASC,
-                entry=config_items['emailAddress'],
+                entry=email,
                 len=-1,
                 loc=-1,
                 set=0,
@@ -358,21 +316,28 @@ class Cert:
 
         self.x509request.set_subject_name(x509name)
 
-        alt_names = config_items.get('alt_names')
-        if alt_names:
+        if altnames:
             extension_stack = X509.X509_Extension_Stack()
             extension = X509.new_extension('subjectAltName',
-                                           ", ".join(['DNS:%s' % name for name in alt_names]))
+                                           ", ".join(['DNS:%s' % name for name in altnames]))
             extension.set_critical(1)
             extension_stack.push(extension)
             self.x509request.add_extensions(extension_stack)
 
-        #
-        # publickey
-        #
-
         self.x509request.set_pubkey(pkey=self.pkey)
         self.x509request.set_version(0)
         self.x509request.sign(pkey=self.pkey, md='sha256')
-        return self.x509request
 
+    def callback(self, *args):
+        return None
+
+    def write_pkey(self, filename=None):
+        """This function accepts the filename of the key file to write to (DEFAULT: self.keypath).
+        It write the private key to the specified file name without ciphering it."""
+        if not filename:
+            filename = self.keypath
+        self.keypair.save_key(filename, cipher=None)
+
+    def base64_csr(self):
+        """Extract the base64 encoded string from the contents of a CSR"""
+        return format_csr(self.x509request.as_pem())

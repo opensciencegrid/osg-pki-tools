@@ -4,7 +4,7 @@
 import urllib
 import httplib
 import sys
-import simplejson
+import json
 import re
 import os
 import errno
@@ -212,7 +212,7 @@ def connect_renew(**arguments):
         print_failure_reason_exit(data)
     conn.close()
     check_failed_response(data)
-    return_data = simplejson.loads(data)
+    return_data = json.loads(data)
     request_id = return_data['request_id']
     if not request_id:
         raise UnexpectedBehaviourException("Request Id not found in data. Script will now exit")
@@ -290,7 +290,7 @@ def connect_retrieve(**arguments):
         iterations = check_for_pending(iterations)
     conn.close()
     check_failed_response(json)
-    data = simplejson.loads(json)
+    data = json.loads(json)
     pkcs12 = base64.b64decode(data['pkcs12'])
 
     write_certificate(pkcs12, arguments)
@@ -365,7 +365,7 @@ if __name__ == '__main__':
         print_exception_message(exc)
         sys.exit(1)
     except (FileWriteException, BadCertificateException, BadPassphraseException, HandshakeFailureException,
-            QuotaException, UnexpectedBehaviourException, InsufficientArgumentException), exc:
+            UnexpectedBehaviourException, InsufficientArgumentException), exc:
         charlimit_textwrap(exc.message)
         sys.exit(1)
     except Exception, exc:
