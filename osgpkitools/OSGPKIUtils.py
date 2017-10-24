@@ -7,7 +7,7 @@ import re
 import time
 import sys
 import textwrap
-import simplejson
+import json
 import signal
 import traceback
 import getpass
@@ -143,10 +143,10 @@ def print_failure_reason_exit(data):
     """This functions prints the failure reasons and exits"""
     try:
         msg = 'The request has failed for the following reason: %s' % \
-              simplejson.loads(data)['detail'].split('--')[1].lstrip()
+              json.loads(data)['detail'].split('--')[1].lstrip()
     except IndexError:
-        msg = 'The request has failed for the following reason: %s' % simplejson.loads(data)['detail'].lstrip() + \
-              'Status : %s ' % simplejson.loads(data)['status']
+        msg = 'The request has failed for the following reason: %s' % json.loads(data)['detail'].lstrip() + \
+              'Status : %s ' % json.loads(data)['status']
 
     # Print a helpful error message if OIM responds that the user needs to
     # provide a VO in their request. We cannot handle this in the arg parsing

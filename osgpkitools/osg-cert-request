@@ -12,7 +12,7 @@ import os
 from optparse import OptionParser
 import subprocess
 from ssl import SSLError
-import simplejson
+import json
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools import ConnectAPI
@@ -292,9 +292,9 @@ def connect(arguments):
     data = response.read()
     check_failed_response(data)
     conn.close()
-    if simplejson.loads(data)['detail'] == 'Nothing to report' \
-        and simplejson.loads(data)['status'] == 'OK' in data:
-        ticket = simplejson.loads(data)['host_request_id']
+    if json.loads(data)['detail'] == 'Nothing to report' \
+        and json.loads(data)['status'] == 'OK' in data:
+        ticket = json.loads(data)['host_request_id']
         print 'Succesfully submitted'
         print 'Request Id#: %s' % ticket
     else:

@@ -33,12 +33,8 @@ class BasicTests(PKIClientTestCase.PKIClientTestCase):
 			 self._get_key_modulus())
 
     def test_json(self):
-	"""Test we can import json or simplejson"""
-	try:
-	    import json
-	except ImportError:
-	    import simplejson as json
-
+	"""Test we can import json"""
+	import json
     #
     # Utility methods
     #

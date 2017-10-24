@@ -2,7 +2,7 @@
 
 import re
 import signal
-from simplejson import dumps
+from json import dumps
 import sys
 import unittest
 
