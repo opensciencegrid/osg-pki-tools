@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-from M2Crypto import SSL, m2, RSA, EVP, X509
 import ConfigParser
 import os
 import re
@@ -11,6 +10,7 @@ import json
 import signal
 import traceback
 import getpass
+from M2Crypto import SSL, m2, RSA, EVP, X509
 
 from ExceptionDefinitions import *
 

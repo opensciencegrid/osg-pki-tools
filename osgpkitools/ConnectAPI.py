@@ -3,8 +3,8 @@
 import json
 import urllib
 import httplib
-import M2Crypto
 import time
+import M2Crypto
 
 from OSGPKIUtils import charlimit_textwrap
 from OSGPKIUtils import check_response_500
