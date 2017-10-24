@@ -10,6 +10,7 @@ import json
 import signal
 import traceback
 import getpass
+from StringIO import StringIO
 from M2Crypto import SSL, m2, RSA, EVP, X509
 
 from ExceptionDefinitions import *
@@ -23,6 +24,26 @@ MBSTRING_BMP = MBSTRING_FLAG | 2
 # The variable for storing version number for the scripts
 VERSION_NUMBER = "1.2.21"
 
+DEFAULT_CONFIG = """[OIMData_ITB]
+host: oim-itb.grid.iu.edu:80
+hostsec: oim-itb.grid.iu.edu:443
+
+[OIMData]
+host: oim.grid.iu.edu:80
+hostsec: oim.grid.iu.edu:443
+
+[DEFAULT]
+requrl: /oim/rest?action=host_certs_request&version=1
+appurl: /oim/rest?action=host_certs_approve&version=1
+revurl: /oim/rest?action=host_certs_revoke&version=1
+canurl: /oim/rest?action=host_certs_cancel&version=1
+returl: /oim/rest?action=host_certs_retrieve&version=1
+issurl: /oim/rest?action=host_certs_issue&version=1
+content_type: application/x-www-form-urlencoded
+renewurl: /oim/rest?action=user_cert_renew&version=1
+userreturl: /oim/rest?action=user_cert_retrieve&version=1
+userrevurl: /oim/rest?action=user_cert_revoke&version=1
+"""
 
 def get_ssl_context(**arguments):
     """ This function sets the ssl context by accepting the passphrase
@@ -234,45 +255,31 @@ def extractEEC(cert_string, hostname):
             return line
 
 
-def CreateOIMConfig(isITB, **OIMConfig):
+def read_config(itb, config_files=None):
     """This function is used to centralized the fetching of config file
-    It fetches the config file and updates the dictionary of variables"""
+    It fetches the config file and returns a dictionary of variables
+
+    INPUT:
+    itb: if True, use the [OIMData_ITB] section, otherwise use [OIMData]
+    config: list of paths to config files (default: None)
+    """
 
     config = ConfigParser.ConfigParser()
-    if os.path.exists(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini'):
-        print 'Overriding INI file with %s/.osg-pki/OSG_PKI.ini' % str(os.environ['HOME'])
-        config.read(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini')
-    elif os.path.exists('pki-clients.ini'):
-        config.read('pki-clients.ini')
+    # I don't expect user-specified config files to be used except for testing
+    if not config_files:
+        config_files = [os.path.expanduser('~/.osg-pki/OSG_PKI.ini'),
+                        'pki-clients.ini',
+                        '/etc/osg/pki-clients.ini'] # config(noreplace) in packaging
 
-    ### Fix for pki-clients.ini not found in /etc/osg/
-    elif os.path.exists('/etc/osg/pki-clients.ini'):
-        config.read('/etc/osg/pki-clients.ini')
+    if not config.read(config_files):
+        config.readfp(StringIO(DEFAULT_CONFIG))
 
-    else:
-        raise FileNotFoundException('pki-clients.ini',
-                                    'Could not locate the file')
-    if isITB:
+    oim = 'OIMData'
+    if itb:
         print 'Running in test mode'
-        oim = 'OIMData_ITB'
-        OIMConfig.update({'host': 'oim-itb.grid.iu.edu:80'})
-        OIMConfig.update({'hostsec': 'oim-itb.grid.iu.edu:443'})
-    else:
-        oim = 'OIMData'
-        OIMConfig.update({'host': 'oim.grid.iu.edu:80'})
-        OIMConfig.update({'hostsec': 'oim.grid.iu.edu:443'})
-    OIMConfig.update({'requrl': config.get(oim, 'requrl')})
-    OIMConfig.update({'appurl': config.get(oim, 'appurl')})
-    OIMConfig.update({'revurl': config.get(oim, 'revurl')})
-    OIMConfig.update({'canurl': config.get(oim, 'canurl')})
-    OIMConfig.update({'returl': config.get(oim, 'returl')})
-    OIMConfig.update({'renewurl': config.get(oim, 'renewurl')})
-    OIMConfig.update({'userreturl': config.get(oim, 'userreturl')})
-    OIMConfig.update({'userrevurl': config.get(oim, 'userrevurl')})
-    OIMConfig.update({'issurl': config.get(oim, 'issurl')})
-    OIMConfig.update({'content_type': config.get(oim, 'content_type')})
-    return OIMConfig
+        oim += '_ITB'
 
+    return dict(config.items(oim))
 
 class Cert:
 

@@ -23,7 +23,7 @@ from optparse import OptionParser, OptionGroup
 from M2Crypto import SSL
 
 from osgpkitools import OSGPKIUtils
-from osgpkitools.OSGPKIUtils import CreateOIMConfig
+from osgpkitools.OSGPKIUtils import read_config
 from osgpkitools.OSGPKIUtils import extractHostname
 from osgpkitools.OSGPKIUtils import extractEEC
 from osgpkitools.OSGPKIUtils import version_info
@@ -159,7 +159,6 @@ or specify from a file using -f/--hostfile.''')
         )
     parser.add_option_group(group)
     (args, values) = parser.parse_args()
-    arguments = dict()
 
     if args.version_info:
         version_info()
@@ -231,10 +230,10 @@ or specify from a file using -f/--hostfile.''')
     else:
         oim = False
 
+    arguments = read_config(oim)
     arguments.update({'vo' : args.vo})
     arguments.update({'mode': oim})
     arguments.update({'cc_list': args.cc_list})
-    arguments = CreateOIMConfig(oim, **arguments)
     if vars().has_key('args'):
         arguments.update({'args': args})
     if vars().has_key('values'):
@@ -249,7 +248,6 @@ or specify from a file using -f/--hostfile.''')
     arguments.update({'certdir': certdir})
     if vars().has_key('hostfile'):
         arguments.update({'hostfile': hostfile})
-    arguments.update({'host': arguments['hostsec']})
     return arguments
 
 

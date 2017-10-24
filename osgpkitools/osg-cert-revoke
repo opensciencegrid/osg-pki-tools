@@ -11,7 +11,7 @@ from optparse import OptionParser
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
-from osgpkitools.OSGPKIUtils import CreateOIMConfig
+from osgpkitools.OSGPKIUtils import read_config
 from osgpkitools.OSGPKIUtils import print_exception_message
 from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import get_ssl_context
@@ -142,8 +142,7 @@ def parse_args():
             parser.error("Wrong number of arguments (%s of 2): %s"
                          % (num_args, ', '.join(str(value) for value in values)))
 
-    arguments = dict()
-    arguments = CreateOIMConfig(args.test, **arguments)
+    arguments = read_config(args.test)
 
     timeout = int(args.timeout)
     if not timeout >= 0:

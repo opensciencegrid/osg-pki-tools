@@ -17,7 +17,7 @@ import json
 from osgpkitools import OSGPKIUtils
 from osgpkitools import ConnectAPI
 from osgpkitools.OSGPKIUtils import version_info
-from osgpkitools.OSGPKIUtils import CreateOIMConfig
+from osgpkitools.OSGPKIUtils import read_config
 from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
 from osgpkitools.OSGPKIUtils import check_failed_response
@@ -225,8 +225,7 @@ def parse_args():
 
     OIM = args.test
 
-    arguments = dict()
-    arguments = CreateOIMConfig(OIM, **arguments)
+    arguments = read_config(OIM)
 
     arguments.update({'vo': args.vo})
 

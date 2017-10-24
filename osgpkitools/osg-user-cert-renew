@@ -15,7 +15,7 @@ from optparse import OptionParser
 from ssl import SSLError
 
 from osgpkitools import OSGPKIUtils
-from osgpkitools.OSGPKIUtils import CreateOIMConfig
+from osgpkitools.OSGPKIUtils import read_config
 from osgpkitools.OSGPKIUtils import get_ssl_context
 from osgpkitools.OSGPKIUtils import check_response_500
 from osgpkitools.OSGPKIUtils import check_failed_response
@@ -98,7 +98,6 @@ will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
         help="Print version information and exit",
         )
     args, _ = parser.parse_args()
-    arguments = dict()
 
     if args.version_info:
         version_info()
@@ -146,7 +145,7 @@ will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
         else:
             raise
 
-    arguments = CreateOIMConfig(args.test, **arguments)
+    arguments = read_config(args.test)
     arguments.update({'timeout': timeout})
     print 'Using timeout of %d minutes' % timeout
     arguments.update({'usercert': usercert})
