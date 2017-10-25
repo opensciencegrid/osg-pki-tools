@@ -225,12 +225,9 @@ or specify from a file using -f/--hostfile.''')
             pass
         else:
             raise FileNotFoundException(hostfile, 'Could not locate the hostfile')
-    if args.test:
-        oim = True
-    else:
-        oim = False
 
-    arguments = read_config(oim)
+    arguments = dict()
+    arguments.update({'test': args.test})
     arguments.update({'vo' : args.vo})
     arguments.update({'mode': oim})
     arguments.update({'cc_list': args.cc_list})
@@ -344,13 +341,13 @@ def process_pkcs7(pkcs7, num_requests, **arguments):
     return
 
 
-def process_csr(bulk_csr, **arguments):
+def process_csr(config, bulk_csr, ssl_ctx, **arguments):
     """This function handles the entire processing of the request i.e.
     requesting. approving and then retrieving in sequence"""
     capi = ConnectAPI.ConnectAPI()
 
     try:
-        reqid = capi.request_authenticated(bulk_csr, **arguments)
+        reqid = capi.request_authenticated(config, bulk_csr, ssl_ctx, **arguments)
     except Exception, exc:
         if 'sslv3 alert bad certificate' in exc:
             raise BadCertificateException("Error connecting to server: %s.\n" + \
@@ -382,17 +379,17 @@ def process_csr(bulk_csr, **arguments):
 if __name__ == '__main__':
     try:
         os.umask(0177)
-        arguments = parse_args()
-        check_permissions(arguments['certdir'])
-        ssl_context = get_ssl_context(**arguments)
-        arguments.update({'ssl_context':ssl_context})
+        ARGS = parse_args()
+        CONFIG = read_config(ARGS['test'])
+        check_permissions(ARGS['certdir'])
+        ssl_context = get_ssl_context(**ARGS)
 
-        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
+        OSGPKIUtils.start_timeout_clock(ARGS['timeout'])
 
-        if 'hostname' in arguments:
-            hosts = [tuple(arguments['hostname'].strip() + arguments['alt_names'])]
+        if 'hostname' in ARGS:
+            hosts = [tuple([ARGS['hostname'].strip()] + ARGS['alt_names'])]
         else:
-            with open(arguments['hostfile'], 'rb') as hosts_file:
+            with open(ARGS['hostfile'], 'rb') as hosts_file:
                 host_lines = hosts_file.readlines()
             hosts = [tuple(line.split()) for line in host_lines if line.strip()]
 
@@ -406,14 +403,14 @@ if __name__ == '__main__':
             sans = host[1:]
             # Remove / from service requests for proper FQDN formatting
             cert_obj = OSGPKIUtils.Cert(cn.replace('/', '-'),
-                                        keypath=os.path.join(arguments['certdir'], cn + '-key.pem'),
+                                        keypath=os.path.join(ARGS['certdir'], cn + '-key.pem'),
                                         altnames=sans)
             certs.append(cert_obj)
 
         # We choose to write the keys before the request in case there are issues with the certs and only then perform
         # cleanup if there's a quota failure; it's better to have keys and no certs than it is to have certs and no keys
         if len(certs):
-            charlimit_textwrap("Writing key(s) to %s" % arguments['certdir'])
+            charlimit_textwrap("Writing key(s) to %s" % ARGS['certdir'])
             for cert in certs:
                 # Handle already existing key file...
                 if os.path.exists(cert.keypath):
@@ -422,10 +419,10 @@ if __name__ == '__main__':
                     os.rename(cert.keypath, old_keypath)
                 cert.write_pkey()
             try:
-                process_csr([cert.base64_csr() for cert in certs], **arguments)
+                process_csr(CONFIG, [cert.base64_csr() for cert in certs], ssl_context, **ARGS)
             except SystemExit, exc:
                 if 'certificate quota' in str(exc):
-                    print "Cleaning up key(s) in %s" % arguments['certdir']
+                    print "Cleaning up key(s) in %s" % ARGS['certdir']
                     for key in [cert.keypath for cert in certs]:
                         os.remove(key)
                 raise
