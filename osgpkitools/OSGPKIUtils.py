@@ -283,14 +283,14 @@ def read_config(itb, config_files=None):
 
 class Cert:
 
+    KEY_LENGTH = 2048
+    PUB_EXPONENT = 0x10001
+
     def __init__(self, common_name, keypath, altnames=None, email=None):
         """This function accepts a dictionary that contains information for CSR generation"""
-        self.rsakey = {'KeyLength': 2048, 'PubExponent': 0x10001,
-                       'keygen_callback': self.callback}  # -> 65537
-
-        self.keypair = RSA.gen_key(self.rsakey['KeyLength'],
-                                   self.rsakey['PubExponent'],
-                                   self.rsakey['keygen_callback'])
+        self.keypair = RSA.gen_key(self.KEY_LENGTH,
+                                   self.PUB_EXPONENT,
+                                   self.callback)
         self.keypath = keypath
 
         # The message digest shouldn't matter here since we don't use

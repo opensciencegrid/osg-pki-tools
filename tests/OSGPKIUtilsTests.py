@@ -1,6 +1,5 @@
 """Test the OSGPKIUtils module"""
 
-import os
 import re
 import signal
 from json import dumps
