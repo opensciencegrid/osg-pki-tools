@@ -17,47 +17,51 @@ USER_AGENT = 'OIMGridAPIClient/0.1 (OIM Grid API)'
 
 class ConnectAPI(object):
 
-    def __init__(self):
+    def __init__(self, reqid=None):
         """Set the initialization parameters."""
-        return
+        self.reqid = reqid
 
-    def request_unauthenticated(self, **arguments):
+    def request_unauthenticated(self, config, name, email, phone, csr, vo='', cc_list='', comment=''):
         """For unregistered user requests for a certificate
-        INPUTS: Arguments (A dict)
-                        1. content_type. (The type of content to be sent over to the server)
-                        2. csr    (certificate signing request in PEM format).
-                        3. phone  (Phone number for the user requesting certificate).
-                        4. requrl (URL to connect to the server to request certificate).
-                        5: host   (URL to connect to the server to initiate certificate request)
-                        6. name   (Name of the requesting user)
-                        7. email  (E-mail for the user).
+        INPUTS:
+
+        config: OIM configuration as a dict (from OSGPKIUtils.read_config)
+        name: Name of the requesting user
+        email: E-mail for the user
+        phone: Phone number for the user requesting certificate
+        csr: Certificate signing request in PEM format
+        vo: Virtual Organization to make the request from; required for domains representing multiple VOs
+        cc_list: comma-separated string of e-mail CCs to add to the request (default: None)
+        comment: comment to add to the request
 
         OUTPUT: request_id - Request ID for current Certificate request.
         """
         params_list = {
-            'name': arguments['name'],
-            'email': arguments['email'],
-            'phone': arguments['phone'],
-            'csrs': arguments['csr'],
-            'request_comment': arguments['comment'],
-            'request_ccs': arguments['cc_list'].split(','),
+            'name': name,
+            'email': email,
+            'phone': phone,
+            'csrs': csr,
+            'request_comment': comment,
+            'request_ccs': cc_list.split(','),
             }
-        if 'vo' in arguments:
-            params_list['vo'] = arguments['vo']
+        if vo:
+            params_list['vo'] = vo
         params = urllib.urlencode(params_list)
-        headers = {'Content-type': arguments['content_type'],
+        headers = {'Content-type': config['content_type'],
                    'User-Agent': USER_AGENT}
-        conn = httplib.HTTPConnection(arguments['host'])
+        conn = httplib.HTTPConnection(config['host'])
 
-        response = self.do_connect(conn, 'POST', arguments['requrl'], params, headers)
+        response = self.do_connect(conn, 'POST', config['requrl'], params, headers)
         data = response.read()
         check_failed_response(data)
         conn.close()
 
-        if json.loads(data)['detail'] == 'Nothing to report' \
-            and json.loads(data)['status'] == 'OK' in data:
-            request_id = json.loads(data)['host_request_id']
-        return request_id
+        # if json.loads(data)['detail'] == 'Nothing to report' \
+        #     and json.loads(data)['status'] == 'OK' in data:
+        try:
+            self.reqid = json.loads(data)['host_request_id']
+        except KeyError:
+            raise OIMException('ERROR: OIM did not return request ID in its response')
 
     def request_authenticated(self, config, bulk_csr, ssl_context, vo=None, cc_list=None):
         """For registered user(gridadmin) certificate requests
@@ -89,7 +93,7 @@ class ConnectAPI(object):
         conn.close()
 
         try:
-            return json.loads(data)['host_request_id']
+            self.reqid = json.loads(data)['host_request_id']
         except KeyError:
             raise OIMException('ERROR: OIM did not return request ID in its response')
 

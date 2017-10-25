@@ -5,375 +5,182 @@ This script submits a host certificate request for an unauthenticated
 user.
 """
 
-import urllib
+import errno
 import httplib
+import re
 import sys
 import os
-from optparse import OptionParser
-import subprocess
+import argparse
 from ssl import SSLError
-import json
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools import ConnectAPI
-from osgpkitools.OSGPKIUtils import version_info
-from osgpkitools.OSGPKIUtils import read_config
-from osgpkitools.OSGPKIUtils import check_response_500
-from osgpkitools.OSGPKIUtils import charlimit_textwrap
-from osgpkitools.OSGPKIUtils import check_failed_response
-from osgpkitools.OSGPKIUtils import print_exception_message
-from osgpkitools.OSGPKIUtils import print_uncaught_exception
 from osgpkitools.ExceptionDefinitions import *
 
 
 # Set up Option Parser
 #
 
-def parse_args():
+def parse_command_line():
     """This function parses all the arguments, validates them and then stores
     them in a dictionary that is used throughout in the script."""
 
-    parser = OptionParser()
-    parser.add_option(
-        '-c',
-        '--csr',
-        action='store',
-        dest='csr',
-        default=None,
-        help='Specify CSR name (default = gennew.csr)',
-        metavar='CSR',
-        )
-    parser.add_option(
-        '-o',
-        '--outkeyfile',
-        action='store',
-        dest='keyfile',
-        help='Specify the output filename for the retrieved user certificate. Default is ./hostkey.pem',
-        metavar='OUTPUT KEYFILE',
-        default='hostkey.pem',
-        )
-    parser.add_option(
-        '-v',
-        '--vo',
-        action='store',
-        dest='vo',
-        help='Specify the VO for the host request',
-        metavar='VO name',
-        default=None,
-        )
-    parser.add_option(
-        '-y',
-        '--cc',
-        action='store',
-        dest='cc_list',
-        help='Specify the CC list(the email id\'s to be CCed). \
-             Separate values by \',\'',
-        metavar='CC LIST',
-        default='',
-        )
-    parser.add_option(
-        '-m',
-        '--comment',
-        action='store',
-        dest='comment',
-        help='The comment to be added to the request',
-        metavar='COMMENT',
-        default='',
-        )
-    parser.add_option(
-        '-H',
-        '--hostname',
-        action='store',
-        dest='hostname',
-        help='Specify a hostname for CSR (FQDN)',
-        metavar='CN',
-        default=None
-        )
-    parser.add_option(
-        '-a',
-        '--altname',
-        action='append',
-        dest='alt_names',
-        help='Specify an alternative hostname for the CSR (FQDN). May be used more than once',
-        metavar='HOSTNAME',
-        default=[]
-        )
-    parser.add_option(
-        '-e',
-        '--email',
-        action='store',
-        dest='email',
-        help='Email address to receive certificate',
-        metavar='EMAIL',
-        )
-    parser.add_option(
-        '-n',
-        '--name',
-        action='store',
-        dest='name',
-        help='Name of user receiving certificate',
-        metavar='NAME',
-        )
-    parser.add_option(
-        '-p',
-        '--phone',
-        action='store',
-        dest='phone',
-        help='Phone number of user receiving certificate',
-        metavar='PHONE',
-        )
-    parser.add_option(
-        '-t',
-        '--timeout',
-        action='store',
-        dest='timeout',
-        help='Specify the timeout in minutes',
-        default=5,
-        )
-    parser.add_option(
-        '-T',
-        '--test',
-        action='store_true',
-        dest='test',
-        help='Run in test mode',
-        default=False,
-        )
-    parser.add_option(
-        '-q',
-        '--quiet',
-        action='store_false',
-        dest='verbose',
-        default=True,
-        help="don't print status messages to stdout",
-        )
-    parser.add_option(
-        '-d',
-        '--directory',
-        action='store',
-        dest='write_directory',
-        default='./',
-        help="Write the output files to this directory",
-        )
-    parser.add_option(
-        '-V',
-        '--version',
-        action='store_true',
-        dest='version_info',
-        help="Print version information and exit",
-        )
-    (args, values) = parser.parse_args()
+    parser = argparse.ArgumentParser(add_help=False) # disable built-in help to control help message ordering
 
-    #print version info and exit.
-    if args.version_info:
-        version_info()
-        sys.exit(0)
+    # required options
+    required = parser.add_argument_group('Required', 'Specify only one of -c/--csr and -H/--hostname')
+    required.add_argument('-e', '--email', action='store', dest='email', required=True, metavar='EMAIL',
+                          help='Email address to receive certificate')
+    required.add_argument('-n', '--name', action='store', dest='name', required=True, metavar='NAME',
+                          help='Name of user receiving certificate')
+    required.add_argument('-p', '--phone', action=PhoneAction, dest='phone', required=True, metavar='PHONE',
+                          help='Phone number of user receiving certificate')
 
-    if not args.phone:
-        parser.error('-p/--phone argument required')
-    if not args.name:
-        parser.error('-n/--name argument required')
-    if not args.email:
-        parser.error('-e/--email argument required')
-    if not args.hostname and not args.csr:
-        parser.error('-H/--hostname or -c/--csr argument required')
-    if args.hostname and args.csr:
-        parser.error('Both -t/--hostname and -c/--csr arguments specified. Choose one')
+    host_opts = required.add_mutually_exclusive_group(required=True)
+    host_opts.add_argument('-c', '--csr', action='store', dest='csr', default=None, metavar='CSR',
+                           help='The file containing a certificate signing request')
+    host_opts.add_argument('-H', '--hostname', action='store', dest='hostname', metavar='CN', default=None,
+                           help='The common name of the requested certificate (FQDN)')
 
-    if args.csr is None:
-        if os.path.exists(args.keyfile):
-            pem_filename = args.keyfile
-            key_name = pem_filename.split("/")[-1].split(".")[-2]
-            pem_filename_old = key_name + "-old.pem"
-            subprocess.call(['mv', pem_filename, pem_filename_old])
-            charlimit_textwrap("Moving existing file %s to %s "
-                               % (pem_filename, pem_filename_old))
+    # explicity create optional group and help message to force required before optional opts in help message
+    optional = parser.add_argument_group('Optional')
+    optional.add_argument('-h', '--help', action='help',
+                          help='show this help message and exit')
+    optional.add_argument('-o', '--outkeyfile', action='store', dest='keyfile', metavar='OUTPUT KEYFILE',
+                          help='The filename of the generated host key (default: hostkey.pem)',
+                          default='hostkey.pem')
+    optional.add_argument('-v', '--vo', action='store', dest='vo', metavar='VO name', default=None,
+                          help='Specify the VO for the host request')
+    optional.add_argument('-y', '--cc', action='store', dest='cc_list', metavar='CC LIST', default='',
+                          help="Comma-separated CC list CC list of the request")
+    optional.add_argument('-m', '--comment', action='store', dest='comment', metavar='COMMENT', default='',
+                          help='The comment to be added to the request')
+    optional.add_argument('-a', '--altname', action='append', dest='alt_names', metavar='HOSTNAME', default=[],
+                          help='Specify an alternative hostname for the CSR (FQDN). May be used more than once')
+    optional.add_argument('-t', '--timeout', action=TimeoutAction, type=int, dest='timeout', default=5,
+                          help='Specify the timeout in minutes')
+    optional.add_argument('-T', '--test', action='store_true', dest='test', help='Run in test mode', default=False)
+    optional.add_argument('-q', '--quiet', action='store_false', dest='verbose', default=True,
+                          help="don't print status messages to stdout")
+    optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
+                          help="Write the generated host key to this directory")
+    optional.add_argument('--unauthenticated', action='store_true', dest='unauthenticated', default=False,
+                          help='Force unauthenticated certificate request')
+    optional.add_argument('-V', '--version', action='version', version=OSGPKIUtils.VERSION_NUMBER)
+
+    return parser.parse_args()
+
+class PhoneAction(argparse.Action):
+    """Action for validating phone number option
+    """
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError("-p/--phone only accepts a single argument")
+        super(PhoneAction, self).__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        phone_num = values.replace('-', '')
+        if phone_num.isdigit():
+            setattr(namespace, self.dest, phone_num)
         else:
-            pem_filename = args.keyfile
-    elif not os.path.exists(args.csr):
-        raise FileNotFoundException(args.csr,
-                                    'The file %s does not exist'
-                                    % args.csr)
+            raise ValueError("Phone number should only contain numbers and '-'")
+
+class TimeoutAction(argparse.Action):
+    """Action for validating timeout option
+    """
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError("-t/--timeout only accepts a single argument")
+        super(TimeoutAction, self).__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values > 0:
+            setattr(namespace, self.dest, int(values))
+        else:
+            raise ValueError("Invalid timeout value. Please enter a value greater than 0.")
+
+def unauthenticated_request(config, name, email, phone, hostname=None, altnames=None,
+                            csr_path=None, write_directory=None, comment=None, cc=None):
+    """Intermediary function for making unauthenticated cert requests. Hopefully most of this can be refactored into
+    ConnectAPI.ConnectAPI.request_unauthenticated
+    """
+    if (not hostname and not csr_path) or (hostname and csr_path):
+        raise TypeError("unauthenticated_request() requires only one of hostname or csr_path arguments to be defined")
+
+    if csr_path is None:
+        common_name = hostname.replace('/', '-')
+        cert = OSGPKIUtils.Cert(common_name,
+                                keypath=os.path.join(write_directory, common_name + '-key.pem'),
+                                altnames=altnames,
+                                email=email)
+
+        try:
+            old_keypath = re.sub(r'\.pem$', '-old.pem', cert.keypath)
+            print "Renaming existing key from %s to %s" % (cert.keypath, old_keypath)
+            os.rename(cert.keypath, old_keypath)
+        except OSError, exc:
+            if exc.errno != errno.ENOENT:
+                raise
+        OSGPKIUtils.charlimit_textwrap('Writing key to %s' % cert.keypath)
+        cert.write_pkey()
+
+        csr = cert.base64_csr()
     else:
-        charlimit_textwrap('CSR input found. Skipping creation of the primary key\n')
+        OSGPKIUtils.charlimit_textwrap('CSR input found. Skipping creation of the primary key')
+        try:
+            csr = OSGPKIUtils.format_csr(open(csr_path, 'rb').read())
+        except OSError, exc:
+            OSGPKIUtils.charlimit_textwrap('Failed to read CSR file: %s' % exc)
+            sys.exit(1)
 
-    hostname = args.hostname
-    alt_names = args.alt_names
-    email = args.email
-    name = args.name
-    phone = args.phone
-    csr = args.csr
-
-    cc_list = args.cc_list
-
-    comment = args.comment
-
-    phone_num = phone.replace('-', '')
-    if not phone_num.isdigit():
-        raise ValidationException("Phone number should contain \
-                                  only numbers and/or '-'\n")
-
-    timeout = int(args.timeout)
-    if not timeout >= 0:
-        raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
-
-    if args.write_directory:
-        if args.write_directory[-1] != '/':
-            args.write_directory = args.write_directory + '/'
-        certdir = args.write_directory
-    else:
-        certdir = "./"
-
-    OIM = args.test
-
-    arguments = read_config(OIM)
-
-    arguments.update({'vo': args.vo})
-
-    if vars().has_key('args'):
-        arguments.update({'args': args})
-    if vars().has_key('values'):
-        arguments.update({'values': values})
-    if vars().has_key('cc_list'):
-        arguments.update({'cc_list': cc_list})
-    if vars().has_key('comment'):
-        arguments.update({'comment': comment})
-    if vars().has_key('pem_filename'):
-        arguments.update({'pem_filename': pem_filename})
-    arguments.update({'timeout': timeout})
-    print 'Using timeout of %d minutes' % timeout
-    arguments.update({'email': email})
-    arguments.update({'name': name})
-    arguments.update({'phone': phone})
-    arguments.update({'hostname': hostname})
-    arguments.update({'alt_names': alt_names})
-    arguments.update({'certdir':certdir})
-    if vars().has_key('csr'):
-        arguments.update({'csr': csr})
-    return arguments
-
-
-    # Build the connection to the web server - the request header, the parameters
-    # needed and then pass them into the server
-    #
-    # The data returned is in JSON format so to make it a little more human
-    # readable we pass it through the json module to pretty print it
-    #
-
-def connect(arguments):
-    """This function accepts a dictionary consisting of all parameters and their values.
-    It submits the request to the OIM server and returns the request details."""
-
-    print '\nConnecting to server...'
-    params_list = {'name': arguments['name'],
-                   'email': arguments['email'],
-                   'phone': arguments['phone'],
-                   'csrs': arguments['csr'],
-                   'request_comment': arguments['comment'],
-                   'request_ccs': arguments['cc_list'].split(',')}
-    if 'vo' in arguments:
-        params_list['vo'] = arguments['vo']
-    params = urllib.urlencode(params_list)
-    headers = {'Content-type': arguments['content_type'],
-               'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
-    conn = httplib.HTTPConnection(arguments['host'])
-    try:
-        conn.request('POST', arguments['requrl'], params, headers)
-        response = conn.getresponse()
-    except httplib.HTTPException, exc:
-        charlimit_textwrap('Connection to %s failed: %s'
-                           % (arguments['requrl'], repr(exc)))
-        raise exc
-    except Exception, exc:
-        charlimit_textwrap('Error during request to %s. Reason %s'
-                           % (arguments['requrl'], repr(exc)))
-        raise exc
-    check_response_500(response)
-    data = response.read()
-    check_failed_response(data)
-    conn.close()
-    if json.loads(data)['detail'] == 'Nothing to report' \
-        and json.loads(data)['status'] == 'OK' in data:
-        ticket = json.loads(data)['host_request_id']
-        print 'Succesfully submitted'
-        print 'Request Id#: %s' % ticket
-    else:
-        raise UnexpectedBehaviourException("Unexpected Behavior encountered\nData received is %s" %data)
-    return
-
+    capi = ConnectAPI.ConnectAPI()
+    capi.request_unauthenticated(config, name, email, phone, csr, comment, cc)
+    OSGPKIUtils.charlimit_textwrap('Request Id#: %s' % capi.reqid)
 
 if __name__ == '__main__':
     try:
         os.umask(0177)
-        arguments = parse_args()
-        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
-        # The two modes in which the script is run are
-        # 1. The user doesn't provide a csr:
-        # Here we generate a private key for the user and also a
-        # certificate signing request for the user and submit it
-        # it to the OIM
-        # 2. The user provides a csr
-        # Here we simply get rid of the end and begin certificate
-        # lines of the csr and submit the request to the OIM
-        cwd = None
-        if arguments['csr'] is None:
-            if arguments['certdir'] != "./":
-                cwd = os.getcwd()
-
-            if cwd != None:
-                os.chdir(arguments['certdir'])
-
-            keypath = os.path.join(arguments['certdir'], arguments['pem_filename'])
-            cert_obj = OSGPKIUtils.Cert(arguments['hostname'],
-                                        keypath,
-                                        arguments['alt_names'],
-                                        arguments['email'])
-            arguments['csr'] = cert_obj.base64_csr()
-
-            if cwd != None:
-                os.chdir(cwd)
-            connect(arguments)
-            print 'Writing key to %s' % keypath
-            cert_obj.write_pkey()
-        else:
-            csr = OSGPKIUtils.format_csr(open(arguments['csr'], 'rb').read())
-            arguments.update({'csr': csr})
-            capi = ConnectAPI.ConnectAPI()
-            reqid = capi.request_unauthenticated(**arguments)
-            print 'Request Id#: %s' % reqid
-            arguments.update({'id':reqid})
-
+        try:
+            ARGS = parse_command_line()
+        except ValueError, exc:
+            OSGPKIUtils.print_exception_message(exc)
+            sys.exit(2)
+        CONFIG = OSGPKIUtils.read_config(ARGS.test)
+        OSGPKIUtils.start_timeout_clock(ARGS.timeout)
+        unauthenticated_request(CONFIG, ARGS.name, ARGS.email, ARGS.phone, ARGS.hostname, ARGS.alt_names,
+                                    ARGS.csr, ARGS.write_directory, ARGS.comment, ARGS.cc)
     except KeyboardInterrupt, exc:
-        print_exception_message(exc)
+        OSGPKIUtils.print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
     except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
         raise
     except SSLError, exc:
-        print_exception_message(exc)
+        OSGPKIUtils.print_exception_message(exc)
         sys.exit('Please check for valid certificate.\n')
     except httplib.HTTPException, exc:
-        charlimit_textwrap('Connection to %s failed: %s' % (arguments['requrl'], repr(exc)))
+        OSGPKIUtils.charlimit_textwrap('Connection to %s failed: %s' % (CONFIG['requrl'], repr(exc)))
     except FileNotFoundException, exc:
-        charlimit_textwrap(exc.message + ':' + exc.filename)
+        OSGPKIUtils.charlimit_textwrap(exc.message + ':' + exc.filename)
         sys.exit(1)
     except (Exception_500response, NotOKException), exc:
-        charlimit_textwrap('Request Failed. Status %s' % exc.status)
-        charlimit_textwrap('Reason for failure %s' % exc.message)
+        OSGPKIUtils.charlimit_textwrap('Request Failed. Status %s' % exc.status)
+        OSGPKIUtils.charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
     except CertificateMismatchException, exc:
         print 'The number of requests made was ', exc.request_num
         print 'The number of certificates received is ', exc.retrieve_num
-        charlimit_textwrap(exc.message)
+        OSGPKIUtils.charlimit_textwrap(exc.message)
         sys.exit(1)
     except (BadPassphraseException, HandshakeFailureException, UnexpectedBehaviourException, InvalidOptionException), exc:
-        charlimit_textwrap(exc.message)
+        OSGPKIUtils.charlimit_textwrap(exc.message)
         sys.exit(1)
-    except (EOFError, OSError, KeyError, ValueError, IOError), exc:
-        print_exception_message(exc)
+    except (EOFError, OSError, KeyError, IOError), exc:
+        OSGPKIUtils.print_exception_message(exc)
         sys.exit(1)
     except Exception:
-        print_uncaught_exception()
-        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
+        OSGPKIUtils.print_uncaught_exception()
+        OSGPKIUtils.charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
         sys.exit(1)
     sys.exit(0)

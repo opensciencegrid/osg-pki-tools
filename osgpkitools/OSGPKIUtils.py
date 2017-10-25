@@ -346,5 +346,5 @@ class Cert:
         self.keypair.save_key(filename, cipher=None)
 
     def base64_csr(self):
-        """Extract the base64 encoded string from the contents of a CSR"""
+        """Extract the base64 encoded string from the contents of a certificate signing request"""
         return format_csr(self.x509request.as_pem())

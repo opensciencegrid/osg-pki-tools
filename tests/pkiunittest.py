@@ -97,10 +97,6 @@ class OIM(object):
         """Run osg-cert-request"""
         rc, stdout, stderr, msg = run_python('osg-cert-request',
                                              '--test',
-                                             '--hostname', 'test.' + DOMAIN,
-                                             '--email', EMAIL,
-                                             '--name', NAME,
-                                             '--phone', PHONE,
                                              '--comment', 'osg-pki-tools developer testing',
                                              '--cc', 'test@example.com,test2@example.com',
                                              '--directory', TEST_PATH,
