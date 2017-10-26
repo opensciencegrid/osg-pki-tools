@@ -184,42 +184,6 @@ or specify from a file using -f/--hostfile.''')
     else:
         certdir = './'
 
-    if args.userprivkey is None:
-        try:
-            userprivkey = os.environ['X509_USER_KEY']
-        except KeyError:
-            if os.path.exists(str(os.environ['HOME'])
-                              + '/.globus/userkey.pem'):
-                userprivkey = str(os.environ['HOME']) \
-                    + '/.globus/userkey.pem'
-            else:
-                raise FileNotFoundException('Key file', 'Could not locate the private key file')
-    else:
-        userprivkey = args.userprivkey
-
-    if os.path.exists(userprivkey):
-        pass
-    else:
-        raise FileNotFoundException(userprivkey, 'Could not locate the private key file')
-    if args.usercert is None:
-        try:
-            usercert = os.environ['X509_USER_CERT']
-        except KeyError:
-            usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
-            if os.path.exists(str(os.environ['HOME'])
-                              + '/.globus/usercert.pem'):
-                usercert = str(os.environ['HOME']) \
-                    + '/.globus/usercert.pem'
-            else:
-                raise FileNotFoundException('Certificate File', 'Could not locate the certificate file')
-    else:
-        usercert = args.usercert
-
-    if os.path.exists(usercert):
-        pass
-    else:
-        raise FileNotFoundException(usercert, 'Could not locate the certificate file')
-
     if not args.hostname:
         if os.path.exists(hostfile):
             pass
@@ -240,8 +204,8 @@ or specify from a file using -f/--hostfile.''')
     arguments.update({'timeout': timeout})
     print 'Using timeout of %d minutes' % timeout
     arguments.update({'alt_names': args.alt_names})
-    arguments.update({'usercert': usercert})
-    arguments.update({'userprivkey': userprivkey})
+    arguments.update({'usercert': args.usercert})
+    arguments.update({'userprivkey': args.userprivkey})
     arguments.update({'certdir': certdir})
     if vars().has_key('hostfile'):
         arguments.update({'hostfile': hostfile})
@@ -382,7 +346,7 @@ if __name__ == '__main__':
         ARGS = parse_args()
         CONFIG = read_config(ARGS['test'])
         check_permissions(ARGS['certdir'])
-        ssl_context = get_ssl_context(**ARGS)
+        ssl_context = get_ssl_context(ARGS['usercert'], ARGS['userprivkey'])
 
         OSGPKIUtils.start_timeout_clock(ARGS['timeout'])
 

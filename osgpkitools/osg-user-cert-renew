@@ -107,34 +107,6 @@ will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
     if not timeout >= 0:
         raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
 
-    if args.userprivkey:
-        userprivkey = args.userprivkey
-    else:
-        try:
-            userprivkey = os.environ['X509_USER_KEY']
-        except KeyError:
-            try:
-                userprivkey = os.environ['HOME'] + '/.globus/userkey.pem'
-            except KeyError:
-                userprivkey = ''
-
-    if not os.path.exists(userprivkey):
-        raise FileNotFoundException(userprivkey, 'Could not locate the private key file')
-
-    if args.usercert:
-        usercert = args.usercert
-    else:
-        try:
-            usercert = os.environ['X509_USER_CERT']
-        except KeyError:
-            try:
-                usercert = os.environ['HOME'] + '/.globus/usercert.pem'
-            except KeyError:
-                usercert = ''
-
-    if not os.path.exists(usercert):
-        raise FileNotFoundException(usercert, 'Could not locate the certificate file')
-
     # Check write directory existence and write permission
     try:
         if not os.access(args.write_directory, os.W_OK):
@@ -148,8 +120,8 @@ will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
     arguments = read_config(args.test)
     arguments.update({'timeout': timeout})
     print 'Using timeout of %d minutes' % timeout
-    arguments.update({'usercert': usercert})
-    arguments.update({'userprivkey': userprivkey})
+    arguments.update({'usercert': args.usercert})
+    arguments.update({'userprivkey': args.userprivkey})
     arguments.update({'certdir': args.write_directory})
     return arguments
 
@@ -334,7 +306,7 @@ if __name__ == '__main__':
     try:
         os.umask(0177)
         arguments = parse_args()
-        arguments['ssl_context'] = get_ssl_context(**arguments)
+        arguments['ssl_context'] = get_ssl_context(arguments['usercert'], arguments['userprivkey'])
         arguments = extract_info(**arguments)
         OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         process_renew(**arguments)

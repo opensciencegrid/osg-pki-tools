@@ -45,45 +45,56 @@ userreturl: /oim/rest?action=user_cert_retrieve&version=1
 userrevurl: /oim/rest?action=user_cert_revoke&version=1
 """
 
-def get_ssl_context(**arguments):
+def get_ssl_context(usercert=None, userkey=None):
     """ This function sets the ssl context by accepting the passphrase
     and validating it for user private key and his certificate
-    INPUT :
-    arguments - A dict containing
-    userprivkey - Filename for private key of user.
-    usercert    - Filename for user certificate.
+    INPUT
+    cert: Filename for user certificate.
+    key: Filename for private key of user.
 
-    OUTPUT :
-    ssl_context - ssl context for the HTTPS connection.
-
+    OUTPUT
+    SSL.Context() object for the HTTPS connection.
     """
-    count = 0
-    pass_str = 'Please enter the pass phrase for'
-    while True:
-        try:
-            def prompt_for_password(verify):
-                return getpass.getpass(pass_str+" '%s':"
-                                       % arguments['userprivkey'])
+    # list of cert/key pairs to try
+    input_pairs = [(usercert, userkey),
+                   ((os.environ.get('X509_USER_CERT'), os.environ.get('X509_USER_KEY'))),
+                   (os.path.expanduser('~/.globus/usercert.pem'), os.path.expanduser('~/.globus/userkey.pem'))]
+    # ignore pairs when X509_USER_* vars undefined or function called without args
+    cert_key_pairs = [t for t in input_pairs if None not in t]
 
-            ssl_context = SSL.Context()
-            ssl_context.set_options(m2.SSL_OP_NO_SSLv2 | m2.SSL_OP_NO_SSLv3)
-            ssl_context.load_cert_chain(arguments['usercert'],
-                                        arguments['userprivkey'],
-                                        callback=prompt_for_password)
-            break
-        except Exception, exc:
-            if 'sslv3 alert bad certificate' in exc:
-                raise BadCertificateException('Error connecting to server: %s. \n' + \
-                                              'Your certificate is not trusted by the server'
-                                              % exc)
-            elif 'handshake failure' in exc:
-                raise HandshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
-                                                % exc)
-            count = count + 1
-            pass_str = 'Incorrect password. Please enter the password again for'
-            if count > 1:
-                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script')
-    return ssl_context
+    # M2Crypto doesn't raise exceptions when encountering missing or unreadable
+    # cert/key pairs so we force the issue
+    for cert_path, key_path in cert_key_pairs:
+        try:
+            if open(cert_path, 'r') and open(key_path, 'r'):
+                cert = cert_path
+                key = key_path
+                break
+        except IOError:
+            continue
+    else:
+        raise IOError("Unable to read the following certificate/key pairs:\n- %s" %
+                      "\n- ".join([", ".join(pair) for pair in cert_key_pairs]))
+
+    pass_str = 'Please enter the pass phrase for'
+    for _ in range(0, 2): # allow two password attempts
+        def prompt_for_password(verify):
+            return getpass.getpass(pass_str+" '%s':" % key)
+
+        ssl_context = SSL.Context()
+        ssl_context.set_options(m2.SSL_OP_NO_SSLv2 | m2.SSL_OP_NO_SSLv3)
+
+        try:
+            ssl_context.load_cert_chain(cert, key, callback=prompt_for_password)
+            return ssl_context
+        except SSL.SSLError, exc:
+            if 'bad password read' in exc:
+                pass_str = 'Incorrect password. Please enter the password again for'
+            else:
+                raise
+
+    # if we fell off the loop, the passphrase was incorrect twice
+    raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script')
 
 
 def print_exception_message(exc):

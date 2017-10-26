@@ -148,45 +148,12 @@ def parse_args():
     if not timeout >= 0:
         raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
 
-    if args.userprivkey is None:
-        try:
-            userprivkey = os.environ['X509_USER_KEY']
-        except KeyError:
-            if os.path.exists(str(os.environ['HOME'])
-                              + '/.globus/userkey.pem'):
-                userprivkey = str(os.environ['HOME']) \
-                              + '/.globus/userkey.pem'
-            else:
-                raise FileNotFoundException('Key file', 'Could not locate the private key file')
-    else:
-        userprivkey = args.userprivkey
-
-    if not os.path.exists(userprivkey):
-        raise FileNotFoundException(userprivkey, 'Could not locate the private key file')
-    if args.usercert is None:
-        try:
-            usercert = os.environ['X509_USER_CERT']
-        except KeyError:
-            usercert = str(os.environ['HOME']) + '/.globus/usercert.pem'
-            if os.path.exists(str(os.environ['HOME'])
-                              + '/.globus/usercert.pem'):
-                usercert = str(os.environ['HOME']) \
-                    + '/.globus/usercert.pem'
-            else:
-                raise FileNotFoundException('Certificate File',
-                                            'Could not locate the certificate file')
-    else:
-        usercert = args.usercert
-
-    if not os.path.exists(usercert):
-        raise FileNotFoundException(usercert, 'Could not locate the certificate file')
-
     arguments.update({'certid': args.certid})
     arguments.update({'id': reqid})
     arguments.update({'message': args.message})
     arguments.update({'user': args.user})
-    arguments.update({'usercert': usercert})
-    arguments.update({'userprivkey': userprivkey})
+    arguments.update({'usercert': args.usercert})
+    arguments.update({'userprivkey': args.userprivkey})
     arguments.update({'timeout': timeout})
     print 'Using timeout of %d minutes' % timeout
 
@@ -273,7 +240,7 @@ def connect_revoke(**arguments):
 if __name__ == "__main__":
     try:
         arguments = parse_args()
-        ssl_context = get_ssl_context(**arguments)
+        ssl_context = get_ssl_context(arguments['usercert'], arguments['userprivkey'])
         arguments.update({'ssl_context': ssl_context})
         OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         connect_revoke(**arguments)
