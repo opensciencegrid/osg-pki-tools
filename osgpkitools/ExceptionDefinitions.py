@@ -41,7 +41,7 @@ class NotOKException(Exception):
         self.message = message
         
     def __str__(self):
-        return "OK not found; status: %d; reason: %s" % (self.status, self.reason)
+        return "OK not found; status: %s; reason: %s" % (self.status, self.message)
 
 class UnexpectedBehaviourException(Exception):
     """Exception raised when and unexpected behaviour of the CLI script is encountered.
