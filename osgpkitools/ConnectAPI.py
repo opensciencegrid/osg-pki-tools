@@ -242,7 +242,7 @@ class ConnectAPI(object):
         params = urllib.urlencode({'host_request_id': reqid})
         headers = {'Content-type': config['content_type'],
                    'User-Agent': USER_AGENT}
-        conn = M2Crypto.httpslib.HTTPSConnection(config['host'],
+        conn = M2Crypto.httpslib.HTTPSConnection(config['hostsec'],
                                                  ssl_context=ssl_context)
         response = self.do_connect(conn, 'POST', config['appurl'], params, headers)
         if not 'OK' in response.reason:
@@ -251,7 +251,7 @@ class ConnectAPI(object):
         conn.close()
         if action == 'approve' and 'OK' in data:
             newrequrl = config['issurl']
-            conn = M2Crypto.httpslib.HTTPSConnection(config['host'], ssl_context=ssl_context)
+            conn = M2Crypto.httpslib.HTTPSConnection(config['hostsec'], ssl_context=ssl_context)
 
             conn.request('POST', newrequrl, params, headers)
             response = conn.getresponse()
