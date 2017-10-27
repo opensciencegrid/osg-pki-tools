@@ -325,13 +325,13 @@ def process_csr(config, bulk_csr, ssl_ctx, **arguments):
     try:
 
         print 'Connecting to server to approve certificate...'
-        capi.approve(**arguments)
+        capi.approve(config, ssl_ctx)
 
         print 'Issuing certificate...'
-        pkcs7raw = capi.retrieve_authenticated(**arguments)
+        pkcs7raw = capi.retrieve(config)
         process_pkcs7(pkcs7raw, len(bulk_csr), **arguments)
     except httplib.HTTPException, exc:
-        charlimit_textwrap('Connection to %s failed: %s'% (arguments['newrequrl'], exc))
+        charlimit_textwrap('Connection failed: %s'% exc)
         raise
     except SystemExit, exc:
         if 'sslv3 alert bad certificate' in exc:

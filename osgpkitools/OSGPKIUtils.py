@@ -5,10 +5,13 @@ import errno
 import os
 import re
 import time
+import shutil
 import sys
+import tempfile
 import textwrap
 import json
 import signal
+import subprocess
 import traceback
 import getpass
 from StringIO import StringIO
@@ -229,6 +232,55 @@ def format_csr(csr):
               .replace('-----END CERTIFICATE REQUEST-----\n', '')\
               .replace('\n', '')
 
+def atomic_write(filename, contents):
+    """Write to a temporary file then move it to its final location
+    """
+    temp_file = tempfile.NamedTemporaryFile(dir=os.path.dirname(filename))
+    temp_file.write(contents)
+    temp_file.flush()
+    shutil.copy2(temp_file.name, filename)
+
+def safe_rename(filename):
+    """Renames 'filename' to 'filename.old'
+    """
+    old_filename = filename + '.old'
+    try:
+        shutil.move(filename, old_filename)
+        print "Renamed existing file from %s to %s" % (filename, old_filename)
+    except IOError, exc:
+        if exc.errno != errno.ENOENT:
+            charlimit_textwrap(exc.message)
+            raise RuntimeError('ERROR: Failed to rename %s to %s' % (filename, old_filename))
+
+def extract_certs(pkcs7raw):
+    """This function accepts pkcs7raw dump of a single certificate and
+    extracts the host certificate in PEM format. Returns a tuple of
+    strings: (hostname, certificate)
+    """
+    pkcs7_file = tempfile.NamedTemporaryFile()
+    pkcs7_file.write(str(pkcs7raw))
+    pkcs7_file.flush()
+    pem_file = tempfile.NamedTemporaryFile()
+
+    # ### printing our all the certificates received from OIM to a temporary file###
+    subprocess.call([
+        'openssl',
+        'pkcs7',
+        '-print_certs',
+        '-in',
+        os.path.abspath(pkcs7_file.name),
+        '-out',
+        os.path.abspath(pem_file.name),
+        ])
+    pkcs7_file.close()
+    cert_string = pem_file.read()
+    pem_file.close()
+
+    hostname = extractHostname(cert_string)
+    eec_string = extractEEC(cert_string, hostname)
+
+    return (hostname, eec_string)
+
 ### We take the whole certificate data as a string input
 ### Checking for /CN= in every line and extracting the term after that if not Digicert i.e. CA would be the hostname
 ### Here we rely on OPenSSL -printcert output format. If it changes our output might be affected
@@ -356,14 +408,7 @@ class Cert:
         if not filename:
             filename = self.keypath
         # Handle already existing key file...
-        old_keypath = filename + '.old'
-        try:
-            os.rename(filename, old_keypath)
-            print "Renaming existing key from %s to %s" % (filename, old_keypath)
-        except OSError, exc:
-            if exc.errno != errno.ENOENT:
-                raise
-
+        safe_rename(filename)
         self.keypair.save_key(filename, cipher=None)
 
     def base64_csr(self):

@@ -97,8 +97,8 @@ class TimeoutAction(argparse.Action):
         else:
             raise ValueError("Invalid timeout value. Please enter a value greater than 0.")
 
-def unauthenticated_request(config, name, email, phone, hostname=None, altnames=None,
-                            csr_path=None, write_directory=None, comment=None, cc=None):
+def unauthenticated_request(config, name, email, phone, hostname=None, altnames=None, csr_path=None,
+                            write_directory=None, vo=None, cc=None, comment=None):
     """Intermediary function for making unauthenticated cert requests. Hopefully most of this can be refactored into
     ConnectAPI.ConnectAPI.request_unauthenticated
     """
@@ -111,6 +111,7 @@ def unauthenticated_request(config, name, email, phone, hostname=None, altnames=
                                 keypath=os.path.join(write_directory, common_name + '-key.pem'),
                                 altnames=altnames,
                                 email=email)
+        print "Writing key to %s" % cert.keypath
         cert.write_pkey()
 
         csr = cert.base64_csr()
@@ -123,21 +124,62 @@ def unauthenticated_request(config, name, email, phone, hostname=None, altnames=
             sys.exit(1)
 
     capi = ConnectAPI.ConnectAPI()
-    capi.request_unauthenticated(config, name, email, phone, csr, comment, cc)
+    capi.request_unauthenticated(config, name, email, phone, csr, vo, cc, comment)
     OSGPKIUtils.charlimit_textwrap('Request Id#: %s' % capi.reqid)
+
+def main():
+    """Request certificates from OIM, defaulting to authenticated (GridAdmin) requests but falling back to
+    an unauthenticated request if we cannot find a valid user cert/key pair
+    """
+    os.umask(0177)
+    try:
+        args = parse_command_line()
+    except ValueError, exc:
+        OSGPKIUtils.print_exception_message(exc)
+        sys.exit(2)
+    config = OSGPKIUtils.read_config(args.test)
+    OSGPKIUtils.start_timeout_clock(args.timeout)
+
+    if args.unauthenticated:
+        unauthenticated_request(config, args.name, args.email, args.phone, args.hostname, args.alt_names, args.csr,
+                                args.write_directory, args.vo, args.cc_list, args.comment)
+    else:
+        try:
+            msg = "Defaulting to authenticated certificate requests. " + \
+                  "If you want to force unauthenticated requests, use the '--unauthenticated' option."
+            OSGPKIUtils.charlimit_textwrap(msg)
+            ssl_ctx = OSGPKIUtils.get_ssl_context()
+        except IOError:
+            msg = "Could not find user certificate/key pair, making unauthenticated request..."
+            OSGPKIUtils.charlimit_textwrap(msg)
+            unauthenticated_request(config, args.name, args.email, args.phone, args.hostname, args.alt_names, args.csr,
+                                    args.write_directory, args.vo, args.cc_list, args.comment)
+        else:
+            cert = OSGPKIUtils.Cert(args.hostname, os.path.join(args.write_directory, args.keyfile),
+                                    altnames=args.alt_names, email=args.email)
+            print "Writing key to %s" % cert.keypath
+            cert.write_pkey()
+
+            oim = ConnectAPI.ConnectAPI()
+            print 'Requesting certificate...'
+            oim.request_authenticated(config, [cert.base64_csr()], ssl_ctx, args.vo, args.cc_list)
+            print 'OIM Request ID: %s' % oim.reqid
+
+            print 'Connecting to server to approve certificate...'
+            oim.approve(config, ssl_ctx)
+
+            print 'Retrieving certificate...'
+            hostname, cert_string = oim.retrieve(config)[0]
+
+            cert_path = os.path.join(args.write_directory, hostname + '.pem')
+            OSGPKIUtils.safe_rename(cert_path)
+            OSGPKIUtils.atomic_write(cert_path, cert_string)
+            os.chmod(cert_path, 0644)
+            OSGPKIUtils.charlimit_textwrap('Certificate written to %s' % cert_path)
 
 if __name__ == '__main__':
     try:
-        os.umask(0177)
-        try:
-            ARGS = parse_command_line()
-        except ValueError, exc:
-            OSGPKIUtils.print_exception_message(exc)
-            sys.exit(2)
-        CONFIG = OSGPKIUtils.read_config(ARGS.test)
-        OSGPKIUtils.start_timeout_clock(ARGS.timeout)
-        unauthenticated_request(CONFIG, ARGS.name, ARGS.email, ARGS.phone, ARGS.hostname, ARGS.alt_names,
-                                    ARGS.csr, ARGS.write_directory, ARGS.comment, ARGS.cc)
+        main()
     except KeyboardInterrupt, exc:
         OSGPKIUtils.print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
@@ -149,7 +191,7 @@ if __name__ == '__main__':
         OSGPKIUtils.print_exception_message(exc)
         sys.exit('Please check for valid certificate.\n')
     except httplib.HTTPException, exc:
-        OSGPKIUtils.charlimit_textwrap('Connection to %s failed: %s' % (CONFIG['requrl'], repr(exc)))
+        OSGPKIUtils.charlimit_textwrap('Connection failed: %s' % repr(exc))
     except FileNotFoundException, exc:
         OSGPKIUtils.charlimit_textwrap(exc.message + ':' + exc.filename)
         sys.exit(1)
