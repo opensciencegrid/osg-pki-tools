@@ -5,9 +5,7 @@ This script submits a host certificate request for an unauthenticated
 user.
 """
 
-import errno
 import httplib
-import re
 import sys
 import os
 import argparse
@@ -113,15 +111,6 @@ def unauthenticated_request(config, name, email, phone, hostname=None, altnames=
                                 keypath=os.path.join(write_directory, common_name + '-key.pem'),
                                 altnames=altnames,
                                 email=email)
-
-        try:
-            old_keypath = re.sub(r'\.pem$', '-old.pem', cert.keypath)
-            print "Renaming existing key from %s to %s" % (cert.keypath, old_keypath)
-            os.rename(cert.keypath, old_keypath)
-        except OSError, exc:
-            if exc.errno != errno.ENOENT:
-                raise
-        OSGPKIUtils.charlimit_textwrap('Writing key to %s' % cert.keypath)
         cert.write_pkey()
 
         csr = cert.base64_csr()

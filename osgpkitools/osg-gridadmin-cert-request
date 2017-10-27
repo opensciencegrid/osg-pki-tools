@@ -376,11 +376,6 @@ if __name__ == '__main__':
         if len(certs):
             charlimit_textwrap("Writing key(s) to %s" % ARGS['certdir'])
             for cert in certs:
-                # Handle already existing key file...
-                if os.path.exists(cert.keypath):
-                    old_keypath = re.sub(r'\.pem$', '-old.pem', cert.keypath)
-                    print "Renaming existing key from %s to %s" % (cert.keypath, old_keypath)
-                    os.rename(cert.keypath, old_keypath)
                 cert.write_pkey()
             try:
                 process_csr(CONFIG, [cert.base64_csr() for cert in certs], ssl_context, **ARGS)

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import ConfigParser
+import errno
 import os
 import re
 import time
@@ -354,6 +355,15 @@ class Cert:
         It write the private key to the specified file name without ciphering it."""
         if not filename:
             filename = self.keypath
+        # Handle already existing key file...
+        old_keypath = filename + '.old'
+        try:
+            os.rename(filename, old_keypath)
+            print "Renaming existing key from %s to %s" % (filename, old_keypath)
+        except OSError, exc:
+            if exc.errno != errno.ENOENT:
+                raise
+
         self.keypair.save_key(filename, cipher=None)
 
     def base64_csr(self):
