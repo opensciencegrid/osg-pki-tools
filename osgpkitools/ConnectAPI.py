@@ -14,7 +14,7 @@ from OSGPKIUtils import check_for_pending
 from osgpkitools import OSGPKIUtils
 from ExceptionDefinitions import *
 
-USER_AGENT = 'OIMGridAPIClient/0.1 (OIM Grid API)'
+USER_AGENT = 'OIMGridAPIClient/%s (OIM Grid API)' % OSGPKIUtils.VERSION_NUMBER
 
 class ConnectAPI(object):
 
