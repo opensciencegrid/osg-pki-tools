@@ -149,6 +149,7 @@ or specify from a file using -f/--hostfile.''')
         action='store',
         dest='write_directory',
         help="Write the output files to this directory",
+        default='.'
         )
     parser.add_option(
         '-V',
@@ -177,13 +178,6 @@ or specify from a file using -f/--hostfile.''')
     if not timeout >= 0:
         raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
 
-    if args.write_directory:
-        certdir = args.write_directory
-        charlimit_textwrap("Writing certificate to %s" %certdir)
-
-    else:
-        certdir = './'
-
     if not args.hostname:
         if os.path.exists(hostfile):
             pass
@@ -193,7 +187,7 @@ or specify from a file using -f/--hostfile.''')
     arguments = dict()
     arguments.update({'test': args.test})
     arguments.update({'vo' : args.vo})
-    arguments.update({'mode': oim})
+    arguments.update({'mode': args.test})
     arguments.update({'cc_list': args.cc_list})
     if vars().has_key('args'):
         arguments.update({'args': args})
@@ -206,7 +200,7 @@ or specify from a file using -f/--hostfile.''')
     arguments.update({'alt_names': args.alt_names})
     arguments.update({'usercert': args.usercert})
     arguments.update({'userprivkey': args.userprivkey})
-    arguments.update({'certdir': certdir})
+    arguments.update({'certdir': args.write_directory})
     if vars().has_key('hostfile'):
         arguments.update({'hostfile': hostfile})
     return arguments
@@ -214,104 +208,13 @@ or specify from a file using -f/--hostfile.''')
 
 #################################################
 
-
-
-def extract_certs(pkcs7raw, **arguments):
-    """This function accepts the hostname, pkcs7raw dump of the certificate and
-    a dictionary that consists variables and their value against them.
-    It write the certificates to file system by calling write_certificate function"""
-    pkcs7_file = tempfile.NamedTemporaryFile()
-    pkcs7_file.write(str(pkcs7raw))
-    pkcs7_file.flush()
-    temp_file = tempfile.NamedTemporaryFile()
-    print ''
-
-    # ### printing our all the certificates received from OIM to a temporary file###
-    subprocess.call([
-        'openssl',
-        'pkcs7',
-        '-print_certs',
-        '-in',
-        os.path.abspath(pkcs7_file.name),
-        '-out',
-        os.path.abspath(temp_file.name),
-        ])
-    pkcs7_file.close()
-    cert_string = temp_file.read()
-    temp_file.close()
-    ### Extracting the hostname ###
-
-    hostname = extractHostname(cert_string)
-
-    ### Extracting the EEC certificate ###
-
-    eec_string = extractEEC(cert_string, hostname)
-    arguments.update({'hostname': hostname})
-    arguments.update({'eecString': eec_string})
-    write_certificate(**arguments)
-
-
-def write_certificate(**arguments):
-    """ This function writes the extracted EEC certificate"""
-    cwd = os.getcwd()
-    try:
-        os.chdir(arguments['certdir'])
-        os.getcwd()
-    except OSError, exc:
-        charlimit_textwrap('''The directory %s does not exist or you cannot access the directory
-        . Please report the bug to goc@opensciencegrid.org.
-        %s''' % (arguments['certdir'], exc))
-        raise
-    hostname = arguments['hostname']
-    eec_string = arguments['eecString']
-    hostname = hostname.strip(' \n').replace('/', '-')
-    pem_filename = hostname + '.pem'
-    temp_file = tempfile.NamedTemporaryFile()
-    temp_file.write(eec_string)
-    temp_file.flush()
-    if os.path.exists(pem_filename): ###Fix for already existing cert file ###
-
-        #charlimit_textwrap('The file %s already exists.' % pem_filename)
-        old_pem_filename = hostname + "-old.pem"
-        subprocess.call(['mv', pem_filename, old_pem_filename])
-        print "Renaming existing file from %s to %s" % (os.path.join(arguments['certdir'], pem_filename),
-                                                        os.path.join(arguments['certdir'], old_pem_filename))
-        #pem_filename = '%s-%s.%s' % (hostname, arguments['reqid'], 'pem'
-                #)
-    subprocess.call(['cp', os.path.abspath(temp_file.name), pem_filename])  ### fix for move the file to desired name ###
-    os.chmod(pem_filename, 0644)
-
-    os.chdir(cwd)
-    charlimit_textwrap('Certificate written to %s' % os.path.join(arguments['certdir'], pem_filename))
-    temp_file.close()
-    return
-
-    # The slice and dice on the JSON output to get the certificate out
-    # happens here - the problem is that the new lines are getting all screwy
-    # in the output from OIM. We stringify the data, replace all the text
-    # newline characters with actual new lines and the strip off the
-    # extra data.
-
-
-def process_pkcs7(pkcs7, num_requests, **arguments):
-    """Method to seperate the processing of pkcs7 string from the certificate retrieval logic"""
-    cert_num = 0
-    for certstring in pkcs7:
-        extract_certs(certstring, **arguments)
-        cert_num = cert_num + 1
-
-    if cert_num != num_requests:
-        raise CertificateMismatchException(num_requests, cert_num, 'Request and certificate received mismatch')
-    return
-
-
-def process_csr(config, bulk_csr, ssl_ctx, **arguments):
+def process_csr(config, bulk_csr, ssl_ctx, vo, cc_list, write_dir):
     """This function handles the entire processing of the request i.e.
     requesting. approving and then retrieving in sequence"""
     capi = ConnectAPI.ConnectAPI()
 
     try:
-        reqid = capi.request_authenticated(config, bulk_csr, ssl_ctx, **arguments)
+        capi.request_authenticated(config, bulk_csr, ssl_ctx, vo, cc_list)
     except Exception, exc:
         if 'sslv3 alert bad certificate' in exc:
             raise BadCertificateException("Error connecting to server: %s.\n" + \
@@ -319,8 +222,7 @@ def process_csr(config, bulk_csr, ssl_ctx, **arguments):
         else:
             raise
 
-    print 'Id is:', reqid
-    arguments.update({'reqid':reqid})
+    print 'OIM Request ID: %s' % capi.reqid
 
     try:
 
@@ -328,8 +230,14 @@ def process_csr(config, bulk_csr, ssl_ctx, **arguments):
         capi.approve(config, ssl_ctx)
 
         print 'Issuing certificate...'
-        pkcs7raw = capi.retrieve(config)
-        process_pkcs7(pkcs7raw, len(bulk_csr), **arguments)
+        certs = capi.retrieve(config)
+
+        for hostname, cert_string in certs:
+            cert_path = os.path.join(write_dir, hostname + '.pem')
+            OSGPKIUtils.safe_rename(cert_path)
+            OSGPKIUtils.atomic_write(cert_path, cert_string)
+            os.chmod(cert_path, 0644)
+            OSGPKIUtils.charlimit_textwrap('Certificate written to %s' % cert_path)
     except httplib.HTTPException, exc:
         charlimit_textwrap('Connection failed: %s'% exc)
         raise
@@ -378,7 +286,8 @@ if __name__ == '__main__':
             for cert in certs:
                 cert.write_pkey()
             try:
-                process_csr(CONFIG, [cert.base64_csr() for cert in certs], ssl_context, **ARGS)
+                process_csr(CONFIG, [cert.base64_csr() for cert in certs], ssl_context,
+                            ARGS['vo'], ARGS['cc_list'], ARGS['certdir'])
             except SystemExit, exc:
                 if 'certificate quota' in str(exc):
                     print "Cleaning up key(s) in %s" % ARGS['certdir']
