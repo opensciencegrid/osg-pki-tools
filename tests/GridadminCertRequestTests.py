@@ -55,8 +55,8 @@ class GridadminCertRequestTests(unittest.TestCase):
         second_san = 'test-san2.' + DOMAIN
         oim = OIM()
         rc, _, _, msg = oim.gridadmin_request('--hostname', hostname,
-                                                  '--altname', san,
-                                                  '--altname', second_san)
+                                              '--altname', san,
+                                              '--altname', second_san)
         self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
         oim.assertSans([[hostname, san, second_san]], msg)
 
@@ -78,10 +78,9 @@ class GridadminCertRequestTests(unittest.TestCase):
 
         # Verify that the moved key/cert pair is the same as in the initial request
         try:
-            # TODO: The format of the output is not text wrapped like it should be.
-            # When that is fixed, the regex should be updated
-            old_cert_path = re.search(r'Renaming existing file from.*to (.*)', stdout).group(1)
-            old_key_path = re.search(r'Renaming existing key from.*to (.*)', stdout).group(1)
+            # TODO: instead of parsing output, we should assert existence of the old cert/key paths
+            old_cert_path = re.search(r'Renamed existing file from.*to (.*)', stdout).group(1)
+            old_key_path = re.search(r'Renamed existing file from.*to (.*-key.pem)', stdout).group(1)
         except AttributeError:
             self.fail('Failed to move old cert or key\n' + msg)
 
