@@ -295,7 +295,7 @@ def extractHostname(cert_string):
     hostname = ''
     for word in certs:
         if '/CN=' in word:
-            if not 'DigiCert' in word.split('/CN=')[1].split('\n')[0]:
+            if not 'CILogon' in word.split('/CN=')[1].split('\n')[0]:
                 hostname = word.split('/CN=')[1].split('\n')[0]
     if hostname == '':
         raise UnexpectedBehaviourException('Unexpected behaviour by OIM retrive API. EEC certificate not found')
