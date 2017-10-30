@@ -33,11 +33,9 @@ def parse_command_line():
                           help='Name of user receiving certificate')
     required.add_argument('-p', '--phone', action=PhoneAction, dest='phone', required=True, metavar='PHONE',
                           help='Phone number of user receiving certificate')
-
-    host_opts = required.add_mutually_exclusive_group(required=True)
-    host_opts.add_argument('-c', '--csr', action='store', dest='csr', default=None, metavar='CSR',
+    required.add_argument('-c', '--csr', action='store', dest='csr', default=None, metavar='CSR',
                            help='The file containing a certificate signing request')
-    host_opts.add_argument('-H', '--hostname', action='store', dest='hostname', metavar='CN', default=None,
+    required.add_argument('-H', '--hostname', action='store', dest='hostname', metavar='CN', default=None,
                            help='The common name of the requested certificate (FQDN)')
 
     # explicity create optional group and help message to force required before optional opts in help message
@@ -66,7 +64,16 @@ def parse_command_line():
                           help='Force unauthenticated certificate request')
     optional.add_argument('-V', '--version', action='version', version=OSGPKIUtils.VERSION_NUMBER)
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # We have to perform a manual check since add_mutually_exclusive_group(required=True) doesn't work if it's not added
+    # directly to the parser instance. But if we add it directly to the parser, it'll mess up the formatting of the help
+    # message
+    if (not args.hostname and not args.csr) or (args.hostname and args.csr):
+        parser.print_usage()
+        raise ValueError("osg-cert-request: error: Specify only one of -c/--csr and -H--hostname")
+
+    return args
 
 class PhoneAction(argparse.Action):
     """Action for validating phone number option
@@ -81,6 +88,7 @@ class PhoneAction(argparse.Action):
         if phone_num.isdigit():
             setattr(namespace, self.dest, phone_num)
         else:
+            parser.print_usage()
             raise ValueError("Phone number should only contain numbers and '-'")
 
 class TimeoutAction(argparse.Action):
@@ -95,6 +103,7 @@ class TimeoutAction(argparse.Action):
         if values > 0:
             setattr(namespace, self.dest, int(values))
         else:
+            parser.print_usage()
             raise ValueError("Invalid timeout value. Please enter a value greater than 0.")
 
 def unauthenticated_request(config, name, email, phone, hostname=None, altnames=None, csr_path=None,
@@ -135,7 +144,7 @@ def main():
     try:
         args = parse_command_line()
     except ValueError, exc:
-        OSGPKIUtils.print_exception_message(exc)
+        print exc
         sys.exit(2)
     config = OSGPKIUtils.read_config(args.test)
     OSGPKIUtils.start_timeout_clock(args.timeout)
