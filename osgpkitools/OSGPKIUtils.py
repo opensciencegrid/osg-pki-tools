@@ -26,7 +26,7 @@ MBSTRING_ASC = MBSTRING_FLAG | 1
 MBSTRING_BMP = MBSTRING_FLAG | 2
 
 # The variable for storing version number for the scripts
-VERSION_NUMBER = "1.2.21"
+VERSION_NUMBER = "2.0.0"
 
 DEFAULT_CONFIG = """[OIMData_ITB]
 host: oim-itb.grid.iu.edu:80
