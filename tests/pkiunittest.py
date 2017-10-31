@@ -2,6 +2,7 @@
 via the osg-pkitools. Each OIM keeps track of its request ID and cert/key pairs
 """
 
+import glob
 import os
 import re
 import shutil
@@ -32,7 +33,8 @@ PHONE = "555-555-5555"
 # Domain to use with host certificate requests
 # The test credentials are registered in OIM-ITB for this domain,
 # it is not arbitrary.
-DOMAIN = "pki-test.opensciencegrid.org"
+DOMAIN = "pki-test.wisc.edu"
+TEST_VO = "MIS"
 
 # Where the scripts are relative to the tests/ directory
 SCRIPTS_PATH = os.path.abspath("../osgpkitools")
@@ -97,15 +99,12 @@ class OIM(object):
         """Run osg-cert-request"""
         rc, stdout, stderr, msg = run_python('osg-cert-request',
                                              '--test',
-                                             '--hostname', 'test.' + DOMAIN,
-                                             '--email', EMAIL,
-                                             '--name', NAME,
-                                             '--phone', PHONE,
                                              '--comment', 'osg-pki-tools developer testing',
                                              '--cc', 'test@example.com,test2@example.com',
                                              '--directory', TEST_PATH,
+                                             '--vo', TEST_VO,
                                              *opts)
-        attr_regex = r'Writing key to ([^\n]+).*Request Id#: (\d+)'
+        attr_regex = r'Writing key to ([^\n]+).*OIM Request ID: (\d+)'
         try:
             key_path, self.reqid = re.search(attr_regex, stdout, re.MULTILINE|re.DOTALL).groups()
         except AttributeError:
@@ -125,15 +124,16 @@ class OIM(object):
                                              '--cert', GA_CERT_PATH,
                                              '--pkey', GA_KEY_PATH,
                                              '--directory', TEST_PATH,
+                                             '--vo', TEST_VO,
                                              *opts)
         # Populate instance attr
         try:
-            self.reqid = re.search(r'Id is: (\d+)', stdout).group(1)
+            self.reqid = re.search(r'OIM Request ID: (\d+)', stdout).group(1)
         except AttributeError:
             msg = 'Could not parse stdout for request ID\n' + msg
-        no_newlines = stdout.replace('\n', '') # osg-pki-tools wraps text on us, blowing up our regex
-        certs = re.findall(r'Certificate written to (.*?\.pem)', no_newlines)
-        keys = re.findall(r'Writing key to (.*?-key\.pem)', no_newlines)
+        # find all certs and keys in the output dir as sorted lists
+        certs = sorted([x for x in glob.glob(os.path.join(TEST_PATH, '*.pem')) if '-key.pem' not in x])
+        keys = sorted(glob.glob(os.path.join(TEST_PATH, '*-key.pem')))
         if len(certs) != len(keys):
             raise AssertionError('Mismatched number of issued certs and keys\n' + msg)
 

@@ -1,16 +1,21 @@
 #!/usr/bin/python
 
-from M2Crypto import SSL, m2, RSA, EVP, X509
 import ConfigParser
+import errno
 import os
 import re
 import time
+import shutil
 import sys
+import tempfile
 import textwrap
 import json
 import signal
+import subprocess
 import traceback
 import getpass
+from StringIO import StringIO
+from M2Crypto import SSL, m2, RSA, EVP, X509
 
 from ExceptionDefinitions import *
 
@@ -21,48 +26,79 @@ MBSTRING_ASC = MBSTRING_FLAG | 1
 MBSTRING_BMP = MBSTRING_FLAG | 2
 
 # The variable for storing version number for the scripts
-VERSION_NUMBER = "1.2.21"
+VERSION_NUMBER = "2.0.0"
 
+DEFAULT_CONFIG = """[OIMData_ITB]
+host: oim-itb.grid.iu.edu:80
+hostsec: oim-itb.grid.iu.edu:443
 
-def get_ssl_context(**arguments):
+[OIMData]
+host: oim.grid.iu.edu:80
+hostsec: oim.grid.iu.edu:443
+
+[DEFAULT]
+requrl: /oim/rest?action=host_certs_request&version=1
+appurl: /oim/rest?action=host_certs_approve&version=1
+revurl: /oim/rest?action=host_certs_revoke&version=1
+canurl: /oim/rest?action=host_certs_cancel&version=1
+returl: /oim/rest?action=host_certs_retrieve&version=1
+issurl: /oim/rest?action=host_certs_issue&version=1
+content_type: application/x-www-form-urlencoded
+renewurl: /oim/rest?action=user_cert_renew&version=1
+userreturl: /oim/rest?action=user_cert_retrieve&version=1
+userrevurl: /oim/rest?action=user_cert_revoke&version=1
+"""
+
+def get_ssl_context(usercert=None, userkey=None):
     """ This function sets the ssl context by accepting the passphrase
     and validating it for user private key and his certificate
-    INPUT :
-    arguments - A dict containing
-    userprivkey - Filename for private key of user.
-    usercert    - Filename for user certificate.
+    INPUT
+    cert: Filename for user certificate.
+    key: Filename for private key of user.
 
-    OUTPUT :
-    ssl_context - ssl context for the HTTPS connection.
-
+    OUTPUT
+    SSL.Context() object for the HTTPS connection.
     """
-    count = 0
-    pass_str = 'Please enter the pass phrase for'
-    while True:
-        try:
-            def prompt_for_password(verify):
-                return getpass.getpass(pass_str+" '%s':"
-                                       % arguments['userprivkey'])
+    # list of cert/key pairs to try
+    input_pairs = [(usercert, userkey),
+                   ((os.environ.get('X509_USER_CERT'), os.environ.get('X509_USER_KEY'))),
+                   (os.path.expanduser('~/.globus/usercert.pem'), os.path.expanduser('~/.globus/userkey.pem'))]
+    # ignore pairs when X509_USER_* vars undefined or function called without args
+    cert_key_pairs = [t for t in input_pairs if None not in t]
 
-            ssl_context = SSL.Context()
-            ssl_context.set_options(m2.SSL_OP_NO_SSLv2 | m2.SSL_OP_NO_SSLv3)
-            ssl_context.load_cert_chain(arguments['usercert'],
-                                        arguments['userprivkey'],
-                                        callback=prompt_for_password)
-            break
-        except Exception, exc:
-            if 'sslv3 alert bad certificate' in exc:
-                raise BadCertificateException('Error connecting to server: %s. \n' + \
-                                              'Your certificate is not trusted by the server'
-                                              % exc)
-            elif 'handshake failure' in exc:
-                raise HandshakeFailureException('Failure: %s.\nPlease check for valid certificate/key pairs.'
-                                                % exc)
-            count = count + 1
-            pass_str = 'Incorrect password. Please enter the password again for'
-            if count > 1:
-                raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script')
-    return ssl_context
+    # M2Crypto doesn't raise exceptions when encountering missing or unreadable
+    # cert/key pairs so we force the issue
+    for cert_path, key_path in cert_key_pairs:
+        try:
+            if open(cert_path, 'r') and open(key_path, 'r'):
+                cert = cert_path
+                key = key_path
+                break
+        except IOError:
+            continue
+    else:
+        raise IOError("Unable to read the following certificate/key pairs:\n- %s" %
+                      "\n- ".join([", ".join(pair) for pair in cert_key_pairs]))
+
+    pass_str = 'Please enter the pass phrase for'
+    for _ in range(0, 2): # allow two password attempts
+        def prompt_for_password(verify):
+            return getpass.getpass(pass_str+" '%s':" % key)
+
+        ssl_context = SSL.Context()
+        ssl_context.set_options(m2.SSL_OP_NO_SSLv2 | m2.SSL_OP_NO_SSLv3)
+
+        try:
+            ssl_context.load_cert_chain(cert, key, callback=prompt_for_password)
+            return ssl_context
+        except SSL.SSLError, exc:
+            if 'bad password read' in exc:
+                pass_str = 'Incorrect password. Please enter the password again for'
+            else:
+                raise
+
+    # if we fell off the loop, the passphrase was incorrect twice
+    raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script')
 
 
 def print_exception_message(exc):
@@ -196,6 +232,55 @@ def format_csr(csr):
               .replace('-----END CERTIFICATE REQUEST-----\n', '')\
               .replace('\n', '')
 
+def atomic_write(filename, contents):
+    """Write to a temporary file then move it to its final location
+    """
+    temp_file = tempfile.NamedTemporaryFile(dir=os.path.dirname(filename))
+    temp_file.write(contents)
+    temp_file.flush()
+    shutil.copy2(temp_file.name, filename)
+
+def safe_rename(filename):
+    """Renames 'filename' to 'filename.old'
+    """
+    old_filename = filename + '.old'
+    try:
+        shutil.move(filename, old_filename)
+        print "Renamed existing file from %s to %s" % (filename, old_filename)
+    except IOError, exc:
+        if exc.errno != errno.ENOENT:
+            charlimit_textwrap(exc.message)
+            raise RuntimeError('ERROR: Failed to rename %s to %s' % (filename, old_filename))
+
+def extract_certs(pkcs7raw):
+    """This function accepts pkcs7raw dump of a single certificate and
+    extracts the host certificate in PEM format. Returns a tuple of
+    strings: (hostname, certificate)
+    """
+    pkcs7_file = tempfile.NamedTemporaryFile()
+    pkcs7_file.write(str(pkcs7raw))
+    pkcs7_file.flush()
+    pem_file = tempfile.NamedTemporaryFile()
+
+    # ### printing our all the certificates received from OIM to a temporary file###
+    subprocess.call([
+        'openssl',
+        'pkcs7',
+        '-print_certs',
+        '-in',
+        os.path.abspath(pkcs7_file.name),
+        '-out',
+        os.path.abspath(pem_file.name),
+        ])
+    pkcs7_file.close()
+    cert_string = pem_file.read()
+    pem_file.close()
+
+    hostname = extractHostname(cert_string)
+    eec_string = extractEEC(cert_string, hostname)
+
+    return (hostname, eec_string)
+
 ### We take the whole certificate data as a string input
 ### Checking for /CN= in every line and extracting the term after that if not Digicert i.e. CA would be the hostname
 ### Here we rely on OPenSSL -printcert output format. If it changes our output might be affected
@@ -210,7 +295,7 @@ def extractHostname(cert_string):
     hostname = ''
     for word in certs:
         if '/CN=' in word:
-            if not 'DigiCert' in word.split('/CN=')[1].split('\n')[0]:
+            if not 'CILogon' in word.split('/CN=')[1].split('\n')[0]:
                 hostname = word.split('/CN=')[1].split('\n')[0]
     if hostname == '':
         raise UnexpectedBehaviourException('Unexpected behaviour by OIM retrive API. EEC certificate not found')
@@ -234,56 +319,42 @@ def extractEEC(cert_string, hostname):
             return line
 
 
-def CreateOIMConfig(isITB, **OIMConfig):
+def read_config(itb, config_files=None):
     """This function is used to centralized the fetching of config file
-    It fetches the config file and updates the dictionary of variables"""
+    It fetches the config file and returns a dictionary of variables
+
+    INPUT:
+    itb: if True, use the [OIMData_ITB] section, otherwise use [OIMData]
+    config: list of paths to config files (default: None)
+    """
 
     config = ConfigParser.ConfigParser()
-    if os.path.exists(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini'):
-        print 'Overriding INI file with %s/.osg-pki/OSG_PKI.ini' % str(os.environ['HOME'])
-        config.read(str(os.environ['HOME']) + '/.osg-pki/OSG_PKI.ini')
-    elif os.path.exists('pki-clients.ini'):
-        config.read('pki-clients.ini')
+    # I don't expect user-specified config files to be used except for testing
+    if not config_files:
+        config_files = [os.path.expanduser('~/.osg-pki/OSG_PKI.ini'),
+                        'pki-clients.ini',
+                        '/etc/osg/pki-clients.ini'] # config(noreplace) in packaging
 
-    ### Fix for pki-clients.ini not found in /etc/osg/
-    elif os.path.exists('/etc/osg/pki-clients.ini'):
-        config.read('/etc/osg/pki-clients.ini')
+    if not config.read(config_files):
+        config.readfp(StringIO(DEFAULT_CONFIG))
 
-    else:
-        raise FileNotFoundException('pki-clients.ini',
-                                    'Could not locate the file')
-    if isITB:
+    oim = 'OIMData'
+    if itb:
         print 'Running in test mode'
-        oim = 'OIMData_ITB'
-        OIMConfig.update({'host': 'oim-itb.grid.iu.edu:80'})
-        OIMConfig.update({'hostsec': 'oim-itb.grid.iu.edu:443'})
-    else:
-        oim = 'OIMData'
-        OIMConfig.update({'host': 'oim.grid.iu.edu:80'})
-        OIMConfig.update({'hostsec': 'oim.grid.iu.edu:443'})
-    OIMConfig.update({'requrl': config.get(oim, 'requrl')})
-    OIMConfig.update({'appurl': config.get(oim, 'appurl')})
-    OIMConfig.update({'revurl': config.get(oim, 'revurl')})
-    OIMConfig.update({'canurl': config.get(oim, 'canurl')})
-    OIMConfig.update({'returl': config.get(oim, 'returl')})
-    OIMConfig.update({'renewurl': config.get(oim, 'renewurl')})
-    OIMConfig.update({'userreturl': config.get(oim, 'userreturl')})
-    OIMConfig.update({'userrevurl': config.get(oim, 'userrevurl')})
-    OIMConfig.update({'issurl': config.get(oim, 'issurl')})
-    OIMConfig.update({'content_type': config.get(oim, 'content_type')})
-    return OIMConfig
+        oim += '_ITB'
 
+    return dict(config.items(oim))
 
 class Cert:
 
+    KEY_LENGTH = 2048
+    PUB_EXPONENT = 0x10001
+
     def __init__(self, common_name, keypath, altnames=None, email=None):
         """This function accepts a dictionary that contains information for CSR generation"""
-        self.rsakey = {'KeyLength': 2048, 'PubExponent': 0x10001,
-                       'keygen_callback': self.callback}  # -> 65537
-
-        self.keypair = RSA.gen_key(self.rsakey['KeyLength'],
-                                   self.rsakey['PubExponent'],
-                                   self.rsakey['keygen_callback'])
+        self.keypair = RSA.gen_key(self.KEY_LENGTH,
+                                   self.PUB_EXPONENT,
+                                   self.callback)
         self.keypath = keypath
 
         # The message digest shouldn't matter here since we don't use
@@ -336,8 +407,10 @@ class Cert:
         It write the private key to the specified file name without ciphering it."""
         if not filename:
             filename = self.keypath
+        # Handle already existing key file...
+        safe_rename(filename)
         self.keypair.save_key(filename, cipher=None)
 
     def base64_csr(self):
-        """Extract the base64 encoded string from the contents of a CSR"""
+        """Extract the base64 encoded string from the contents of a certificate signing request"""
         return format_csr(self.x509request.as_pem())

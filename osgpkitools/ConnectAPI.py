@@ -3,122 +3,128 @@
 import json
 import urllib
 import httplib
-import M2Crypto
 import time
+import M2Crypto
 
 from OSGPKIUtils import charlimit_textwrap
 from OSGPKIUtils import check_response_500
 from OSGPKIUtils import check_failed_response
 from OSGPKIUtils import print_failure_reason_exit
 from OSGPKIUtils import check_for_pending
+from osgpkitools import OSGPKIUtils
 from ExceptionDefinitions import *
 
+USER_AGENT = 'OIMGridAPIClient/%s (OIM Grid API)' % OSGPKIUtils.VERSION_NUMBER
+
 class ConnectAPI(object):
-    conn_defaults_dict = {'User-Agent': 'OIMGridAPIClient/0.1 (OIM Grid API)'}
 
-    def __init__(self):
+    def __init__(self, reqid=None, num_certs=None):
         """Set the initialization parameters."""
-        return
+        self.reqid = reqid
+        self.num_certs = num_certs # expected number of certs from a retrieval
 
-    def request_unauthenticated(self, **arguments):
+    def request_unauthenticated(self, config, name, email, phone, csr, vo='', cc_list='', comment=''):
         """For unregistered user requests for a certificate
-        INPUTS: Arguments (A dict)
-                        1. content_type. (The type of content to be sent over to the server)
-                        2. csr    (certificate signing request in PEM format).
-                        3. phone  (Phone number for the user requesting certificate).
-                        4. requrl (URL to connect to the server to request certificate).
-                        5: host   (URL to connect to the server to initiate certificate request)
-                        6. name   (Name of the requesting user)
-                        7. email  (E-mail for the user).
+        INPUTS:
+
+        config: OIM configuration as a dict (from OSGPKIUtils.read_config)
+        name: Name of the requesting user
+        email: E-mail for the user
+        phone: Phone number for the user requesting certificate
+        csr: Certificate signing request in PEM format
+        vo: Virtual Organization to make the request from; required for domains representing multiple VOs
+        cc_list: comma-separated string of e-mail CCs to add to the request (default: None)
+        comment: comment to add to the request
 
         OUTPUT: request_id - Request ID for current Certificate request.
         """
+        self.num_certs = len(csr) # store number of requests to later verify that we retrieve the correct number
         params_list = {
-            'name': arguments['name'],
-            'email': arguments['email'],
-            'phone': arguments['phone'],
-            'csrs': arguments['csr'],
-            'request_comment': arguments['comment'],
-            'request_ccs': arguments['cc_list'].split(','),
+            'name': name,
+            'email': email,
+            'phone': phone,
+            'csrs': csr,
+            'request_comment': comment,
+            'request_ccs': cc_list.split(','),
             }
-        if 'vo' in arguments:
-            params_list['vo'] = arguments['vo']
+        if vo:
+            params_list['vo'] = vo
         params = urllib.urlencode(params_list)
-        headers = {'Content-type': arguments['content_type'],
-                   'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
-        conn = httplib.HTTPConnection(arguments['host'])
+        headers = {'Content-type': config['content_type'],
+                   'User-Agent': USER_AGENT}
+        conn = httplib.HTTPConnection(config['host'])
 
-        response = self.do_connect(conn, 'POST', arguments['requrl'], params, headers)
+        response = self.do_connect(conn, 'POST', config['requrl'], params, headers)
         data = response.read()
         check_failed_response(data)
         conn.close()
 
-        if json.loads(data)['detail'] == 'Nothing to report' \
-            and json.loads(data)['status'] == 'OK' in data:
-            request_id = json.loads(data)['host_request_id']
-        return request_id
+        # if json.loads(data)['detail'] == 'Nothing to report' \
+        #     and json.loads(data)['status'] == 'OK' in data:
+        try:
+            self.reqid = json.loads(data)['host_request_id']
+        except KeyError:
+            raise OIMException('ERROR: OIM did not return request ID in its response')
 
-    def request_authenticated(self, bulk_csr, **arguments):
-        """For registered user(gridadmin) requests for certificate.
-                INPUTS: Arguments (A dict)
-                        1. content_type (The type of content to be sent over to the server)
-                        2. ssl_context  (SSL Context for M2Crypto)
-                        3. hostsec      (URL for https connection to the server).
-                        4. requrl       (URL to request certificate).
+    def request_authenticated(self, config, bulk_csr, ssl_context, vo=None, cc_list=None):
+        """For registered user(gridadmin) certificate requests
+        INPUTS:
 
-                BULK_CSR: Certificate Signing Requests in PEM format for multiple certificates.
+        config: OIM configuration as a dict (from OSGPKIUtils.read_config)
+        bulk_csr: List of CSRs in base64 PEM format
+        ssl_context: SSL Context for M2Crypto
+        vo: Virtual Organization to make the request from; required for domains representing multiple VOs
+        cc_list: comma-separated string of e-mail CCs to add to the request (default: None)
 
-        OUTPUT:  'reqid' - Request ID for current Certificate request.
+        OUTPUT: OIM Request ID for current Certificate request as a string.
         """
-        params_list = {'csrs': bulk_csr}
-        if arguments['vo']:
-            params_list['vo'] = arguments['vo']
-        if arguments['cc_list']:
-            params_list['request_ccs'] = arguments['cc_list'].split(',')
+        param_dict = {'csrs': bulk_csr}
+        if vo:
+            param_dict['vo'] = vo
+        if cc_list:
+            param_dict['request_ccs'] = cc_list.split(',')
 
-        params = urllib.urlencode(params_list, doseq=True)
-        headers = {'Content-type': arguments['content_type'],
-                   'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
-        conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
-                                                 ssl_context=arguments['ssl_context'])
+        params = urllib.urlencode(param_dict, doseq=True)
+        conn = M2Crypto.httpslib.HTTPSConnection(config['hostsec'],
+                                                 ssl_context=ssl_context)
 
-        response = self.do_connect(conn, 'POST', arguments['requrl'], params, headers)
+        response = self.do_connect(conn, 'POST', config['requrl'], params,
+                                   {'Content-type': config['content_type'], 'User-Agent': USER_AGENT})
         data = response.read()
-        if not 'OK' in response.reason:
+        if 'FAILED' in data or not 'OK' in response.reason:
             print_failure_reason_exit(data)
         conn.close()
-        check_failed_response(data)
-        return_data = json.loads(data)
-        for (key, value) in return_data.iteritems():
-            if 'host_request_id' in key:
-                reqid = value
-        return reqid
 
+        try:
+            self.reqid = json.loads(data)['host_request_id']
+        except KeyError:
+            raise OIMException('ERROR: OIM did not return request ID in its response')
 
-    def retrieve_authenticated(self, **arguments):
-        """This function is used by the gridadmin scripts for fetching the
-        cert strings in a raw string format.
+    def retrieve(self, config, num_certs=None, reqid=None):
+        """Fetch issued certificates from OIM
 
         We retrieve the certificate from OIM after it has retrieved it from the CA
-        This is where things tend to fall apart - if the delay is to long and the
+        This is where things tend to fall apart - if the delay is too long and the
         request to the CA times out, the whole script operation fails. I'm not
         terribly pleased with that at the moment, but it is out of my hands since
         a GOC staffer has to reset the request to be able to retrieve the
         certificate
 
-        INPUT: arguments (As a dict)
-               1. reqid        (The request ID for retrieving the user requested certificate).
-               2. hostsec      (URL to connect to the server using HTTPS)
-               3. content_type (The type of content to be sent over to the server)
-               4. returl       (URL to retrieve certificate)
+        INPUT:
+        config: OIM configuration as a dict (from OSGPKIUtils.read_config)
+        num_certs: the number of certs expected in the request
+        reqid: The request ID for retrieving the user requested certificate (default: instance reqid attr)
 
-        RETURNS: PKCS7 Certificate String in raw format.
+        OUTPUT: list of tuples containing the hostname and PEM certificate strings
         """
-        params = urllib.urlencode({'host_request_id': arguments['reqid']})
-        headers = {'Content-type': arguments['content_type'],
-                   'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
-        conn = httplib.HTTPSConnection(arguments['hostsec'])
-        response = self.do_connect(conn, 'POST', arguments['returl'], params, headers)
+        if reqid is None:
+            reqid = self.reqid
+
+        params = urllib.urlencode({'host_request_id': reqid})
+        headers = {'Content-type': config['content_type'],
+                   'User-Agent': USER_AGENT}
+        conn = httplib.HTTPSConnection(config['hostsec'])
+        response = self.do_connect(conn, 'POST', config['returl'], params, headers)
         data = response.read()
         if not 'PENDING' in response.reason:
             if not 'OK' in response.reason:
@@ -126,13 +132,16 @@ class ConnectAPI(object):
 
         iterations = 0
         while 'PENDING' in data:
-            response = self.do_connect(conn, 'POST', arguments['returl'], params, headers)
+            response = self.do_connect(conn, 'POST', config['returl'], params, headers)
             data = response.read()
             iterations = check_for_pending(iterations)
 
         check_failed_response(data)
         json.dumps(json.loads(data), sort_keys=True, indent=2)
-        return json.loads(data)['pkcs7s']
+        pkcs7s = json.loads(data)['pkcs7s']
+        if self.num_certs:
+            assert len(pkcs7s) == self.num_certs
+        return [OSGPKIUtils.extract_certs(x) for x in pkcs7s]
 
     def retrieve_unauthenticated(self, **arguments):
         """This function checks if the request by an unauthenticated user
@@ -157,7 +166,7 @@ class ConnectAPI(object):
         """
         params = urllib.urlencode({'host_request_id': arguments['id']})
         headers = {'Content-type': arguments['content_type'],
-                   'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
+                   'User-Agent': USER_AGENT}
         conn = httplib.HTTPConnection(arguments['host'])
 
         response = self.do_connect(conn, 'POST', arguments['returl'], params, headers)
@@ -202,7 +211,7 @@ class ConnectAPI(object):
         """
         params = urllib.urlencode({'host_request_id': arguments['id']})
         headers = {'Content-type': arguments['content_type'],
-                   'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
+                   'User-Agent': USER_AGENT}
 
         newrequrl = arguments['issurl']
         conn = httplib.HTTPConnection(arguments['host'])
@@ -214,36 +223,35 @@ class ConnectAPI(object):
         if not 'OK' in data:
             raise NotOKException('Failed', json.loads(data)['detail'])
 
-    def approve(self, **arguments):
-
+    def approve(self, config, ssl_context, reqid=None):
         """This function accepts an ssl_context instance which contains
-        information about the established ssl connection
-        and a dictionary consisting of all parameters and their values,
-        It approves the request that is submitted to the OIM by connect_request.
-        INPUTS: arguments
-                1. reqid        (The request id for the certificate )
-                2. content_type (The type of content to be sent over to the server)
-                3. appurl       (URL to approve certificates)
-                4. ssl_context  (SSL Context for M2Crypto)
-                5. host         (URL to connect to the server)
+        information about the established ssl connection, PKI tool
+        configuration, and an optional OIM request ID. It approves the
+        request that is submitted to the OIM by connect_request.
+        INPUTS:
+        config: OIM configuration as a dict (from OSGPKIUtils.read_config)
+        ssl_context: SSL Context for connection to OIM
+        reqid: The request ID for retrieving the user requested certificate (default: instance reqid attr)
 
         OUTPUT: None
         """
+        if reqid is None:
+            reqid = self.reqid
+
         action = 'approve'
-        params = urllib.urlencode({'host_request_id': arguments['reqid']})
-        headers = {'Content-type': arguments['content_type'],
-                   'User-Agent': ConnectAPI.conn_defaults_dict['User-Agent']}
-        conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
-                                                 ssl_context=arguments['ssl_context'])
-        response = self.do_connect(conn, 'POST', arguments['appurl'], params, headers)
+        params = urllib.urlencode({'host_request_id': reqid})
+        headers = {'Content-type': config['content_type'],
+                   'User-Agent': USER_AGENT}
+        conn = M2Crypto.httpslib.HTTPSConnection(config['hostsec'],
+                                                 ssl_context=ssl_context)
+        response = self.do_connect(conn, 'POST', config['appurl'], params, headers)
         if not 'OK' in response.reason:
             raise NotOKException(response.status, response.reason)
         data = response.read()
         conn.close()
         if action == 'approve' and 'OK' in data:
-            newrequrl = arguments['issurl']
-            conn = M2Crypto.httpslib.HTTPSConnection(arguments['host'],
-                                                     ssl_context=arguments['ssl_context'])
+            newrequrl = config['issurl']
+            conn = M2Crypto.httpslib.HTTPSConnection(config['hostsec'], ssl_context=ssl_context)
 
             conn.request('POST', newrequrl, params, headers)
             response = conn.getresponse()
@@ -303,3 +311,8 @@ class ConnectAPI(object):
         check_response_500(response)
         connection_Handle.close()
         return response
+
+class OIMException(Exception):
+    '''Exception class for handling failed responses from OIM'''
+    pass
+

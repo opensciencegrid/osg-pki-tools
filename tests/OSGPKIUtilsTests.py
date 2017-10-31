@@ -26,7 +26,6 @@ class OSGPKIUtilsTests(unittest.TestCase):
         alias = 'test-san.' + DOMAIN
         cert = OSGPKIUtils.Cert(self.FQDN, self.KEYPATH, altnames=[alias], email=EMAIL)
         csr_contents = cert.x509request.as_text()
-        print csr_contents
         self.assert_(re.search(r'X509v3 Subject Alternative Name: critical', csr_contents),
                      "Subject Alternative Name not marked as 'critical'\n" + csr_contents)
         found_names = set(match.group(1) for match in re.finditer(r'DNS:([\w\-\.]+)', csr_contents))
@@ -59,6 +58,14 @@ class OSGPKIUtilsTests(unittest.TestCase):
             pass
         else:
             self.fail("print_failure_reason_exit() did not raise SystemExit")
+
+    def test_read_config(self):
+        '''Verify that configuration is read in as a dictionary'''
+        for section, itb in {'production': False, 'ITB': True}.items():
+            self.assert_(OSGPKIUtils.read_config(itb, config_files=['../osgpkitools/pki-clients.ini']),
+                         'Unable to read the %s config section' % section)
+
+
 
 if __name__ == '__main__':
     unittest.main()

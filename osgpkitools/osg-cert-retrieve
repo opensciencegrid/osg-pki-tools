@@ -27,7 +27,7 @@ import tempfile
 from osgpkitools import OSGPKIUtils
 from osgpkitools import ConnectAPI
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
-from osgpkitools.OSGPKIUtils import CreateOIMConfig
+from osgpkitools.OSGPKIUtils import read_config
 from osgpkitools.OSGPKIUtils import extractEEC
 from osgpkitools.OSGPKIUtils import extractHostname
 from osgpkitools.OSGPKIUtils import check_permissions
@@ -151,8 +151,7 @@ def parse_args():
     fileext = 'pkcs7'
     filename = '%s.%s.%s' % (filetype, reqid, fileext)
 
-    arguments = dict()
-    arguments = CreateOIMConfig(oim, **arguments)
+    arguments = read_config(oim)
     if vars().has_key('args'):
         arguments.update({'args': args})
     if vars().has_key('values'):
