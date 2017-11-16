@@ -63,7 +63,7 @@ will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
         '--test',
         action='store_true',
         dest='test',
-        help='Run in test mode',
+        help='(For developers) Run against OIM ITB',
         default=False,
         )
     parser.add_option(

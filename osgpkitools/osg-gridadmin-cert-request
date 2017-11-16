@@ -105,7 +105,8 @@ or specify from a file using -f/--hostfile.''')
         '--vo',
         action='store',
         dest='vo',
-        help='Specify the VO for the host request',
+        help='Specify the Virtual Organization (VO) for the host request. Required for domains represented by ' + \
+        'multiple VOs. See https://oim.opensciencegrid.org/oim/gridadmin for a list of domains and VOs.',
         metavar='VO name',
         default=None,
         )
@@ -114,7 +115,7 @@ or specify from a file using -f/--hostfile.''')
         '--cc',
         action='store',
         dest='cc_list',
-        help='Specify the CC list(the email id\'s to be CCed).' + \
+        help='Specify the CC list (the email id\'s to be CCed).' + \
              'Separate values by \',\'',
         metavar='CC List',
         default='',
@@ -124,7 +125,7 @@ or specify from a file using -f/--hostfile.''')
         '--test',
         action='store_true',
         dest='test',
-        help='Run in test mode',
+        help='(For developers) Run against OIM ITB',
         default=False,
         )
     parser.add_option(
