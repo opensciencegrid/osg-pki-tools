@@ -12,11 +12,8 @@ This script works in two modes:
 """
 
 import httplib
-import re
 import sys
 import os
-import subprocess
-import tempfile
 
 from ssl import SSLError
 from optparse import OptionParser, OptionGroup
@@ -24,8 +21,6 @@ from M2Crypto import SSL
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import read_config
-from osgpkitools.OSGPKIUtils import extractHostname
-from osgpkitools.OSGPKIUtils import extractEEC
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import check_permissions
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
