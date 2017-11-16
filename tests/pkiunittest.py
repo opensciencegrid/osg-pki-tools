@@ -104,9 +104,14 @@ class OIM(object):
                                              '--directory', TEST_PATH,
                                              '--vo', TEST_VO,
                                              *opts)
-        attr_regex = r'Writing key to ([^\n]+).*OIM Request ID: (\d+)'
+
         try:
-            key_path, self.reqid = re.search(attr_regex, stdout, re.MULTILINE|re.DOTALL).groups()
+            self.reqid = re.search(r'OIM Request ID: (\d+)', stdout).group(1)
+        except AttributeError:
+            msg = 'Could not parse stdout for key or request ID\n' + msg
+
+        try:
+            key_path = re.search(r'Writing key to ([^\n]+)', stdout).group(1)
         except AttributeError:
             msg = 'Could not parse stdout for key or request ID\n' + msg
         else:
