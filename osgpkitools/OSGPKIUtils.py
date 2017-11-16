@@ -353,11 +353,17 @@ class Cert:
     PUB_EXPONENT = 0x10001
 
     def __init__(self, common_name, keypath, altnames=None, email=None):
-        """This function accepts a dictionary that contains information for CSR generation"""
+        """Create a certificate request (stored in the x509request attribute) and associated key file that is written to
+        a temporary location (stored in the newkey attribute). It is up to the caller to write_pkey or clean up the
+        temporary keys
+
+        This function accepts the CN and final path for the key as well as optional list of subject alternative names
+        and optional requestor e-mail.  """
         self.keypair = RSA.gen_key(self.KEY_LENGTH,
                                    self.PUB_EXPONENT,
                                    self.callback)
         self.keypath = keypath
+        self.newkey = tempfile.mktemp(dir=os.path.dirname(keypath))
 
         # The message digest shouldn't matter here since we don't use
         # PKey.sign_*() or PKey.verify_*() but there's no harm in keeping it and
@@ -365,6 +371,7 @@ class Cert:
         # sign things in the future
         self.pkey = EVP.PKey(md='sha256')
         self.pkey.assign_rsa(self.keypair)
+        self.keypair.save_key(self.newkey, cipher=None)
 
         self.x509request = X509.Request()
         x509name = X509.X509_Name()
@@ -404,14 +411,13 @@ class Cert:
     def callback(self, *args):
         return None
 
-    def write_pkey(self, filename=None):
-        """This function accepts the filename of the key file to write to (DEFAULT: self.keypath).
-        It write the private key to the specified file name without ciphering it."""
-        if not filename:
-            filename = self.keypath
+    def write_pkey(self, keypath=None):
+        """Move the instance's newkey to keypath, backing up keypath to keypath.old if necessary"""
+        if not keypath:
+            keypath = self.keypath
         # Handle already existing key file...
-        safe_rename(filename)
-        self.keypair.save_key(filename, cipher=None)
+        safe_rename(keypath)
+        os.rename(self.newkey, keypath)
 
     def base64_csr(self):
         """Extract the base64 encoded string from the contents of a certificate signing request"""
