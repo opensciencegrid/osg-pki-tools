@@ -28,6 +28,8 @@ MBSTRING_BMP = MBSTRING_FLAG | 2
 # The variable for storing version number for the scripts
 VERSION_NUMBER = "2.0.0"
 
+HELP_EMAIL = 'help@opensciencegrid.org'
+
 DEFAULT_CONFIG = """[OIMData_ITB]
 host: oim-itb.grid.iu.edu:80
 hostsec: oim-itb.grid.iu.edu:443
@@ -110,7 +112,7 @@ def print_exception_message(exc):
     if str(exc) != "":
         charlimit_textwrap("Got an exception %s" % exc.__class__.__name__)
         charlimit_textwrap(exc)
-        charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
+        charlimit_textwrap('Please report the bug to %s.' % HELP_EMAIL)
     else:
         handle_empty_exceptions(exc)
 
@@ -125,7 +127,7 @@ def handle_empty_exceptions(exc):
 
     print traceback.format_exc()
     charlimit_textwrap('Encountered exception of type %s' % exc.__class__.__name__)
-    charlimit_textwrap('Please report the bug to goc@opensciencegrid.org.')
+    charlimit_textwrap('Please report the bug to %s.' % HELP_EMAIL)
 
 def version_info():
     """ Print the version number and exit"""

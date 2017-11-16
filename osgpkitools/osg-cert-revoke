@@ -262,5 +262,5 @@ if __name__ == "__main__":
         raise
     except Exception, exc:
         print traceback.print_exc(exc)
-        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
+        charlimit_textwrap('Uncaught Exception : Please report the bug to %s.' % OSGPKIUtils.HELP_EMAIL)
     sys.exit(0)

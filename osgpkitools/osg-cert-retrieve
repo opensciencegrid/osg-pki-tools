@@ -203,7 +203,7 @@ def write_certificate(pkcs7raw):
             os.chdir(cwd)
     except OSError:
         charlimit_textwrap('You may not have permission to write on the file system. ' +
-                           'Please report the bug to goc@opensciencegrid.org.')
+                           'Please report the bug to %s.' % OSGPKIUtils.HELP_EMAIL)
         raise
     charlimit_textwrap('Certificate written to %s%s \n'
                        % (arguments['certdir'], arguments['pem_filename']))
@@ -267,6 +267,6 @@ if __name__ == '__main__':
         sys.exit(1)
     except Exception, exc:
         print_uncaught_exception()
-        charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
+        charlimit_textwrap('Uncaught Exception : Please report the bug to %s.' % OSGPKIUtils.HELP_EMAIL)
         sys.exit(1)
     sys.exit(0)
