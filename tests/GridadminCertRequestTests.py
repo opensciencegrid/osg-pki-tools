@@ -80,7 +80,7 @@ class GridadminCertRequestTests(unittest.TestCase):
         try:
             # TODO: instead of parsing output, we should assert existence of the old cert/key paths
             old_cert_path = re.search(r'Renamed existing file from.*to (.*)', stdout).group(1)
-            old_key_path = re.search(r'Renamed existing file from.*to (.*-key.pem)', stdout).group(1)
+            old_key_path = re.search(r'Renamed existing file from.*to (.*-key.pem.old)', stdout).group(1)
         except AttributeError:
             self.fail('Failed to move old cert or key\n' + msg)
 
