@@ -64,7 +64,7 @@ def parse_args():
         '--test',
         action='store_true',
         dest='test',
-        help='Run in test mode',
+        help='(For developers) Run against OIM ITB',
         default=False,
         )
     parser.add_option(

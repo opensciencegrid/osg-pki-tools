@@ -34,9 +34,9 @@ def parse_command_line():
     required.add_argument('-p', '--phone', action=PhoneAction, dest='phone', required=True, metavar='PHONE',
                           help='Phone number of user receiving certificate')
     required.add_argument('-c', '--csr', action='store', dest='csr', default=None, metavar='CSR',
-                           help='The file containing a certificate signing request')
+                          help='The file containing a certificate signing request')
     required.add_argument('-H', '--hostname', action='store', dest='hostname', metavar='CN', default=None,
-                           help='The common name of the requested certificate (FQDN)')
+                          help='The common name of the requested certificate (FQDN)')
 
     # explicity create optional group and help message to force required before optional opts in help message
     optional = parser.add_argument_group('Optional')
@@ -46,7 +46,9 @@ def parse_command_line():
                           help='The filename of the generated host key (default: hostkey.pem)',
                           default='hostkey.pem')
     optional.add_argument('-v', '--vo', action='store', dest='vo', metavar='VO name', default=None,
-                          help='Specify the VO for the host request')
+                          help='Specify the Virtual Organization (VO) for the host request. Required for domains ' + \
+                          'represented by multiple VOs. See https://oim.opensciencegrid.org/oim/gridadmin for a ' + \
+                          'list of domains and VOs.')
     optional.add_argument('-y', '--cc', action='store', dest='cc_list', metavar='CC LIST', default='',
                           help="Comma-separated CC list CC list of the request")
     optional.add_argument('-m', '--comment', action='store', dest='comment', metavar='COMMENT', default='',
@@ -55,7 +57,8 @@ def parse_command_line():
                           help='Specify an alternative hostname for the CSR (FQDN). May be used more than once')
     optional.add_argument('-t', '--timeout', action=TimeoutAction, type=int, dest='timeout', default=5,
                           help='Specify the timeout in minutes')
-    optional.add_argument('-T', '--test', action='store_true', dest='test', help='Run in test mode', default=False)
+    optional.add_argument('-T', '--test', action='store_true', dest='test', help='(For developers) Run against OIM ITB',
+                          default=False)
     optional.add_argument('-q', '--quiet', action='store_false', dest='verbose', default=True,
                           help="don't print status messages to stdout")
     optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
