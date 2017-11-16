@@ -221,6 +221,6 @@ if __name__ == '__main__':
         sys.exit(1)
     except Exception:
         OSGPKIUtils.print_uncaught_exception()
-        OSGPKIUtils.charlimit_textwrap('Uncaught Exception : Please report the bug to goc@opensciencegrid.org.')
+        OSGPKIUtils.charlimit_textwrap('Uncaught Exception : Please report the bug to %s.' % OSGPKIUtils.HELP_EMAIL)
         sys.exit(1)
     sys.exit(0)
