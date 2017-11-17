@@ -117,16 +117,23 @@ def unauthenticated_request(config, name, email, phone, hostname=None, altnames=
     if (not hostname and not csr_path) or (hostname and csr_path):
         raise TypeError("unauthenticated_request() requires only one of hostname or csr_path arguments to be defined")
 
+    capi = ConnectAPI.ConnectAPI()
+
     if csr_path is None:
         common_name = hostname.replace('/', '-')
         cert = OSGPKIUtils.Cert(common_name,
                                 keypath=os.path.join(write_directory, common_name + '-key.pem'),
                                 altnames=altnames,
                                 email=email)
-        print "Writing key to %s" % cert.keypath
-        cert.write_pkey()
-
         csr = cert.base64_csr()
+        try:
+            capi.request_unauthenticated(config, name, email, phone, csr, vo, cc, comment)
+        except:
+            os.remove(cert.newkey)
+            raise
+        else:
+            print "Writing key to %s" % cert.keypath
+            cert.write_pkey()
     else:
         OSGPKIUtils.charlimit_textwrap('CSR input found. Skipping creation of the primary key')
         try:
@@ -134,9 +141,8 @@ def unauthenticated_request(config, name, email, phone, hostname=None, altnames=
         except OSError, exc:
             OSGPKIUtils.charlimit_textwrap('Failed to read CSR file: %s' % exc)
             sys.exit(1)
+        capi.request_unauthenticated(config, name, email, phone, csr, vo, cc, comment)
 
-    capi = ConnectAPI.ConnectAPI()
-    capi.request_unauthenticated(config, name, email, phone, csr, vo, cc, comment)
     OSGPKIUtils.charlimit_textwrap('Request Id#: %s' % capi.reqid)
 
 def main():
@@ -169,19 +175,24 @@ def main():
         else:
             cert = OSGPKIUtils.Cert(args.hostname, os.path.join(args.write_directory, args.keyfile),
                                     altnames=args.alt_names, email=args.email)
-            print "Writing key to %s" % cert.keypath
-            cert.write_pkey()
 
-            oim = ConnectAPI.ConnectAPI()
-            print 'Requesting certificate...'
-            oim.request_authenticated(config, [cert.base64_csr()], ssl_ctx, args.vo, args.cc_list)
-            print 'OIM Request ID: %s' % oim.reqid
+            try:
+                oim = ConnectAPI.ConnectAPI()
+                print 'Requesting certificate...'
+                oim.request_authenticated(config, [cert.base64_csr()], ssl_ctx, args.vo, args.cc_list)
+                print 'OIM Request ID: %s' % oim.reqid
 
-            print 'Connecting to server to approve certificate...'
-            oim.approve(config, ssl_ctx)
+                print 'Connecting to server to approve certificate...'
+                oim.approve(config, ssl_ctx)
 
-            print 'Retrieving certificate...'
-            hostname, cert_string = oim.retrieve(config)[0]
+                print 'Retrieving certificate...'
+                hostname, cert_string = oim.retrieve(config)[0]
+            except:
+                os.remove(cert.newkey)
+                raise
+            else:
+                print "Writing key to %s" % cert.keypath
+                cert.write_pkey()
 
             cert_path = os.path.join(args.write_directory, hostname + '.pem')
             OSGPKIUtils.safe_rename(cert_path)

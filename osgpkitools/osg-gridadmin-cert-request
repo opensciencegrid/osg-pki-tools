@@ -12,11 +12,8 @@ This script works in two modes:
 """
 
 import httplib
-import re
 import sys
 import os
-import subprocess
-import tempfile
 
 from ssl import SSLError
 from optparse import OptionParser, OptionGroup
@@ -24,8 +21,6 @@ from M2Crypto import SSL
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import read_config
-from osgpkitools.OSGPKIUtils import extractHostname
-from osgpkitools.OSGPKIUtils import extractEEC
 from osgpkitools.OSGPKIUtils import version_info
 from osgpkitools.OSGPKIUtils import check_permissions
 from osgpkitools.OSGPKIUtils import charlimit_textwrap
@@ -281,20 +276,19 @@ if __name__ == '__main__':
             certs.append(cert_obj)
 
         # We choose to write the keys before the request in case there are issues with the certs and only then perform
-        # cleanup if there's a quota failure; it's better to have keys and no certs than it is to have certs and no keys
+        # cleanup if there's a failure; it's better to have keys and no certs than it is to have certs and no keys
         if len(certs):
-            charlimit_textwrap("Writing key(s) to %s" % ARGS['certdir'])
-            for cert in certs:
-                cert.write_pkey()
             try:
                 process_csr(CONFIG, [cert.base64_csr() for cert in certs], ssl_context,
                             ARGS['vo'], ARGS['cc_list'], ARGS['certdir'])
-            except SystemExit, exc:
-                if 'certificate quota' in str(exc):
-                    print "Cleaning up key(s) in %s" % ARGS['certdir']
-                    for key in [cert.keypath for cert in certs]:
-                        os.remove(key)
+            except:
+                for cert in certs:
+                    os.remove(cert.newkey)
                 raise
+            else:
+                charlimit_textwrap("Writing key(s) to %s" % ARGS['certdir'])
+                for cert in certs:
+                    cert.write_pkey()
 
     except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
