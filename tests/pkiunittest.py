@@ -44,7 +44,6 @@ PYPATH = os.path.abspath("..")
 
 TEST_PATH = ''
 
-# TODO: chdir strategy is a little silly
 def test_env_setup():
     """Create a test dir and environment"""
     # Required for cleanup and tests

@@ -333,9 +333,9 @@ def read_config(itb, config_files=None):
     config = ConfigParser.ConfigParser()
     # I don't expect user-specified config files to be used except for testing
     if not config_files:
-        config_files = [os.path.expanduser('~/.osg-pki/OSG_PKI.ini'),
+        config_files = ['/etc/osg/pki-clients.ini',
                         'pki-clients.ini',
-                        '/etc/osg/pki-clients.ini'] # config(noreplace) in packaging
+                        os.path.expanduser('~/.osg-pki/OSG_PKI.ini')]
 
     if not config.read(config_files):
         config.readfp(StringIO(DEFAULT_CONFIG))
