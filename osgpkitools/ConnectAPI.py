@@ -119,6 +119,8 @@ class ConnectAPI(object):
         """
         if reqid is None:
             reqid = self.reqid
+        if num_certs is None:
+            num_certs = self.num_certs
 
         params = urllib.urlencode({'host_request_id': reqid})
         headers = {'Content-type': config['content_type'],
@@ -139,8 +141,8 @@ class ConnectAPI(object):
         check_failed_response(data)
         json.dumps(json.loads(data), sort_keys=True, indent=2)
         pkcs7s = json.loads(data)['pkcs7s']
-        if self.num_certs:
-            assert len(pkcs7s) == self.num_certs
+        if num_certs:
+            assert len(pkcs7s) == num_certs
         return [OSGPKIUtils.extract_certs(x) for x in pkcs7s]
 
     def retrieve_unauthenticated(self, **arguments):
