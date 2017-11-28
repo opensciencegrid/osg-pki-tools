@@ -54,7 +54,7 @@ class ConnectAPI(object):
                    'User-Agent': USER_AGENT}
         conn = httplib.HTTPConnection(config['host'])
 
-        response = self.do_connect(conn, 'POST', config['requrl'], params, headers)
+        response = do_connect(conn, 'POST', config['requrl'], params, headers)
         data = response.read()
         check_failed_response(data)
         conn.close()
@@ -88,8 +88,8 @@ class ConnectAPI(object):
         conn = M2Crypto.httpslib.HTTPSConnection(config['hostsec'],
                                                  ssl_context=ssl_context)
 
-        response = self.do_connect(conn, 'POST', config['requrl'], params,
-                                   {'Content-type': config['content_type'], 'User-Agent': USER_AGENT})
+        response = do_connect(conn, 'POST', config['requrl'], params,
+                              {'Content-type': config['content_type'], 'User-Agent': USER_AGENT})
         data = response.read()
         if 'FAILED' in data or not 'OK' in response.reason:
             print_failure_reason_exit(data)
@@ -126,7 +126,7 @@ class ConnectAPI(object):
         headers = {'Content-type': config['content_type'],
                    'User-Agent': USER_AGENT}
         conn = httplib.HTTPSConnection(config['hostsec'])
-        response = self.do_connect(conn, 'POST', config['returl'], params, headers)
+        response = do_connect(conn, 'POST', config['returl'], params, headers)
         data = response.read()
         if not 'PENDING' in response.reason:
             if not 'OK' in response.reason:
@@ -134,7 +134,7 @@ class ConnectAPI(object):
 
         iterations = 0
         while 'PENDING' in data:
-            response = self.do_connect(conn, 'POST', config['returl'], params, headers)
+            response = do_connect(conn, 'POST', config['returl'], params, headers)
             data = response.read()
             iterations = check_for_pending(iterations)
 
@@ -171,7 +171,7 @@ class ConnectAPI(object):
                    'User-Agent': USER_AGENT}
         conn = httplib.HTTPConnection(arguments['host'])
 
-        response = self.do_connect(conn, 'POST', arguments['returl'], params, headers)
+        response = do_connect(conn, 'POST', arguments['returl'], params, headers)
         data = response.read()
 
         if json.loads(data).has_key('request_status'):
@@ -183,7 +183,7 @@ class ConnectAPI(object):
                 self.issue(**arguments)
 
         conn = httplib.HTTPConnection(arguments['host'])
-        response = self.do_connect(conn, 'POST', arguments['returl'], params, headers)
+        response = do_connect(conn, 'POST', arguments['returl'], params, headers)
         data = response.read()
         iterations = 0
 
@@ -246,7 +246,7 @@ class ConnectAPI(object):
                    'User-Agent': USER_AGENT}
         conn = M2Crypto.httpslib.HTTPSConnection(config['hostsec'],
                                                  ssl_context=ssl_context)
-        response = self.do_connect(conn, 'POST', config['appurl'], params, headers)
+        response = do_connect(conn, 'POST', config['appurl'], params, headers)
         if not 'OK' in response.reason:
             raise NotOKException(response.status, response.reason)
         data = response.read()
@@ -296,23 +296,23 @@ class ConnectAPI(object):
         arguments.update({'reqid': request_id})
         return arguments
 
-    def do_connect(self, connection_Handle, http_type, url, parameters, headers):
-        """Function to handle the connection to the web server.
-           INPUTS:
-           1. connection_handle (Instance to the created connection to the server.)
-           2. http_type         ("GET or POST" method.)
-           3. url               (URL to connect to the server.)
-           4. parameters        (Parameters to be passed to the server.)
-           5. headers           (Headers to be sent over to the server.)
+def do_connect(connection, http_type, url, parameters, headers):
+    """Function to handle the connection to the web server.
+       INPUTS:
+       1. connection        (Instance to the created connection to the server.)
+       2. http_type         ("GET or POST" method.)
+       3. url               (URL to connect to the server.)
+       4. parameters        (Parameters to be passed to the server.)
+       5. headers           (Headers to be sent over to the server.)
 
-           OUTPUT:
-           response   : Dict containing the response from the server.
-        """
-        connection_Handle.request(http_type, url, parameters, headers)
-        response = connection_Handle.getresponse()
-        check_response_500(response)
-        connection_Handle.close()
-        return response
+       OUTPUT:
+       response   : Dict containing the response from the server.
+    """
+    connection.request(http_type, url, parameters, headers)
+    response = connection.getresponse()
+    check_response_500(response)
+    connection.close()
+    return response
 
 class OIMException(Exception):
     '''Exception class for handling failed responses from OIM'''
