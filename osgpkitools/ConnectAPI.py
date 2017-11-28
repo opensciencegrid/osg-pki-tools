@@ -54,8 +54,8 @@ class ConnectAPI(object):
                    'User-Agent': USER_AGENT}
 
         # TODO: Remove this line when we get ports out of the ini configuration
-        host_default_port = config['host'].split(':')[0]
-        for conn in [httplib.HTTPSConnection(host_default_port), httplib.HTTPConnection(host_default_port)]:
+        host_no_port = config['host'].split(':')[0]
+        for conn in [httplib.HTTPSConnection(host_no_port), httplib.HTTPConnection(host_no_port)]:
             response = do_connect(conn, 'POST', config['requrl'], params, headers)
             json_data = json.loads(response.read())
             if json_data['status'] == 'OK':
@@ -162,7 +162,7 @@ class ConnectAPI(object):
                1. id           (request id for the certificate)
                2. returl       (URL to retrieve certificate from the server)
                3. content_type (The type of content to be sent over to the server)
-               4. host         (URL to connect to the server)
+               4. hostsec      (URL to connect to the server)
 
         RETURNS: PKCS7 Certificate String in raw format.
         """
@@ -207,7 +207,7 @@ class ConnectAPI(object):
                 1. id           (Request id for the certificate request).
                 2. content_type (The type of content to be sent over to the server)
                 3. issurl       (URL to issue a certificate)
-                4. host         (URL to connect to the server).
+                4. hostsec      (URL to connect to the server).
 
            OUTPUT: None
         """
