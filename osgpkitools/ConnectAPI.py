@@ -52,17 +52,17 @@ class ConnectAPI(object):
         params = urllib.urlencode(params_list)
         headers = {'Content-type': config['content_type'],
                    'User-Agent': USER_AGENT}
-        conn = httplib.HTTPConnection(config['host'])
 
-        response = self.do_connect(conn, 'POST', config['requrl'], params, headers)
-        data = response.read()
-        check_failed_response(data)
-        conn.close()
+        # TODO: Remove this line when we get ports out of the ini configuration
+        host_no_port = config['host'].split(':')[0]
+        for conn in [httplib.HTTPSConnection(host_no_port), httplib.HTTPConnection(host_no_port)]:
+            response = do_connect(conn, 'POST', config['requrl'], params, headers)
+            json_data = json.loads(response.read())
+            if json_data['status'] == 'OK':
+                break
 
-        # if json.loads(data)['detail'] == 'Nothing to report' \
-        #     and json.loads(data)['status'] == 'OK' in data:
         try:
-            self.reqid = json.loads(data)['host_request_id']
+            self.reqid = json_data['host_request_id']
         except KeyError:
             raise OIMException('ERROR: OIM did not return request ID in its response')
 
@@ -88,8 +88,8 @@ class ConnectAPI(object):
         conn = M2Crypto.httpslib.HTTPSConnection(config['hostsec'],
                                                  ssl_context=ssl_context)
 
-        response = self.do_connect(conn, 'POST', config['requrl'], params,
-                                   {'Content-type': config['content_type'], 'User-Agent': USER_AGENT})
+        response = do_connect(conn, 'POST', config['requrl'], params,
+                              {'Content-type': config['content_type'], 'User-Agent': USER_AGENT})
         data = response.read()
         if 'FAILED' in data or not 'OK' in response.reason:
             print_failure_reason_exit(data)
@@ -119,12 +119,14 @@ class ConnectAPI(object):
         """
         if reqid is None:
             reqid = self.reqid
+        if num_certs is None:
+            num_certs = self.num_certs
 
         params = urllib.urlencode({'host_request_id': reqid})
         headers = {'Content-type': config['content_type'],
                    'User-Agent': USER_AGENT}
         conn = httplib.HTTPSConnection(config['hostsec'])
-        response = self.do_connect(conn, 'POST', config['returl'], params, headers)
+        response = do_connect(conn, 'POST', config['returl'], params, headers)
         data = response.read()
         if not 'PENDING' in response.reason:
             if not 'OK' in response.reason:
@@ -132,15 +134,15 @@ class ConnectAPI(object):
 
         iterations = 0
         while 'PENDING' in data:
-            response = self.do_connect(conn, 'POST', config['returl'], params, headers)
+            response = do_connect(conn, 'POST', config['returl'], params, headers)
             data = response.read()
             iterations = check_for_pending(iterations)
 
         check_failed_response(data)
         json.dumps(json.loads(data), sort_keys=True, indent=2)
         pkcs7s = json.loads(data)['pkcs7s']
-        if self.num_certs:
-            assert len(pkcs7s) == self.num_certs
+        if num_certs:
+            assert len(pkcs7s) == num_certs
         return [OSGPKIUtils.extract_certs(x) for x in pkcs7s]
 
     def retrieve_unauthenticated(self, **arguments):
@@ -150,7 +152,7 @@ class ConnectAPI(object):
         certificate if it is in approved state.
 
         We retrieve the certificate from OIM after it has retrieved it from the CA
-        This is where things tend to fall apart - if the delay is to long and the
+        This is where things tend to fall apart - if the delay is too long and the
         request to the CA times out, the whole script operation fails. I'm not
         terribly pleased with that at the moment, but it is out of my hands since
         a GOC staffer has to reset the request to be able to retrieve the
@@ -160,16 +162,16 @@ class ConnectAPI(object):
                1. id           (request id for the certificate)
                2. returl       (URL to retrieve certificate from the server)
                3. content_type (The type of content to be sent over to the server)
-               4. host         (URL to connect to the server)
+               4. hostsec      (URL to connect to the server)
 
         RETURNS: PKCS7 Certificate String in raw format.
         """
         params = urllib.urlencode({'host_request_id': arguments['id']})
         headers = {'Content-type': arguments['content_type'],
                    'User-Agent': USER_AGENT}
-        conn = httplib.HTTPConnection(arguments['host'])
+        conn = httplib.HTTPSConnection(arguments['hostsec'])
 
-        response = self.do_connect(conn, 'POST', arguments['returl'], params, headers)
+        response = do_connect(conn, 'POST', arguments['returl'], params, headers)
         data = response.read()
 
         if json.loads(data).has_key('request_status'):
@@ -180,8 +182,8 @@ class ConnectAPI(object):
                 charlimit_textwrap('Certificate request is in Approved state. Needs to be issued first\n')
                 self.issue(**arguments)
 
-        conn = httplib.HTTPConnection(arguments['host'])
-        response = self.do_connect(conn, 'POST', arguments['returl'], params, headers)
+        conn = httplib.HTTPSConnection(arguments['hostsec'])
+        response = do_connect(conn, 'POST', arguments['returl'], params, headers)
         data = response.read()
         iterations = 0
 
@@ -205,7 +207,7 @@ class ConnectAPI(object):
                 1. id           (Request id for the certificate request).
                 2. content_type (The type of content to be sent over to the server)
                 3. issurl       (URL to issue a certificate)
-                4. host         (URL to connect to the server).
+                4. hostsec      (URL to connect to the server).
 
            OUTPUT: None
         """
@@ -214,7 +216,7 @@ class ConnectAPI(object):
                    'User-Agent': USER_AGENT}
 
         newrequrl = arguments['issurl']
-        conn = httplib.HTTPConnection(arguments['host'])
+        conn = httplib.HTTPSConnection(arguments['hostsec'])
         conn.request('POST', newrequrl, params, headers)
         time.sleep(10) # Discussed with Rohan, he says it is needed otherwise the issuance of certificate does not happen.
         response = conn.getresponse()
@@ -244,7 +246,7 @@ class ConnectAPI(object):
                    'User-Agent': USER_AGENT}
         conn = M2Crypto.httpslib.HTTPSConnection(config['hostsec'],
                                                  ssl_context=ssl_context)
-        response = self.do_connect(conn, 'POST', config['appurl'], params, headers)
+        response = do_connect(conn, 'POST', config['appurl'], params, headers)
         if not 'OK' in response.reason:
             raise NotOKException(response.status, response.reason)
         data = response.read()
@@ -294,23 +296,23 @@ class ConnectAPI(object):
         arguments.update({'reqid': request_id})
         return arguments
 
-    def do_connect(self, connection_Handle, http_type, url, parameters, headers):
-        """Function to handle the connection to the web server.
-           INPUTS:
-           1. connection_handle (Instance to the created connection to the server.)
-           2. http_type         ("GET or POST" method.)
-           3. url               (URL to connect to the server.)
-           4. parameters        (Parameters to be passed to the server.)
-           5. headers           (Headers to be sent over to the server.)
+def do_connect(connection, http_type, url, parameters, headers):
+    """Function to handle the connection to the web server.
+       INPUTS:
+       1. connection        (Instance to the created connection to the server.)
+       2. http_type         ("GET or POST" method.)
+       3. url               (URL to connect to the server.)
+       4. parameters        (Parameters to be passed to the server.)
+       5. headers           (Headers to be sent over to the server.)
 
-           OUTPUT:
-           response   : Dict containing the response from the server.
-        """
-        connection_Handle.request(http_type, url, parameters, headers)
-        response = connection_Handle.getresponse()
-        check_response_500(response)
-        connection_Handle.close()
-        return response
+       OUTPUT:
+       response   : Dict containing the response from the server.
+    """
+    connection.request(http_type, url, parameters, headers)
+    response = connection.getresponse()
+    check_response_500(response)
+    connection.close()
+    return response
 
 class OIMException(Exception):
     '''Exception class for handling failed responses from OIM'''
