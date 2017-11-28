@@ -152,7 +152,7 @@ class ConnectAPI(object):
         certificate if it is in approved state.
 
         We retrieve the certificate from OIM after it has retrieved it from the CA
-        This is where things tend to fall apart - if the delay is to long and the
+        This is where things tend to fall apart - if the delay is too long and the
         request to the CA times out, the whole script operation fails. I'm not
         terribly pleased with that at the moment, but it is out of my hands since
         a GOC staffer has to reset the request to be able to retrieve the
@@ -169,7 +169,7 @@ class ConnectAPI(object):
         params = urllib.urlencode({'host_request_id': arguments['id']})
         headers = {'Content-type': arguments['content_type'],
                    'User-Agent': USER_AGENT}
-        conn = httplib.HTTPConnection(arguments['host'])
+        conn = httplib.HTTPSConnection(arguments['hostsec'])
 
         response = do_connect(conn, 'POST', arguments['returl'], params, headers)
         data = response.read()
@@ -182,7 +182,7 @@ class ConnectAPI(object):
                 charlimit_textwrap('Certificate request is in Approved state. Needs to be issued first\n')
                 self.issue(**arguments)
 
-        conn = httplib.HTTPConnection(arguments['host'])
+        conn = httplib.HTTPSConnection(arguments['hostsec'])
         response = do_connect(conn, 'POST', arguments['returl'], params, headers)
         data = response.read()
         iterations = 0
@@ -216,7 +216,7 @@ class ConnectAPI(object):
                    'User-Agent': USER_AGENT}
 
         newrequrl = arguments['issurl']
-        conn = httplib.HTTPConnection(arguments['host'])
+        conn = httplib.HTTPSConnection(arguments['hostsec'])
         conn.request('POST', newrequrl, params, headers)
         time.sleep(10) # Discussed with Rohan, he says it is needed otherwise the issuance of certificate does not happen.
         response = conn.getresponse()
