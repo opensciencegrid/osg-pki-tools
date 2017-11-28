@@ -52,17 +52,17 @@ class ConnectAPI(object):
         params = urllib.urlencode(params_list)
         headers = {'Content-type': config['content_type'],
                    'User-Agent': USER_AGENT}
-        conn = httplib.HTTPConnection(config['host'])
 
-        response = do_connect(conn, 'POST', config['requrl'], params, headers)
-        data = response.read()
-        check_failed_response(data)
-        conn.close()
+        # TODO: Remove this line when we get ports out of the ini configuration
+        host_default_port = config['host'].split(':')[0]
+        for conn in [httplib.HTTPSConnection(host_default_port), httplib.HTTPConnection(host_default_port)]:
+            response = do_connect(conn, 'POST', config['requrl'], params, headers)
+            json_data = json.loads(response.read())
+            if json_data['status'] == 'OK':
+                break
 
-        # if json.loads(data)['detail'] == 'Nothing to report' \
-        #     and json.loads(data)['status'] == 'OK' in data:
         try:
-            self.reqid = json.loads(data)['host_request_id']
+            self.reqid = json_data['host_request_id']
         except KeyError:
             raise OIMException('ERROR: OIM did not return request ID in its response')
 
