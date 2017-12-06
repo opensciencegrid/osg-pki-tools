@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import socket
 import sys
 import urllib
 import httplib
@@ -245,14 +246,14 @@ if __name__ == "__main__":
         OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         connect_revoke(**arguments)
 
-    except BadPassphraseException, exc:
+    except BadPassphraseException as exc:
         charlimit_textwrap("Invalid passphrase entered, please try running the script again.")
         sys.exit(1)
-    except (FileNotFoundException, BadCertificateException, HandshakeFailureException, KeyError,
-            httplib.HTTPException, AttributeError, ValueError), exc:
+    except (socket.error, FileNotFoundException, BadCertificateException, HandshakeFailureException, KeyError,
+            httplib.HTTPException, AttributeError, ValueError) as exc:
         print_exception_message(exc)
         sys.exit(1)
-    except NotOKException, exc:
+    except NotOKException as exc:
         charlimit_textwrap('Request Failed. Status %s' % exc.status)
         charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
@@ -260,7 +261,7 @@ if __name__ == "__main__":
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
         raise
-    except Exception, exc:
+    except Exception as exc:
         print traceback.print_exc(exc)
         charlimit_textwrap('Uncaught Exception : Please report the bug to %s.' % OSGPKIUtils.HELP_EMAIL)
     sys.exit(0)

@@ -6,6 +6,7 @@ user.
 """
 
 import httplib
+import socket
 import sys
 import os
 import argparse
@@ -203,34 +204,34 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except KeyboardInterrupt, exc:
+    except KeyboardInterrupt as exc:
         OSGPKIUtils.print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
     except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
         raise
-    except SSLError, exc:
+    except SSLError as exc:
         OSGPKIUtils.print_exception_message(exc)
         sys.exit('Please check for valid certificate.\n')
-    except httplib.HTTPException, exc:
+    except (socket.error, httplib.HTTPException) as exc:
         OSGPKIUtils.charlimit_textwrap('Connection failed: %s' % repr(exc))
-    except FileNotFoundException, exc:
+    except FileNotFoundException as exc:
         OSGPKIUtils.charlimit_textwrap(exc.message + ':' + exc.filename)
         sys.exit(1)
-    except (Exception_500response, NotOKException), exc:
+    except (Exception_500response, NotOKException) as exc:
         OSGPKIUtils.charlimit_textwrap('Request Failed. Status %s' % exc.status)
         OSGPKIUtils.charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
-    except CertificateMismatchException, exc:
-        print 'The number of requests made was ', exc.request_num
-        print 'The number of certificates received is ', exc.retrieve_num
+    except CertificateMismatchException as exc:
+        print 'The number of requests made was ' as exc.request_num
+        print 'The number of certificates received is ' as exc.retrieve_num
         OSGPKIUtils.charlimit_textwrap(exc.message)
         sys.exit(1)
-    except (BadPassphraseException, HandshakeFailureException, UnexpectedBehaviourException, InvalidOptionException), exc:
+    except (BadPassphraseException, HandshakeFailureException, UnexpectedBehaviourException, InvalidOptionException) as exc:
         OSGPKIUtils.charlimit_textwrap(exc.message)
         sys.exit(1)
-    except (EOFError, OSError, KeyError, IOError), exc:
+    except (EOFError, OSError, KeyError, IOError) as exc:
         OSGPKIUtils.print_exception_message(exc)
         sys.exit(1)
     except Exception:

@@ -12,6 +12,7 @@ This script works in two modes:
 """
 
 import httplib
+import socket
 import sys
 import os
 
@@ -294,47 +295,46 @@ if __name__ == '__main__':
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
         raise
-    except SSLError, exc:
+    except SSLError as exc:
         print_exception_message(exc)
         sys.exit('Please check for valid certificate.\n')
-    except KeyboardInterrupt, exc:
+    except KeyboardInterrupt as exc:
         print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
-    except KeyError, exc:
+    except KeyError as exc:
         print_exception_message(exc)
         charlimit_textwrap('Key %s not found' % exc)
         sys.exit(1)
-    except httplib.HTTPException, exc:
-        print_exception_message(exc)
-        charlimit_textwrap('Connection failed: %s' % (exc))
+    except (socket.error, httplib.HTTPException) as exc:
+        charlimit_textwrap('Connection failed: %s' % exc)
         sys.exit(1)
-    except FileWriteException, exc:
+    except FileWriteException as exc:
         charlimit_textwrap(exc.message)
         charlimit_textwrap("The script will exit now\n")
         sys.exit(1)
-    except FileNotFoundException, exc:
+    except FileNotFoundException as exc:
         charlimit_textwrap(exc.message + ':' + exc.filename)
         sys.exit(1)
-    except (Exception_500response, NotOKException), exc:
+    except (Exception_500response, NotOKException) as exc:
         charlimit_textwrap('Request Failed. Status %s' % exc.status)
         charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
-    except CertificateMismatchException, exc:
+    except CertificateMismatchException as exc:
         print 'The number of requests made was ', exc.request_num
         print 'The number of certificates received is ', exc.retrieve_num
         charlimit_textwrap(exc.message)
         sys.exit(1)
-    except InsufficientArgumentException, exc:
+    except InsufficientArgumentException as exc:
         # I agree with mat on JIRA Software 1072 on that if a user enters
         # the script without options, there is no bug and shouldn't be
         # reported to goc. Hence bypassing call to print exception message
         charlimit_textwrap(exc.message)
         sys.stderr.write("Usage: osg-gridadmin-cert-request -h for help \n")
         sys.exit(2) # Fix for returning exit code of 2 as in all the other scripts.
-    except (BadCertificateException, BadPassphraseException, HandshakeFailureException), exc:
+    except (BadCertificateException, BadPassphraseException, HandshakeFailureException) as exc:
         charlimit_textwrap(exc.message)
         sys.exit(1)
-    except (AttributeError, OSError, ValueError, EOFError, SSL.SSLError, UnexpectedBehaviourException), exc:
+    except (AttributeError, OSError, ValueError, EOFError, SSL.SSLError, UnexpectedBehaviourException) as exc:
         print_exception_message(exc)
         sys.exit(1)
     except Exception:
