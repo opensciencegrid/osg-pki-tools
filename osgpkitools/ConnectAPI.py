@@ -3,6 +3,7 @@
 import json
 import urllib
 import httplib
+import socket
 import time
 import M2Crypto
 
@@ -54,12 +55,20 @@ class ConnectAPI(object):
                    'User-Agent': USER_AGENT}
 
         # TODO: Remove this line when we get ports out of the ini configuration
+        last_network_error = None
         host_no_port = config['host'].split(':')[0]
         for conn in [httplib.HTTPSConnection(host_no_port), httplib.HTTPConnection(host_no_port)]:
-            response = do_connect(conn, 'POST', config['requrl'], params, headers)
+            try:
+                response = do_connect(conn, 'POST', config['requrl'], params, headers)
+            except socket.error as exc:
+                last_network_error = str(exc)
+                continue
             json_data = json.loads(response.read())
             if json_data['status'] == 'OK':
                 break
+
+        if not response:
+            raise socket.error('Could not reach %s: %s' % (host_no_port, last_network_error))
 
         try:
             self.reqid = json_data['host_request_id']
