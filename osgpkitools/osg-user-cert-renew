@@ -11,9 +11,9 @@ import errno
 import getpass
 import base64
 import socket
-import M2Crypto
 from optparse import OptionParser
 from ssl import SSLError
+import M2Crypto
 
 from osgpkitools import OSGPKIUtils
 from osgpkitools.OSGPKIUtils import read_config
@@ -105,7 +105,7 @@ will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
         sys.exit(1)
 
     timeout = int(args.timeout)
-    if not timeout >= 0:
+    if timeout < 0:
         raise ValueError('Invalid timeout value. Please enter a non-negative integer value.\n')
 
     # Check write directory existence and write permission
@@ -235,16 +235,16 @@ def connect_retrieve(**arguments):
         charlimit_textwrap('Connection to %s%s failed: %s' % (arguments['hostsec'], arguments['userreturl'], exc))
         raise
     check_response_500(response)
-    json = response.read()
+    json_data = response.read()
 
     if not 'PENDING' in response.reason:
         if not 'OK' in response.reason:
-            print_failure_reason_exit(json)
+            print_failure_reason_exit(json_data)
     conn.close()
     charlimit_textwrap('Waiting for response from Certificate Authority. Please wait.')
 
     iterations = 0
-    while 'PENDING' in json:
+    while 'PENDING' in json_data:
         conn = M2Crypto.httpslib.HTTPSConnection(arguments['hostsec'],
                                                  ssl_context=arguments['ssl_context']) # we have to reconnect
         try:
@@ -258,11 +258,11 @@ def connect_retrieve(**arguments):
             charlimit_textwrap('Connection to %s%s failed: %s' % (arguments['hostsec'], arguments['userreturl'], exc))
             raise
         check_response_500(response)
-        json = response.read()
+        json_data = response.read()
         iterations = check_for_pending(iterations)
     conn.close()
-    check_failed_response(json)
-    data = json.loads(json)
+    check_failed_response(json_data)
+    data = json.loads(json_data)
     pkcs12 = base64.b64decode(data['pkcs12'])
 
     write_certificate(pkcs12, arguments)
