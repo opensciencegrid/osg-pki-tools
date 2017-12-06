@@ -10,6 +10,7 @@ import os
 import errno
 import getpass
 import base64
+import socket
 import M2Crypto
 from optparse import OptionParser
 from ssl import SSLError
@@ -232,7 +233,7 @@ def connect_retrieve(**arguments):
         response = conn.getresponse()
     except httplib.HTTPException, exc:
         charlimit_textwrap('Connection to %s%s failed: %s' % (arguments['hostsec'], arguments['userreturl'], exc))
-        raise httplib.HTTPException
+        raise
     check_response_500(response)
     json = response.read()
 
@@ -255,7 +256,7 @@ def connect_retrieve(**arguments):
             response = conn.getresponse()
         except httplib.HTTPException, exc:
             charlimit_textwrap('Connection to %s%s failed: %s' % (arguments['hostsec'], arguments['userreturl'], exc))
-            raise httplib.HTTPException
+            raise
         check_response_500(response)
         json = response.read()
         iterations = check_for_pending(iterations)
@@ -314,32 +315,35 @@ if __name__ == '__main__':
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
         raise
-    except SSLError, exc:
+    except SSLError as exc:
         print_exception_message(exc)
         sys.exit('Please check for valid certificate.\n')
-    except KeyboardInterrupt, exc:
+    except KeyboardInterrupt as exc:
         print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
-    except FileNotFoundException, exc:
+    except (socket.error, httplib.HTTPException) as exc:
+        charlimit_textwrap('Connection failed: %s' % (exc))
+        sys.exit(1)
+    except FileNotFoundException as exc:
         charlimit_textwrap(exc.message + ':' + exc.filename)
         sys.exit(1)
-    except (Exception_500response, NotOKException), exc:
+    except (Exception_500response, NotOKException) as exc:
         charlimit_textwrap('Request Failed. Status %s' % exc.status)
         charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
-    except CertificateMismatchException, exc:
+    except CertificateMismatchException as exc:
         print 'The number of requests made was ', exc.request_num
         print 'The number of certificates received is ', exc.retrieve_num
         charlimit_textwrap(exc.message)
         sys.exit(1)
-    except (AttributeError, OSError, ValueError, EOFError), exc:
+    except (AttributeError, OSError, ValueError, EOFError) as exc:
         print_exception_message(exc)
         sys.exit(1)
     except (FileWriteException, BadCertificateException, BadPassphraseException, HandshakeFailureException,
-            UnexpectedBehaviourException, InsufficientArgumentException), exc:
+            UnexpectedBehaviourException, InsufficientArgumentException) as exc:
         charlimit_textwrap(exc.message)
         sys.exit(1)
-    except Exception, exc:
+    except Exception as exc:
         print_uncaught_exception()
         charlimit_textwrap('Uncaught Exception : Please report the bug to %s.' % OSGPKIUtils.HELP_EMAIL)
         sys.exit(1)
