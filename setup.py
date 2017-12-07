@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name = "OSGPKITools",
-    version = "2.1.0",
+    version = "2.1.1",
     author = "Rohan Mathure",
     author_email = "rmathure@indiana.edu",
     maintainer = "Brian Lin",
