@@ -224,8 +224,8 @@ if __name__ == '__main__':
         OSGPKIUtils.charlimit_textwrap('Reason for failure %s' % exc.message)
         sys.exit(1)
     except CertificateMismatchException as exc:
-        print 'The number of requests made was ' as exc.request_num
-        print 'The number of certificates received is ' as exc.retrieve_num
+        print 'The number of requests made was ', exc.request_num
+        print 'The number of certificates received is ', exc.retrieve_num
         OSGPKIUtils.charlimit_textwrap(exc.message)
         sys.exit(1)
     except (BadPassphraseException, HandshakeFailureException, UnexpectedBehaviourException, InvalidOptionException) as exc:

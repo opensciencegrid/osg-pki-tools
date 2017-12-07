@@ -55,6 +55,7 @@ class ConnectAPI(object):
                    'User-Agent': USER_AGENT}
 
         # TODO: Remove this line when we get ports out of the ini configuration
+        response = None
         last_network_error = None
         host_no_port = config['host'].split(':')[0]
         for conn in [httplib.HTTPSConnection(host_no_port), httplib.HTTPConnection(host_no_port)]:
