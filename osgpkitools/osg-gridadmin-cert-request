@@ -334,7 +334,7 @@ if __name__ == '__main__':
     except (BadCertificateException, BadPassphraseException, HandshakeFailureException) as exc:
         charlimit_textwrap(exc.message)
         sys.exit(1)
-    except (AttributeError, OSError, ValueError, EOFError, SSL.SSLError, UnexpectedBehaviourException) as exc:
+    except (AttributeError, EnvironmentError, ValueError, EOFError, SSL.SSLError, UnexpectedBehaviourException) as exc:
         print_exception_message(exc)
         sys.exit(1)
     except Exception:
