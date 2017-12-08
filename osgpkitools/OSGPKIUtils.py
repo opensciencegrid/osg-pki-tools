@@ -347,7 +347,7 @@ def read_config(itb, config_files=None):
 
     return dict(config.items(oim))
 
-class Cert:
+class Cert(object):
 
     KEY_LENGTH = 2048
     PUB_EXPONENT = 0x10001
