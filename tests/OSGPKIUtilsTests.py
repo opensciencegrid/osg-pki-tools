@@ -14,17 +14,16 @@ from osgpkitools import OSGPKIUtils
 
 class OSGPKIUtilsTests(unittest.TestCase):
     FQDN = 'test.' + DOMAIN
-    KEYPATH = FQDN + '-key.pem'
 
     def test_csr_generation(self):
         '''Generate a basic CSR'''
-        cert = OSGPKIUtils.Cert(self.FQDN, self.KEYPATH, email=EMAIL)
+        cert = OSGPKIUtils.Cert(self.FQDN, email=EMAIL)
         self.assert_(cert.x509request, 'missing CSR contents')
 
     def test_alt_name_csr_generation(self):
         '''Generate a CSR with multiple SANs'''
         alias = 'test-san.' + DOMAIN
-        cert = OSGPKIUtils.Cert(self.FQDN, self.KEYPATH, altnames=[alias], email=EMAIL)
+        cert = OSGPKIUtils.Cert(self.FQDN, altnames=[alias], email=EMAIL)
         csr_contents = cert.x509request.as_text()
         self.assert_(re.search(r'X509v3 Subject Alternative Name: critical', csr_contents),
                      "Subject Alternative Name not marked as 'critical'\n" + csr_contents)
