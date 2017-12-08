@@ -230,7 +230,8 @@ def process_csr(config, bulk_csr, ssl_ctx, vo, cc_list, write_dir):
         certs = capi.retrieve(config)
 
         for hostname, cert_string in certs:
-            cert_path = os.path.join(write_dir, hostname + '.pem')
+            # escape '/' in service certs
+            cert_path = os.path.join(write_dir, hostname.replace('/', '_') + '.pem')
             OSGPKIUtils.safe_rename(cert_path)
             OSGPKIUtils.atomic_write(cert_path, cert_string)
             os.chmod(cert_path, 0644)
@@ -268,12 +269,9 @@ if __name__ == '__main__':
         certs = list()
         charlimit_textwrap('Beginning request process...')
         for host in set(hosts):
-            cn = host[0]
+            common_name = host[0]
             sans = host[1:]
-            # Remove / from service requests for proper FQDN formatting
-            cert_obj = OSGPKIUtils.Cert(cn.replace('/', '-'),
-                                        keypath=os.path.join(ARGS['certdir'], cn + '-key.pem'),
-                                        altnames=sans)
+            cert_obj = OSGPKIUtils.Cert(common_name, ARGS['certdir'], altnames=sans)
             certs.append(cert_obj)
 
         # We choose to write the keys before the request in case there are issues with the certs and only then perform

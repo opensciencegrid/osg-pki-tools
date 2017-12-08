@@ -288,7 +288,7 @@ def extract_certs(pkcs7raw):
 ### Here we rely on OPenSSL -printcert output format. If it changes our output might be affected
 
 def extractHostname(cert_string):
-    """Extracts hostname from the string of certifcate file
+    """Extracts hostname from the string of certificate file
     We take the whole certificate data as a string input
     Checking for /CN= in every line and extracting the term after that if not Digicert i.e. CA would be the hostname
     Here we rely on OPenSSL -printcert output format. If it changes our output might be affected"""
@@ -352,18 +352,22 @@ class Cert:
     KEY_LENGTH = 2048
     PUB_EXPONENT = 0x10001
 
-    def __init__(self, common_name, keypath, altnames=None, email=None):
+    def __init__(self, common_name, output_dir=None, altnames=None, email=None):
         """Create a certificate request (stored in the x509request attribute) and associated key file that is written to
         a temporary location (stored in the newkey attribute). It is up to the caller to write_pkey or clean up the
         temporary keys
 
         This function accepts the CN and final path for the key as well as optional list of subject alternative names
         and optional requestor e-mail.  """
+        escaped_common_name = common_name.replace('/', '_') # Remove / from service requests for writing keys
         self.keypair = RSA.gen_key(self.KEY_LENGTH,
                                    self.PUB_EXPONENT,
                                    self.callback)
-        self.keypath = keypath
-        self.newkey = tempfile.mktemp(dir=os.path.dirname(keypath))
+
+        if not output_dir:
+            output_dir = os.getcwd()
+        self.keypath = os.path.join(output_dir, escaped_common_name + '-key.pem')
+        self.newkey = tempfile.mktemp(dir=output_dir)
 
         # The message digest shouldn't matter here since we don't use
         # PKey.sign_*() or PKey.verify_*() but there's no harm in keeping it and
