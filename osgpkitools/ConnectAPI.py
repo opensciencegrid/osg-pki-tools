@@ -70,11 +70,13 @@ class ConnectAPI(object):
 
         if not response:
             raise socket.error('Could not reach %s: %s' % (host_no_port, last_network_error))
+        elif 'FAILED' in json_data or not 'OK' in response.reason:
+            print_failure_reason_exit(json_data)
 
         try:
             self.reqid = json_data['host_request_id']
         except KeyError:
-            raise OIMException('ERROR: OIM did not return request ID in its response')
+            raise OIMException('OIM did not return request ID in its response')
 
     def request_authenticated(self, config, bulk_csr, ssl_context, vo=None, cc_list=None):
         """For registered user(gridadmin) certificate requests
