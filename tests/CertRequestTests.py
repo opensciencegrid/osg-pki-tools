@@ -86,6 +86,14 @@ class CertRequestTests(unittest.TestCase):
         self.assertEqual(return_code, 0, "Failed to request certificate\n%s" % msg)
         self.assert_(oim.reqid != '', msg)
 
+    def test_service_cert(self):
+        """Test making a request for a service cert"""
+        oim = OIM()
+        return_code, _, _, msg = oim.request('--phone', '1234567', '--email', 'foo@bar.com', '--name',
+                                             'Foo Barrington', '--hostname', 'service/test.' + DOMAIN)
+        self.assertEqual(return_code, 0, "Failed to request certificate\n%s" % msg)
+        self.assert_(oim.reqid != '', msg)
+
     def test_alt_name_request(self):
         """Test cert request with alternative name"""
         oim = OIM()
