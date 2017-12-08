@@ -213,22 +213,20 @@ if __name__ == '__main__':
     except (socket.error, httplib.HTTPException) as exc:
         OSGPKIUtils.charlimit_textwrap('Connection failed: %s' % repr(exc))
     except FileNotFoundException as exc:
-        OSGPKIUtils.charlimit_textwrap(exc.message + ':' + exc.filename)
+        OSGPKIUtils.charlimit_textwrap(str(exc) + ':' + exc.filename)
         sys.exit(1)
     except (Exception_500response, NotOKException) as exc:
         OSGPKIUtils.charlimit_textwrap('Request Failed. Status %s' % exc.status)
-        OSGPKIUtils.charlimit_textwrap('Reason for failure %s' % exc.message)
+        OSGPKIUtils.charlimit_textwrap('Reason for failure %s' % str(exc))
         sys.exit(1)
     except CertificateMismatchException as exc:
         print 'The number of requests made was ', exc.request_num
         print 'The number of certificates received is ', exc.retrieve_num
-        OSGPKIUtils.charlimit_textwrap(exc.message)
+        OSGPKIUtils.charlimit_textwrap(str(exc))
         sys.exit(1)
-    except (BadPassphraseException, HandshakeFailureException, UnexpectedBehaviourException, InvalidOptionException) as exc:
-        OSGPKIUtils.charlimit_textwrap(exc.message)
-        sys.exit(1)
-    except (EOFError, OSError, KeyError, IOError) as exc:
-        OSGPKIUtils.print_exception_message(exc)
+    except (ConnectAPI.OIMException, EOFError, OSError, KeyError, IOError, BadPassphraseException,
+            HandshakeFailureException, UnexpectedBehaviourException, InvalidOptionException) as exc:
+        OSGPKIUtils.charlimit_textwrap('ERROR: ' + str(exc))
         sys.exit(1)
     except Exception:
         OSGPKIUtils.print_uncaught_exception()
