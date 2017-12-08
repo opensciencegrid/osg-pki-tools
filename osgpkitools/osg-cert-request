@@ -129,7 +129,7 @@ def unauthenticated_request(config, name, email, phone, hostname=None, altnames=
             os.remove(cert.newkey)
             raise
         else:
-            print "Writing key to %s" % cert.keypath
+            print "Writing key to %s" % cert.final_keypath
             cert.write_pkey()
     else:
         OSGPKIUtils.charlimit_textwrap('CSR input found. Skipping creation of the primary key')
@@ -187,7 +187,7 @@ def main():
                 os.remove(cert.newkey)
                 raise
             else:
-                print "Writing key to %s" % cert.keypath
+                print "Writing key to %s" % cert.final_keypath
                 cert.write_pkey()
 
             # Escape '/' in service certs

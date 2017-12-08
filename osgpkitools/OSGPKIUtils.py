@@ -366,8 +366,9 @@ class Cert:
 
         if not output_dir:
             output_dir = os.getcwd()
-        self.keypath = os.path.join(output_dir, escaped_common_name + '-key.pem')
-        self.newkey = tempfile.mktemp(dir=output_dir)
+        self.final_keypath = os.path.join(output_dir, escaped_common_name + '-key.pem')
+        temp_key = tempfile.NamedTemporaryFile(dir=output_dir, delete=False)
+        self.newkey = temp_key.name
 
         # The message digest shouldn't matter here since we don't use
         # PKey.sign_*() or PKey.verify_*() but there's no harm in keeping it and
@@ -376,6 +377,7 @@ class Cert:
         self.pkey = EVP.PKey(md='sha256')
         self.pkey.assign_rsa(self.keypair)
         self.keypair.save_key(self.newkey, cipher=None)
+        temp_key.close()
 
         self.x509request = X509.Request()
         x509name = X509.X509_Name()
@@ -418,7 +420,7 @@ class Cert:
     def write_pkey(self, keypath=None):
         """Move the instance's newkey to keypath, backing up keypath to keypath.old if necessary"""
         if not keypath:
-            keypath = self.keypath
+            keypath = self.final_keypath
         # Handle already existing key file...
         safe_rename(keypath)
         os.rename(self.newkey, keypath)
