@@ -140,7 +140,7 @@ def unauthenticated_request(config, name, email, phone, hostname=None, altnames=
             sys.exit(1)
         capi.request_unauthenticated(config, name, email, phone, csr, vo, cc, comment)
 
-    OSGPKIUtils.charlimit_textwrap('Request Id#: %s' % capi.reqid)
+    print 'OIM Request ID: %s' % capi.reqid
 
 def main():
     """Request certificates from OIM, defaulting to authenticated (GridAdmin) requests but falling back to
