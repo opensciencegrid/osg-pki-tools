@@ -121,11 +121,7 @@ def unauthenticated_request(config, name, email, phone, hostname=None, altnames=
     capi = ConnectAPI.ConnectAPI()
 
     if csr_path is None:
-        common_name = hostname.replace('/', '-')
-        cert = OSGPKIUtils.Cert(common_name,
-                                keypath=os.path.join(write_directory, common_name + '-key.pem'),
-                                altnames=altnames,
-                                email=email)
+        cert = OSGPKIUtils.Cert(hostname, write_directory, altnames=altnames, email=email)
         csr = cert.base64_csr()
         try:
             capi.request_unauthenticated(config, name, email, phone, csr, vo, cc, comment)
@@ -133,7 +129,7 @@ def unauthenticated_request(config, name, email, phone, hostname=None, altnames=
             os.remove(cert.newkey)
             raise
         else:
-            print "Writing key to %s" % cert.keypath
+            print "Writing key to %s" % cert.final_keypath
             cert.write_pkey()
     else:
         OSGPKIUtils.charlimit_textwrap('CSR input found. Skipping creation of the primary key')
@@ -144,7 +140,7 @@ def unauthenticated_request(config, name, email, phone, hostname=None, altnames=
             sys.exit(1)
         capi.request_unauthenticated(config, name, email, phone, csr, vo, cc, comment)
 
-    OSGPKIUtils.charlimit_textwrap('Request Id#: %s' % capi.reqid)
+    print 'OIM Request ID: %s' % capi.reqid
 
 def main():
     """Request certificates from OIM, defaulting to authenticated (GridAdmin) requests but falling back to
@@ -174,8 +170,7 @@ def main():
             unauthenticated_request(config, args.name, args.email, args.phone, args.hostname, args.alt_names, args.csr,
                                     args.write_directory, args.vo, args.cc_list, args.comment)
         else:
-            cert = OSGPKIUtils.Cert(args.hostname, os.path.join(args.write_directory, args.keyfile),
-                                    altnames=args.alt_names, email=args.email)
+            cert = OSGPKIUtils.Cert(args.hostname, args.write_directory, altnames=args.alt_names, email=args.email)
 
             try:
                 oim = ConnectAPI.ConnectAPI()
@@ -192,10 +187,11 @@ def main():
                 os.remove(cert.newkey)
                 raise
             else:
-                print "Writing key to %s" % cert.keypath
+                print "Writing key to %s" % cert.final_keypath
                 cert.write_pkey()
 
-            cert_path = os.path.join(args.write_directory, hostname + '.pem')
+            # Escape '/' in service certs
+            cert_path = os.path.join(args.write_directory, hostname.replace('/', '_') + '.pem')
             OSGPKIUtils.safe_rename(cert_path)
             OSGPKIUtils.atomic_write(cert_path, cert_string)
             os.chmod(cert_path, 0644)

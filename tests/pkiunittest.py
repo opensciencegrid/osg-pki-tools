@@ -44,6 +44,9 @@ PYPATH = os.path.abspath("..")
 
 TEST_PATH = ''
 
+# The expected subject for CILogon host/service certs before the common name
+HOST_SUBJECT_PREFIX = '/DC=org/DC=opensciencegrid/O=Open Science Grid/OU=Services/CN='
+
 def test_env_setup():
     """Create a test dir and environment"""
     # Required for cleanup and tests
@@ -144,7 +147,8 @@ class OIM(object):
         # Verify permissions of created files, if any
         for cert_path, key_path in zip(certs, keys):
             try:
-                cert = OIM.verify_cert(cert_path)
+                subject = HOST_SUBJECT_PREFIX + os.path.basename(os.path.splitext(cert_path)[0]).replace('_', '/')
+                cert = OIM.verify_cert(cert_path, subject)
                 key = OIM.verify_key(key_path)
             except CertFileError, cert_err:
                 raise CertFileError(cert_err.message + msg)
@@ -205,7 +209,7 @@ class OIM(object):
         return key
 
     @staticmethod
-    def verify_cert(path):
+    def verify_cert(path, expected_subject):
         """Ensure proper cert permissions, returns"""
         fail_prefix = 'VerificationFailure: '
         if not os.path.exists(path):
@@ -215,8 +219,11 @@ class OIM(object):
             raise CertFileError(fail_prefix + "Cert file '%s' is excessively writable: %o\n" %(path, mode & 0777))
         try:
             cert = X509.load_cert(path)
+            cert_subject = str(cert.get_subject())
         except X509.X509Error:
             raise CertFileError('Malformed cert: %s\n' % path)
+        if cert_subject != expected_subject:
+            raise CertFileError('Incorrect subject. EXPECTED:\n%s\nGOT:\n%s\n' % (expected_subject, cert_subject))
         return cert
 
     @staticmethod

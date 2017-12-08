@@ -48,6 +48,11 @@ class GridadminCertRequestTests(unittest.TestCase):
         rc, _, _, msg = OIM().gridadmin_request('--hostname', 'test.' + DOMAIN)
         self.assertEqual(rc, 0, "Failed to request certificate\n%s" % msg)
 
+    def test_service_cert(self):
+        """Test making a request for a service cert"""
+        rc, _, _, msg = OIM().gridadmin_request('--hostname', 'service/test.' + DOMAIN)
+        self.assertEqual(rc, 0, "Failed to request service certificate\n%s" % msg)
+
     def test_singlehost_alt_name(self):
         """Test making a request for a single host with an alternative hostname"""
         hostname = 'test.' + DOMAIN
