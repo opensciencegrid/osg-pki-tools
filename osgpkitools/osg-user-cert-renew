@@ -134,8 +134,8 @@ will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
 # which can be used to retrieve the certificate
 
 def connect_renew(**arguments):
-    """This function connects to the user renew API and passes the DN
-    and the serial number to API to get back the request ID.
+    """This function connects to the user renew API and passes the serial number
+    to API to get back the request ID.
     """
 
     while True:
@@ -287,17 +287,11 @@ def process_csr(**arguments):
     connect_retrieve(**arguments)
     return
 
-
-def process_renew(**arguments):
-    """This function would in turn call process csr function"""
-    process_csr(**arguments)
-    return
-
 def extract_info(**arguments):
     """ Extracts the DN from the certificate provided."""
     x509 = M2Crypto.X509.load_cert(arguments['usercert'])
     dec_sid = x509.get_serial_number()
-    hex_sid = "%032X" % dec_sid
+    hex_sid = "%X" % dec_sid
     arguments.update({'serial_number':hex_sid})
     dn = x509.get_issuer()
     arguments.update({'DN':dn})
@@ -310,7 +304,7 @@ if __name__ == '__main__':
         arguments['ssl_context'] = get_ssl_context(arguments['usercert'], arguments['userprivkey'])
         arguments = extract_info(**arguments)
         OSGPKIUtils.start_timeout_clock(arguments['timeout'])
-        process_renew(**arguments)
+        process_csr(**arguments)
     except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
