@@ -195,8 +195,11 @@ or specify from a file using -f/--hostfile.''')
     arguments.update({'timeout': timeout})
     print 'Using timeout of %d minutes' % timeout
     arguments.update({'alt_names': args.alt_names})
-    arguments.update({'usercert': args.usercert})
-    arguments.update({'userprivkey': args.userprivkey})
+
+    usercert, userkey = OSGPKIUtils.find_user_cred(args.usercert, args.userprivkey)
+    arguments.update({'usercert': usercert})
+    arguments.update({'userprivkey': userkey})
+
     arguments.update({'certdir': args.write_directory})
     if vars().has_key('hostfile'):
         arguments.update({'hostfile': hostfile})
