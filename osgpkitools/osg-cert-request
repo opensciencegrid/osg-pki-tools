@@ -163,7 +163,8 @@ def main():
             msg = "Defaulting to authenticated certificate requests. " + \
                   "If you want to force unauthenticated requests, use the '--unauthenticated' option."
             OSGPKIUtils.charlimit_textwrap(msg)
-            ssl_ctx = OSGPKIUtils.get_ssl_context()
+            usercert, userkey = OSGPKIUtils.find_user_cred()
+            ssl_ctx = OSGPKIUtils.get_ssl_context(usercert, userkey)
         except IOError:
             msg = "Could not find user certificate/key pair, making unauthenticated request..."
             OSGPKIUtils.charlimit_textwrap(msg)

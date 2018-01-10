@@ -51,7 +51,40 @@ userreturl: /oim/rest?action=user_cert_retrieve&version=1
 userrevurl: /oim/rest?action=user_cert_revoke&version=1
 """
 
-def get_ssl_context(usercert=None, userkey=None):
+def find_user_cred(usercert=None, userkey=None):
+    """Find a readable user cert/key pair, trying pairs in the following order:
+
+    1. usercert, userkey
+    2. X509_USER_CERT, X509_USER_KEY environment variables
+    3. '~/.globus/usercert.pem', '~/.globus/userkey.pem'
+
+    INPUT (optional)
+    usercert: path to user certificate
+    userkey: path to private key of user
+
+    OUTPUT
+    Paths to the user cert and key
+    """
+    # list of cert/key pairs to try
+    input_pairs = [(usercert, userkey),
+                   ((os.environ.get('X509_USER_CERT'), os.environ.get('X509_USER_KEY'))),
+                   (os.path.expanduser('~/.globus/usercert.pem'), os.path.expanduser('~/.globus/userkey.pem'))]
+    cert_key_pairs = [t for t in input_pairs if None not in t] # remove undefined pairs for an improved err msg below
+
+    # M2Crypto doesn't raise exceptions when encountering missing or unreadable
+    # cert/key pairs so we force the issue
+    for cert, key in cert_key_pairs:
+        try:
+            open(cert, 'r')
+            open(key, 'r')
+            return cert, key
+        except IOError:
+            continue
+    raise IOError("Unable to read the following certificate/key pairs:\n- %s" %
+                  "\n- ".join([", ".join(pair) for pair in cert_key_pairs]))
+
+
+def get_ssl_context(usercert, userkey):
     """ This function sets the ssl context by accepting the passphrase
     and validating it for user private key and his certificate
     INPUT
@@ -61,37 +94,16 @@ def get_ssl_context(usercert=None, userkey=None):
     OUTPUT
     SSL.Context() object for the HTTPS connection.
     """
-    # list of cert/key pairs to try
-    input_pairs = [(usercert, userkey),
-                   ((os.environ.get('X509_USER_CERT'), os.environ.get('X509_USER_KEY'))),
-                   (os.path.expanduser('~/.globus/usercert.pem'), os.path.expanduser('~/.globus/userkey.pem'))]
-    # ignore pairs when X509_USER_* vars undefined or function called without args
-    cert_key_pairs = [t for t in input_pairs if None not in t]
-
-    # M2Crypto doesn't raise exceptions when encountering missing or unreadable
-    # cert/key pairs so we force the issue
-    for cert_path, key_path in cert_key_pairs:
-        try:
-            if open(cert_path, 'r') and open(key_path, 'r'):
-                cert = cert_path
-                key = key_path
-                break
-        except IOError:
-            continue
-    else:
-        raise IOError("Unable to read the following certificate/key pairs:\n- %s" %
-                      "\n- ".join([", ".join(pair) for pair in cert_key_pairs]))
-
     pass_str = 'Please enter the pass phrase for'
     for _ in range(0, 2): # allow two password attempts
         def prompt_for_password(verify):
-            return getpass.getpass(pass_str+" '%s':" % key)
+            return getpass.getpass(pass_str+" '%s':" % userkey)
 
         ssl_context = SSL.Context()
         ssl_context.set_options(m2.SSL_OP_NO_SSLv2 | m2.SSL_OP_NO_SSLv3)
 
         try:
-            ssl_context.load_cert_chain(cert, key, callback=prompt_for_password)
+            ssl_context.load_cert_chain(usercert, userkey, callback=prompt_for_password)
             return ssl_context
         except SSL.SSLError, exc:
             if 'bad password read' in exc:
