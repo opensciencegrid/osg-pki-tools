@@ -1,4 +1,4 @@
-#!/usr/bin/python
+ #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 import urllib
@@ -299,11 +299,11 @@ def extract_info(cert):
 if __name__ == '__main__':
     try:
         os.umask(0177)
-        ARGS = parse_args()
-        ARGS['ssl_context'] = get_ssl_context(ARGS['usercert'], ARGS['userprivkey'])
-        ARGS['DN'], ARGS['serial_number'] = extract_info(ARGS['usercert'])
-        OSGPKIUtils.start_timeout_clock(ARGS['timeout'])
-        process_csr(**ARGS)
+        arguments = parse_args()
+        arguments['ssl_context'] = get_ssl_context(arguments['usercert'], arguments['userprivkey'])
+        arguments['DN'], arguments['serial_number'] = extract_info(arguments['usercert'])
+        OSGPKIUtils.start_timeout_clock(arguments['timeout'])
+        process_csr(**arguments)
     except SystemExit:
         # We need to specifically catch sys.exit() so that it doesn't hit the catchall Exception below and
         # print a confusing message for the user (SOFTWARE-1584)
