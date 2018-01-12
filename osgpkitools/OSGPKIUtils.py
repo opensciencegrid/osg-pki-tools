@@ -26,7 +26,7 @@ MBSTRING_ASC = MBSTRING_FLAG | 1
 MBSTRING_BMP = MBSTRING_FLAG | 2
 
 # The variable for storing version number for the scripts
-VERSION_NUMBER = "2.1.2"
+VERSION_NUMBER = "2.1.3"
 
 HELP_EMAIL = 'help@opensciencegrid.org'
 
