@@ -244,7 +244,7 @@ def connect_revoke(**arguments):
 if __name__ == "__main__":
     try:
         arguments = parse_args()
-        ssl_context = get_ssl_context(arguments['usercert'], arguments['userkey'])
+        ssl_context = get_ssl_context(arguments['usercert'], arguments['userprivkey'])
         arguments.update({'ssl_context': ssl_context})
         OSGPKIUtils.start_timeout_clock(arguments['timeout'])
         connect_revoke(**arguments)
