@@ -12,11 +12,6 @@ import os
 import argparse
 from ssl import SSLError
 
-from osgpkitools import OSGPKIUtils
-from osgpkitools import ConnectAPI
-from osgpkitools.ExceptionDefinitions import *
-
-
 # Set up Option Parser
 #
 

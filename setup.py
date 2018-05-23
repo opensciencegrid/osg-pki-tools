@@ -17,9 +17,9 @@ setup(
     maintainer = "Brian Lin",
     maintainer_email = "blin@cs.wisc.edu",
     description = ("A utility to request and manage certificates."),
-    data_files = [('/usr/bin/',['osgpkitools/osg-cert-request', 'osgpkitools/osg-cert-retrieve', 'osgpkitools/osg-gridadmin-cert-request', 'osgpkitools/osg-cert-revoke', 'osgpkitools/osg-user-cert-revoke', 'osgpkitools/osg-user-cert-renew']),
-                 ('/etc/osg/',['osgpkitools/pki-clients.ini']),
-                 (os.path.join(get_python_lib(), 'osgpkitools/'),['osgpkitools/OSGPKIUtils.py','osgpkitools/__init__.py','osgpkitools/ExceptionDefinitions.py','osgpkitools/ConnectAPI.py'])],
+    data_files = [('/usr/bin/osgpkitools/osg-cert-request'),
+                  (os.path.join(get_python_lib(), 'osgpkitools/'),
+                   ['osgpkitools/OSGPKIUtils.py', 'osgpkitools/__init__.py'])],
     packages=['osgpkitools', 'tests'],
     long_description=read('README.txt'),
     classifiers=[
