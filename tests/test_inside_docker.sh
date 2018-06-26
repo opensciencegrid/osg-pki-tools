@@ -14,8 +14,7 @@ rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-${OS_VERSION}
 # Broken mirror?
 echo "exclude=mirror.beyondhosting.net" >> /etc/yum/pluginconf.d/fastestmirror.conf
 
-yum -y install yum-plugin-priorities
-yum -y install m2crypto
+yum -y install yum-plugin-priorities m2crypto python-unittest2
 
 # Run unit tests
 pushd osg-pki-tools/
