@@ -44,7 +44,14 @@ def parse_cli(args):
                           help="Write the generated host key to this directory")
     optional.add_argument('-V', '--version', action='version', version=utils.VERSION_NUMBER)
 
-    return parser.parse_args(args)
+    parsed_args = parser.parse_args(args)
+
+    # We can't add altnames to the mutually exclusive 'hosts' group since it's not a required opt
+    if parsed_args.hostfile and parsed_args.altnames:
+        parsed_args.altnames = []
+        print("-A/--altname option ignored with -F/--hostfile", file=sys.stderr)
+
+    return parsed_args
 
 
 class CountryAction(argparse.Action):
@@ -135,9 +142,6 @@ def main():
         args = parse_cli(sys.argv[1:])
     except ValueError as exc:
         raise SystemExit(exc.message)
-
-    if args.hostfile and args.altnames:
-        print("-A/--altname option ignored with -F/--hostfile", file=sys.stderr)
 
     location = namedtuple('Location', ['country', 'state', 'locality', 'organization'])
     loc = location(args.country, args.state, args.locality, args.organization)
