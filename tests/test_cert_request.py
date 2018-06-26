@@ -4,7 +4,7 @@ import re
 import sys
 import unittest
 
-from itertools import chain, permutations
+from itertools import permutations
 from contextlib import contextmanager
 from StringIO import StringIO
 
@@ -48,9 +48,10 @@ def parse_cli_flatten_args(args):
     """Parse CLI args, flattening any option/value tuples. We use tuples so that we can keep the options/values together
     when messing with the arg lists, e.g. itertools.permutations
     """
-    if len(args) > 1:
-        args = chain.from_iterable(args)
-    return request.parse_cli(args)
+    args_list = []
+    for arg in args:
+        args_list.extend(arg)
+    return request.parse_cli(args_list)
 
 
 class CertRequestTests(unittest.TestCase):
@@ -60,10 +61,8 @@ class CertRequestTests(unittest.TestCase):
     def test_conflicting_opts(self):
         """Users should not provide both a hostname and hosts file
         """
-        with self.assertRaises(SystemExit) as exc_cm:
-            with capture_sys_output() as (_, _):
-                parse_cli_flatten_args(HOST_ARGS + HOSTFILE_ARGS)
-        self.assertEqual(exc_cm.exception.code, 2, 'conflicting hostname and hostfile options did not exit 2')
+        with capture_sys_output() as (_, _):
+            self.assertRaises(SystemExit, parse_cli_flatten_args, HOST_ARGS + HOSTFILE_ARGS)
 
     def test_required_opts(self):
         """Users need to provide location information and hostname or hosts file
@@ -71,12 +70,9 @@ class CertRequestTests(unittest.TestCase):
         for host in [[()], HOST_ARGS, HOSTFILE_ARGS]:
             for location in permutations(LOCATION_ARGS, 3):
                 args = host + list(location)
-                with self.assertRaises(SystemExit) as exc_cm:
-                    with capture_sys_output() as (_, stderr):
-                        parse_cli_flatten_args(args)
+                with capture_sys_output() as (_, stderr):
+                    self.assertRaises(SystemExit, parse_cli_flatten_args, args)
 
-                self.assertEqual(exc_cm.exception.code, 2, "missing required options did not exit 2:\n{0}"
-                                 .format(args))
                 self.assert_(re.search(r'error.*is required.*', stderr.getvalue()))
 
     def test_ignored_opts(self):
@@ -85,14 +81,13 @@ class CertRequestTests(unittest.TestCase):
         with capture_sys_output() as (_, _):
             args = parse_cli_flatten_args(HOSTFILE_ARGS + LOCATION_ARGS +
                                           [('--altname', 'test-san.opensciencegrid.org')])
-        self.assertListEqual(args.altnames, [], 'Altname option was not ignored when --hostfile was specified')
+        self.assertEqual(args.altnames, [], 'Altname option was not ignored when --hostfile was specified')
 
     def test_state_opt(self):
         """State values should be unabbreviated
         """
-        with self.assertRaises(ValueError) as _:
-            with capture_sys_output() as (_, _):
-                parse_cli_flatten_args(HOST_ARGS + [('--state', 'WI')])
+        with capture_sys_output() as (_, _):
+            self.assertRaises(ValueError, parse_cli_flatten_args, HOST_ARGS + [('--state', 'WI')])
 
         args = parse_cli_flatten_args(HOST_ARGS + LOCATION_ARGS)
         self.assertEqual(args.state, 'Wisconsin', "Unexpected value '{0}' for state option:\n{1}".
@@ -101,9 +96,8 @@ class CertRequestTests(unittest.TestCase):
     def test_country_opt(self):
         """Country values should be the abbreviated, 2-letter country code
         """
-        with self.assertRaises(ValueError) as _:
-            with capture_sys_output() as (_, _):
-                parse_cli_flatten_args(HOST_ARGS + [('--country', 'United States')])
+        with capture_sys_output() as (_, _):
+            self.assertRaises(ValueError, parse_cli_flatten_args, HOST_ARGS + [('--country', 'United States')])
 
         args = parse_cli_flatten_args(HOST_ARGS + LOCATION_ARGS)
         self.assertEqual(args.country, 'US', "Unexpected value '{0}' for country option:\n{1}".
@@ -113,10 +107,8 @@ class CertRequestTests(unittest.TestCase):
         """Verify help option
         """
         for opt in ['-h', '--help']:
-            with self.assertRaises(SystemExit) as exc_cm:
-                with capture_sys_output() as (_, _):
-                    parse_cli_flatten_args([opt])
-            self.assertEqual(exc_cm.exception.code, 0, '{0} did not exit 0'.format(opt))
+            with capture_sys_output() as (_, _):
+                self.assertRaises(SystemExit, parse_cli_flatten_args, [opt])
 
 
 if __name__ == '__main__':
