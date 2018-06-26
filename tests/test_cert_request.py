@@ -20,10 +20,12 @@ LOCATION_ARGS = [('--country', 'US'),
                  ('--organization', 'University of Wisconsin - Madison')]
 
 
-# Capture stdout/stderr from argparse from stack overflow:
 # https://stackoverflow.com/questions/18651705/argparse-unit-tests-suppress-the-help-message
 @contextmanager
 def capture_sys_output():
+    """Capture stdout/stderr from argparse from stack overflow.
+    In addition to being able to compare stdout/stderr, it allows us to suppress them from the test output
+    """
     capture_out, capture_err = StringIO(), StringIO()
     current_out, current_err = sys.stdout, sys.stderr
     try:
@@ -74,10 +76,10 @@ class CertRequestTests(unittest.TestCase):
     def test_conflicting_opts(self):
         """Users should not provide both a hostname and hosts file
         """
-        with self.assertRaises(SystemExit) as cm:
-            with capture_sys_output() as (stdout, stderr):
+        with self.assertRaises(SystemExit) as exc_cm:
+            with capture_sys_output() as (_, _):
                 parse_cli(HOST_ARGS + HOSTFILE_ARGS)
-        self.assertEqual(cm.exception.code, 2, 'conflicting options did not exit 2')
+        self.assertEqual(exc_cm.exception.code, 2, 'conflicting hostname and hostfile options did not exit 2')
 
     def test_required_opts(self):
         """Users need to provide location information and hostname or hosts file
@@ -85,11 +87,11 @@ class CertRequestTests(unittest.TestCase):
         for host in [[()], HOST_ARGS, HOSTFILE_ARGS]:
             for location in permutations(LOCATION_ARGS, 3):
                 args = host + list(location)
-                with self.assertRaises(SystemExit) as cm:
-                    with capture_sys_output() as (stdout, stderr):
+                with self.assertRaises(SystemExit) as exc_cm:
+                    with capture_sys_output() as (_, stderr):
                         parse_cli(args)
 
-                self.assertEqual(cm.exception.code, 2, "missing required options did not exit 2:\n{0}"
+                self.assertEqual(exc_cm.exception.code, 2, "missing required options did not exit 2:\n{0}"
                                  .format(args))
                 self.assert_(re.search(r'error.*is required.*', stderr.getvalue()))
 
@@ -125,10 +127,10 @@ class CertRequestTests(unittest.TestCase):
         """Verify help option
         """
         for opt in ['-h', '--help']:
-            with self.assertRaises(SystemExit) as cm:
-                with capture_sys_output() as (stdout, stderr):
+            with self.assertRaises(SystemExit) as exc_cm:
+                with capture_sys_output() as (_, _):
                     parse_cli([opt])
-            self.assertEqual(cm.exception.code, 0, '{0} did not exit 0'.format(opt))
+            self.assertEqual(exc_cm.exception.code, 0, '{0} did not exit 0'.format(opt))
 
     # def test_san_opt(self):
     #     """Ensure that SANs are stored as a list
