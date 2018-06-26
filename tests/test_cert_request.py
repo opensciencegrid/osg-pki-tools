@@ -10,10 +10,8 @@ from StringIO import StringIO
 
 from osgpkitools import request
 
-HOST = 'hostname.example.edu'
-HOST_ARGS = [('--hostname', HOST)]
-HOST_FILE = 'hosts.txt'
-HOSTFILE_ARGS = [('--hostfile', HOST_FILE)]
+HOST_ARGS = [('--hostname', 'hostname.example.edu')]
+HOSTFILE_ARGS = [('--hostfile', 'hosts.txt')]
 LOCATION_ARGS = [('--country', 'US'),
                  ('--state', 'Wisconsin'),
                  ('--locality', 'Madison'),
@@ -46,39 +44,25 @@ def intersperse(lst, item):
     return result
 
 
-def parse_cli(args):
-    """Parse CLI args, flattening any tuples
+def parse_cli_flatten_args(args):
+    """Parse CLI args, flattening any option/value tuples. We use tuples so that we can keep the options/values together
+    when messing with the arg lists, e.g. itertools.permutations
     """
     if len(args) > 1:
         args = chain.from_iterable(args)
-    request.parse_cli(args)
+    return request.parse_cli(args)
 
 
 class CertRequestTests(unittest.TestCase):
-
-    # def assertOption(self, sopt, lopt, dest, val):
-    #     """Ensure that the hostfile is stored
-    #     """
-    #     try:
-    #         parser = request.parse_cli([sopt, val])
-    #     except SystemExit:
-    #         pass
-
-    #     try:
-    #         lparser = request.parse_cli([lopt, val])
-    #     except SystemExit:
-    #         pass
-
-    #     self.assertEqual(getattr(parser, dest), val, "{0} did not store {1} in the expected destination, {2}"
-    #                      .format(sopt, val, dest))
-    #     self.assertEqual(parser, lparser, "{0} and {1} are not the same".format(sopt, lopt))
+    """Tests for CSR generation
+    """
 
     def test_conflicting_opts(self):
         """Users should not provide both a hostname and hosts file
         """
         with self.assertRaises(SystemExit) as exc_cm:
             with capture_sys_output() as (_, _):
-                parse_cli(HOST_ARGS + HOSTFILE_ARGS)
+                parse_cli_flatten_args(HOST_ARGS + HOSTFILE_ARGS)
         self.assertEqual(exc_cm.exception.code, 2, 'conflicting hostname and hostfile options did not exit 2')
 
     def test_required_opts(self):
@@ -89,39 +73,41 @@ class CertRequestTests(unittest.TestCase):
                 args = host + list(location)
                 with self.assertRaises(SystemExit) as exc_cm:
                     with capture_sys_output() as (_, stderr):
-                        parse_cli(args)
+                        parse_cli_flatten_args(args)
 
                 self.assertEqual(exc_cm.exception.code, 2, "missing required options did not exit 2:\n{0}"
                                  .format(args))
                 self.assert_(re.search(r'error.*is required.*', stderr.getvalue()))
 
-    # def test_hostname_opt(self):
-    #     """Ensure that the hostname is stored
-    #     """
-    #     self.assertOption('-H', '--hostname', 'hostname', HOST)
+    def test_ignored_opts(self):
+        """-A/--altname should be ignored when specifying -F/--hostfile
+        """
+        with capture_sys_output() as (_, _):
+            args = parse_cli_flatten_args(HOSTFILE_ARGS + LOCATION_ARGS +
+                                          [('--altname', 'test-san.opensciencegrid.org')])
+        self.assertListEqual(args.altnames, [], 'Altname option was not ignored when --hostfile was specified')
 
-    # def test_hostfile_opt(self):
-    #     """Ensure that the hostfile is stored
-    #     """
-    #     hfile = 'hosts.file'
-    #     parser = request.parse_cli(['-F', hfile])
-    #     lparser = request.parse_cli(['--hostfile', hfile])
+    def test_state_opt(self):
+        """State values should be unabbreviated
+        """
+        with self.assertRaises(ValueError) as _:
+            with capture_sys_output() as (_, _):
+                parse_cli_flatten_args(HOST_ARGS + [('--state', 'WI')])
 
-    #     self.assertEqual(parser.hostfile, hfile, "-F did not store {0} to the expected destination, 'hostname'"
-    #                      .format(hfile))
-    #     self.assertEqual(parser, lparser, "-F and --hostfile are not the same")
+        args = parse_cli_flatten_args(HOST_ARGS + LOCATION_ARGS)
+        self.assertEqual(args.state, 'Wisconsin', "Unexpected value '{0}' for state option:\n{1}".
+                         format(args.state, args))
 
-    # def test_state_opt(self):
-    #     self.fail
+    def test_country_opt(self):
+        """Country values should be the abbreviated, 2-letter country code
+        """
+        with self.assertRaises(ValueError) as _:
+            with capture_sys_output() as (_, _):
+                parse_cli_flatten_args(HOST_ARGS + [('--country', 'United States')])
 
-    # def test_country_opt(self):
-    #     self.fail
-
-    # def test_locality_opt(self):
-    #     self.fail
-
-    # def test_org_opt(self):
-    #     self.fail
+        args = parse_cli_flatten_args(HOST_ARGS + LOCATION_ARGS)
+        self.assertEqual(args.country, 'US', "Unexpected value '{0}' for country option:\n{1}".
+                         format(args.country, args))
 
     def test_help_opt(self):
         """Verify help option
@@ -129,20 +115,8 @@ class CertRequestTests(unittest.TestCase):
         for opt in ['-h', '--help']:
             with self.assertRaises(SystemExit) as exc_cm:
                 with capture_sys_output() as (_, _):
-                    parse_cli([opt])
+                    parse_cli_flatten_args([opt])
             self.assertEqual(exc_cm.exception.code, 0, '{0} did not exit 0'.format(opt))
-
-    # def test_san_opt(self):
-    #     """Ensure that SANs are stored as a list
-    #     """
-    #     sans = ['san1.example.edu', 'san2.example.edu', 'san3.example.edu']
-    #     parser = request.parse_cli(HOST_ARGS + intersperse(sans, '-a'))
-    #     self.assertListEqual(parser.altnames, sans, 'multiple SANs not stored as a list\n' +
-    #                          'Arguments: {0}'.format(' '.join(sans)))
-
-    #     lparser = request.parse_cli(HOST_ARGS + intersperse(sans, '--altname'))
-    #     self.assertListEqual(lparser.altnames, sans, 'multiple SANs not stored as a list\n' +
-    #                          'Arguments: {0}'.format(' '.join(sans)))
 
 
 if __name__ == '__main__':
