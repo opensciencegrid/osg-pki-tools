@@ -18,7 +18,7 @@ yum -y install yum-plugin-priorities
 yum -y install m2crypto
 
 # Run unit tests
-pushd osg-pki-tools/tests/
-python OSGPKIUtilsTests.py
+pushd osg-pki-tools/
+python -m unittest discover -v tests
 popd
 
