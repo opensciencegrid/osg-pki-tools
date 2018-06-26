@@ -18,6 +18,10 @@ yum -y install yum-plugin-priorities m2crypto python-unittest2
 
 # Run unit tests
 pushd osg-pki-tools/
-python -m unittest discover -v tests
+if [ $OS_VERSION -eq '6' ]; then
+    PYTHONPATH=. python tests/test_cert_request.py
+else
+    python -m unittest discover -v tests
+fi
 popd
 
