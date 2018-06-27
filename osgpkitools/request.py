@@ -16,32 +16,33 @@ def parse_cli(args):
     """This function parses all the arguments, validates them and then stores
     them in a dictionary that is used throughout in the script."""
 
-    parser = argparse.ArgumentParser(add_help=False)  # disable built-in help to control help message ordering
+    parser = argparse.ArgumentParser(add_help=False,  # disable built-in help to control help message ordering
+                                     description='Generate certificate signing requests (CSRs) and private keys.')
 
     required = parser.add_argument_group('Required', 'Specify only one of -H/--hostname and -F/--hostfile')
     hosts = required.add_mutually_exclusive_group(required=True)
     hosts.add_argument('-H', '--hostname', action='store', dest='hostname',
                        help='The hostname (FQDN) to request')
     hosts.add_argument('-F', '--hostfile', action='store', dest='hostfile',
-                       help='File containing list of hostnames (FQDN), one per line, to request. '
-                       'Space separated subject alternative names may be specified on the same line as each hostname.')
+                       help='File containing list of hostnames (FQDN), one per line, to request. Space separated '
+                       'subject alternative names (SANs) may be specified on the same line as each hostname.')
     required.add_argument('-C', '--country', action=CountryAction, required=True, dest='country',
-                          help='The country to associate with the generated certificate request(s)')
+                          help='The 2-letter country code to associate with the generated CSR(s)')
     required.add_argument('-S', '--state', action=StateAction, required=True, dest='state',
-                          help='The state/province to associate with the generated certificate request(s)')
+                          help='The unabbreviated state/province to associate with the generated CSR(s)')
     required.add_argument('-L', '--locality', action='store', required=True, dest='locality',
-                          help='The locality (i.e., city, town) to associate with the generated certificate request(s)')
+                          help='The locality (i.e., city, town) to associate with the generated CSR(s)')
     required.add_argument('-O', '--organization', action='store', required=True, dest='organization',
-                          help='The organization to associate with the generated certificate request(s)')
+                          help='The organization to associate with the generated CSR(s)')
 
     optional = parser.add_argument_group("Optional")
     optional.add_argument('-h', '--help', action='help',
                           help='show this help message and exit')
     optional.add_argument('-a', '--altname', action='append', dest='altnames', default=[],
-                          help='Specify the Subject Alternative Name for the requested certificate (only works with '
-                          '-H/--hostname). Can be specified more than once.')
+                          help='Specify the SAN for the requested certificate (only works with -H/--hostname). '
+                          'May be specified more than once for additional SANs.')
     optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
-                          help="Write the generated host key to this directory")
+                          help="The directory to write the generated CSR(s) and host key(s)")
     optional.add_argument('-V', '--version', action='version', version=utils.VERSION_NUMBER)
 
     parsed_args = parser.parse_args(args)
