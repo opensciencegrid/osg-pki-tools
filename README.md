@@ -23,7 +23,6 @@ that can be submitted to CAs (e.g. InCommon) for the purpose of obtaining host c
 ```
 usage: osg-cert-request (-H HOSTNAME | -F HOSTFILE) -C COUNTRY -S STATE -L LOCALITY -O ORGANIZATION
                         [-h] [-a ALTNAMES] [-d WRITE_DIRECTORY] [-V]
-
 ```
 
 ### Options  ###
