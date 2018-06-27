@@ -20,31 +20,22 @@ Requires: python-argparse
 %setup -q
 
 %build
-%{__python} setup.py build
+%{__python} setup.py install --root=%{buildroot}
 
 %install
 %{__python} setup.py install --root=%{buildroot}
 rm -f %{buildroot}%{python_sitelib}/*.egg-info || :
+
 install -d %{buildroot}%{_bindir}
-install -m 755 -t %{buildroot}%{_bindir}    \
-    osgpkitools/osg-cert-request            \
-    osgpkitools/osg-cert-retrieve           \
-    osgpkitools/osg-cert-revoke             \
-    osgpkitools/osg-gridadmin-cert-request  \
-    osgpkitools/osg-user-cert-renew         \
-    osgpkitools/osg-user-cert-revoke
-install -d %{buildroot}%{_sysconfdir}/osg
-install -m 644 osgpkitools/pki-clients.ini %{buildroot}%{_sysconfdir}/osg
-rm -r %{buildroot}%{python_sitelib}/tests
+install -m 755 -t %{buildroot}%{_bindir} osgpkitools/osg-cert-request
 install -d %{buildroot}%{_defaultdocdir}/%{name}-%{version}
-install -m 644 -t %{buildroot}%{_defaultdocdir}/%{name}-%{version} CHANGELOG.txt LICENSE.txt README.txt
+install -m 644 -t %{buildroot}%{_defaultdocdir}/%{name}-%{version} CHANGELOG.txt LICENSE.txt README.md
 
 %files
 %dir %{python_sitelib}/osgpkitools
-%{python_sitelib}/osgpkitools/*.py*
-/usr/bin/*
-%dir %{_sysconfdir}/osg
-%config(noreplace) %{_sysconfdir}/osg/pki-clients.ini
+%{python_sitelib}/osgpkitools/request.py
+%{python_sitelib}/osgpkitools/utils.py
+%{_bindir}/osg-cert-request
 %{_defaultdocdir}/%{name}-%{version}/*
 
 
