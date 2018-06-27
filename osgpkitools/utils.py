@@ -5,7 +5,7 @@ import os
 import shutil
 import tempfile
 
-VERSION_NUMBER = "2.1.4"
+VERSION_NUMBER = "3.0.0"
 HELP_EMAIL = 'help@opensciencegrid.org'
 
 
