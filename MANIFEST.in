@@ -1,8 +1,1 @@
-include *.txt
-recursive-include docs *.txt
-include osgpkitools/*
-recursive-include osgpkitools *
-include tests/*
-recursive-include tests *
-global-exclude *.pyc *key.pem
-prune tests/test-output/
+global-exclude *.pyc
