@@ -30,8 +30,9 @@ cat >> /etc/rpm/macros.dist << EOF
 EOF
 
 cp osg-pki-tools/rpm/osg-pki-tools.spec /tmp/rpmbuild/SPECS
-package_version=`grep Version osg-pki-tools/rpm/osg-pki-tools.spec | awk '{print $2}'`
 pushd osg-pki-tools
+export PYTHONPATH=.
+package_version=`python -c 'from osgpkitools import utils; print(utils.VERSION_NUMBER)'`
 git archive --format=tar --prefix=osg-pki-tools-${package_version}/ HEAD | \
     gzip > /tmp/rpmbuild/SOURCES/osg-pki-tools-${package_version}.tar.gz
 popd
@@ -49,7 +50,7 @@ yum localinstall -y /tmp/rpmbuild/RPMS/noarch/osg-pki-tools-${package_version}*
 # Run unit tests
 pushd osg-pki-tools/
 if [ $OS_VERSION -eq '6' ]; then
-    PYTHONPATH=. python tests/test_cert_request.py
+    python tests/test_cert_request.py
 else
     python -m unittest discover -v tests
 fi
