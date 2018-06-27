@@ -1,9 +1,0 @@
-#
-# BaTLab run specification file for OSG PKI Client scripts
-#
-run_type = test
-inputs = osg-pki-cli.svn
-remote_task = osg-cert-scripts-v3/trunk/tests/batlab/run-tests.sh
-platforms = x86_64_Ubuntu10
-project = OSG PKI
-component = OSG PKI Command Line Clients

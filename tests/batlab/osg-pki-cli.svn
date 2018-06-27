@@ -1,5 +1,0 @@
-#
-# Input specification file for OSG PKI Client tests
-#
-method = svn
-url = https://vdt.cs.wisc.edu/svn/software/osg-cert-scripts-v3/
