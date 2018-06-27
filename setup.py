@@ -22,7 +22,7 @@ setup(
                 (os.path.join(get_python_lib(), 'osgpkitools/'),
                  ['osgpkitools/request.py', 'osgpkitools/utils.py', 'osgpkitools/__init__.py'])],
     packages=['osgpkitools'],
-    long_description=read('README.txt'),
+    long_description=read('README.md'),
     classifiers=[
         "Development Status :: 1.2.20",
         "Topic :: Utilities",
