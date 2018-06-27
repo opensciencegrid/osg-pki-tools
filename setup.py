@@ -9,18 +9,19 @@ from distutils.sysconfig import get_python_lib
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
+
 setup(
-    name = "OSGPKITools",
-    version = "2.1.4",
-    author = "Rohan Mathure",
-    author_email = "rmathure@indiana.edu",
-    maintainer = "Brian Lin",
-    maintainer_email = "blin@cs.wisc.edu",
-    description = ("A utility to request and manage certificates."),
-    data_files = [('/usr/bin/osgpkitools/osg-cert-request'),
-                  (os.path.join(get_python_lib(), 'osgpkitools/'),
-                   ['osgpkitools/OSGPKIUtils.py', 'osgpkitools/__init__.py'])],
-    packages=['osgpkitools', 'tests'],
+    name="osg-pki-tools",
+    version="2.1.4",
+    author="Rohan Mathure",
+    author_email="rmathure@indiana.edu",
+    maintainer="Brian Lin",
+    maintainer_email="blin@cs.wisc.edu",
+    description=("Open Science Grid utility to generate certificate signing requests."),
+    data_files=[('/usr/bin/osgpkitools/osg-cert-request'),
+                (os.path.join(get_python_lib(), 'osgpkitools/'),
+                 ['osgpkitools/request.py', 'osgpkitools/utils.py', 'osgpkitools/__init__.py'])],
+    packages=['osgpkitools'],
     long_description=read('README.txt'),
     classifiers=[
         "Development Status :: 1.2.20",

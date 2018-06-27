@@ -2,7 +2,7 @@ Summary: osg-pki-tools
 Name: osg-pki-tools
 Version: 2.1.4
 Release: 1%{?dist}
-Source: OSGPKITools-%{version}.tar.gz
+Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
 Group: Grid
 URL: http://github.com/opensciencegrid/osg-pki-tools
@@ -17,7 +17,7 @@ Requires: python-argparse
 %{summary}
 
 %prep
-%setup -n OSGPKITools-%{version}
+%setup -q
 
 %build
 %{__python} setup.py build
