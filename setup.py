@@ -18,7 +18,7 @@ setup(
     maintainer="Brian Lin",
     maintainer_email="blin@cs.wisc.edu",
     description=("Open Science Grid utility to generate certificate signing requests."),
-    data_files=[('/usr/bin/osgpkitools/osg-cert-request'),
+    data_files=[('/usr/bin', ['osgpkitools/osg-cert-request']),
                 (os.path.join(get_python_lib(), 'osgpkitools/'),
                  ['osgpkitools/request.py', 'osgpkitools/utils.py', 'osgpkitools/__init__.py'])],
     packages=['osgpkitools'],
