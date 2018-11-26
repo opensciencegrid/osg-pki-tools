@@ -1,4 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+import os, sys
+if __name__ == "__main__" and __package__ is None:
+    sys.path.append(os.path.abspath(__file__+"/../.."))
 
 from osgpkitools import request
 
