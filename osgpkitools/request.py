@@ -80,7 +80,7 @@ class StateAction(argparse.Action):
         super(StateAction, self).__init__(option_strings, dest, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        if values.isalpha() and len(values) > 2:
+        if len(values) > 2:
             setattr(namespace, self.dest, values)
         else:
             parser.print_usage()
