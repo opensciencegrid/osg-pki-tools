@@ -13,9 +13,9 @@ from osgpkitools import request
 HOST_ARGS = [('--hostname', 'hostname.example.edu')]
 HOSTFILE_ARGS = [('--hostfile', 'hosts.txt')]
 LOCATION_ARGS = [('--country', 'US'),
-                 ('--state', 'Wisconsin'),
-                 ('--locality', 'Madison'),
-                 ('--organization', 'University of Wisconsin - Madison')]
+                 ('--state', 'New York'),
+                 ('--locality', 'Stony Brook'),
+                 ('--organization', 'SUNY - Stony Brook')]
 
 
 # https://stackoverflow.com/questions/18651705/argparse-unit-tests-suppress-the-help-message
@@ -90,7 +90,7 @@ class CertRequestTests(unittest.TestCase):
             self.assertRaises(ValueError, parse_cli_flatten_args, HOST_ARGS + [('--state', 'WI')])
 
         args = parse_cli_flatten_args(HOST_ARGS + LOCATION_ARGS)
-        self.assertEqual(args.state, 'Wisconsin', "Unexpected value '{0}' for state option:\n{1}".
+        self.assertEqual(args.state, 'New York', "Unexpected value '{0}' for state option:\n{1}".
                          format(args.state, args))
 
     def test_country_opt(self):
