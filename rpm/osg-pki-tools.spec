@@ -1,6 +1,6 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.0.0
+Version: 3.0.1
 Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
@@ -36,6 +36,9 @@ rm -f %{buildroot}%{python_sitelib}/*.egg-info
 
 
 %changelog
+* Mon Feb 18 2019 Brian Lin <blin@cs.wisc.edu> - 3.0.1-1
+- Fixed bug where osg-cert-request did not accept multi-word state/province names (SOFTWARE-3591)
+
 * Wed Jun 27 2018 Brian Lin <blin@cs.wisc.edu> - 3.0.0-1
 - Remove tools and libraries designed for use with OIM
 - Add an option to request CSRs (SOFTWARE-3228)
