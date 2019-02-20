@@ -142,7 +142,7 @@ def main():
     try:
         args = parse_cli(sys.argv[1:])
     except ValueError as exc:
-        raise SystemExit(exc)
+        sys.exit(exc)
 
     location = namedtuple('Location', ['country', 'state', 'locality', 'organization'])
     loc = location(args.country, args.state, args.locality, args.organization)
