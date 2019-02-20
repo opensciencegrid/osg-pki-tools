@@ -49,7 +49,7 @@ def safe_rename(filename):
         print("Renamed existing file from %s to %s" % (filename, old_filename))
     except IOError, exc:
         if exc.errno != errno.ENOENT:
-            print(exc.message)
+            print(exc)
             raise RuntimeError('ERROR: Failed to rename %s to %s' % (filename, old_filename))
 
 

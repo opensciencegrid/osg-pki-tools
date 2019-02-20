@@ -121,7 +121,7 @@ class OIM(object):
                 key = OIM.verify_key(key_path)
                 self.keys.append(key)
             except KeyFileError, key_err:
-                raise KeyFileError(key_err.message + msg)
+                raise KeyFileError(key_err + msg)
         return rc, stdout, stderr, msg
 
     def gridadmin_request(self, *opts):
@@ -151,9 +151,9 @@ class OIM(object):
                 cert = OIM.verify_cert(cert_path, subject)
                 key = OIM.verify_key(key_path)
             except CertFileError, cert_err:
-                raise CertFileError(cert_err.message + msg)
+                raise CertFileError(cert_err + msg)
             except KeyFileError, key_err:
-                raise KeyFileError(key_err.message + msg)
+                raise KeyFileError(key_err + msg)
             else:
                 self.certs.append(cert)
                 self.keys.append(key)
@@ -202,9 +202,9 @@ class OIM(object):
         try:
             key = RSA.load_key(path, OIM.simple_pass_callback)
         except RSA.RSAError, exc:
-            if 'no start line' in exc.message:
+            if 'no start line' in exc:
                 raise KeyFileError(fail_prefix + "Could not load key file '%s'\n" % path)
-            elif 'bad pass' in exc.message:
+            elif 'bad pass' in exc:
                 raise KeyFileError(fail_prefix + "Incorrect pass for key file %s\n" % path)
         return key
 
