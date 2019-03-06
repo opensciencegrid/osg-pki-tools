@@ -7,9 +7,9 @@ setup(
     version=utils.VERSION_NUMBER,
     author="Brian Lin",
     author_email="blin@cs.wisc.edu",
-    scripts=["osgpkitools/osg-cert-request"],
-    description="Open Science Grid utility to generate certificate signing requests.",
-    long_description="Open Science Grid utility to generate certificate signing requests.",
+    scripts=["osgpkitools/osg-cert-request", "osgpkitools/osg-incommon-cert-request"],
+    description="Open Science Grid x509 certificate tools.",
+    long_description="Open Science Grid x509 certificate tools.",
     packages=['osgpkitools'],
     license='Apache 2.0',
 )

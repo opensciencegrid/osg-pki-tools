@@ -1,6 +1,6 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.0.1
+Version: 3.1.0
 Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
@@ -27,15 +27,17 @@ rm -f %{buildroot}%{python_sitelib}/*.egg-info
 
 %files
 %dir %{python_sitelib}/osgpkitools
-%{python_sitelib}/osgpkitools/__init__.py
-%{python_sitelib}/osgpkitools/request.py
-%{python_sitelib}/osgpkitools/utils.py
+%{python_sitelib}/osgpkitools/*.py
 %exclude %{python_sitelib}/osgpkitools/*.pyc
 %exclude %{python_sitelib}/osgpkitools/*.pyo
 %{_bindir}/osg-cert-request
+%{_bindir}/osg-incommon-cert-request
 
 
 %changelog
+* Fri Mar  8 2019 Dave Dykstra <dwd@fnal.gov> - 3.1.0-1
+- Add osg-incommon-cert-request
+
 * Mon Feb 18 2019 Brian Lin <blin@cs.wisc.edu> - 3.0.1-1
 - Fixed bug where osg-cert-request did not accept multi-word state/province names (SOFTWARE-3591)
 
