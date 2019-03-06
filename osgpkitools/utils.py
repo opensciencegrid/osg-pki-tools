@@ -19,8 +19,8 @@ from M2Crypto import SSL, m2, RSA, EVP, X509
 
 from ExceptionDefinitions import *
 
-#This code is hosted at from https://github.com/opensciencegrid/osg-pki-tools/blob/v2.1.4/osgpkitools/OSGPKIUtils.py
-#Author Brian Lin - blin@cs.wisc.edu
+VERSION_NUMBER = "3.0.1"
+HELP_EMAIL = 'help@opensciencegrid.org'
 
 # These flags are for the purpose of passing to the M2Crypto calls and are used later in the script
 
@@ -158,6 +158,12 @@ def safe_rename(filename):
             charlimit_textwrap(exc.message)
             raise RuntimeError('ERROR: Failed to rename %s to %s' % (filename, old_filename))
 
+
+def safe_write(filename, contents):
+    """Safely backup the target 'filename' then write 'contents'
+    """
+    safe_rename(filename)
+    atomic_write(filename, contents)
 
 def check_permissions(path):
     """The function checks for write permissions for the given path to verify if the user has write permissions
