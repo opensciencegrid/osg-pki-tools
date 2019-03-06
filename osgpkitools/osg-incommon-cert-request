@@ -27,9 +27,9 @@ logging.basicConfig()
 from ssl import SSLError
 from optparse import OptionParser, OptionGroup
 
-from ExceptionDefinitions import *
-from utils import *
-from rest_client import InCommonApiClient
+from osgpkitools.ExceptionDefinitions import *
+from osgpkitools.utils import *
+from osgpkitools.rest_client import InCommonApiClient
 #from sslcontextadapter import SSLContextAdapter
 
 MAX_RETRY_RETRIEVAL = 20
