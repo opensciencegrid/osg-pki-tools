@@ -17,6 +17,8 @@ import getpass
 from StringIO import StringIO
 from M2Crypto import SSL, m2, RSA, EVP, X509
 
+from ExceptionDefinitions import *
+
 #This code is hosted at from https://github.com/opensciencegrid/osg-pki-tools/blob/v2.1.4/osgpkitools/OSGPKIUtils.py
 #Author Brian Lin - blin@cs.wisc.edu
 
@@ -70,7 +72,7 @@ def get_ssl_context(usercert, userkey):
             ssl_context.load_cert_chain(usercert, userkey, callback=prompt_for_password)
             return ssl_context
         except SSL.SSLError, exc:
-            if 'bad password read' in exc:
+            if 'bad decrypt' in exc:
                 pass_str = 'Incorrect password. Please enter the password again for'
             else:
                 raise
