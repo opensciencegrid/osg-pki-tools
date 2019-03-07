@@ -33,6 +33,27 @@ MAX_RETRY_RETRIEVAL = 20
 WAIT_RETRIEVAL= 5
 WAIT_APPROVAL = 30
 
+CONFIG_TEXT = """[InCommon]
+organization: 9697
+department: 9732
+customeruri: InCommon
+igtfservercert: 215
+igtfmultidomain: 283
+servertype: -1
+term: 395
+apiurl: cert-manager.com
+listingurl: /private/api/ssl/v1/types
+enrollurl: /private/api/ssl/v1/enroll  
+retrieveurl: /private/api/ssl/v1/collect/
+sslid: sslId
+certx509: /x509
+certx509co: /x509CO
+certbase64: /base64
+certbin: /bin
+content_type: application/json
+"""
+
+
 # Set up Option Parser
 
 ARGS = {}
@@ -316,7 +337,10 @@ def retrieve_cert(config, sslcontext, sslId):
 def main():
     global ARGS
     try:	
-        CONFIG = read_config()
+        config_parser = ConfigParser.ConfigParser()
+        config_parser.readfp(StringIO(CONFIG_TEXT))
+        CONFIG = dict(config_parser.items('InCommon'))
+
         ARGS = parse_args()
         check_permissions(ARGS['certdir'])
         
