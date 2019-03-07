@@ -42,11 +42,11 @@ def parse_args():
     in a dictionary that is used throughout the script."""
 
     usage = \
-        'Usage: %prog [--debug] -u username [-k pkey -c cert] \\\n' + \
-        '           (-H hostname | -f hostfile) [-a altnames] [-d write_directory]\n' + \
-        '       %prog [--debug] -u username [-k pkey -c cert] -T\n' + \
-        '       %prog -h\n' + \
-        '       %prog -V\n'
+'''Usage: %prog [--debug] -u username [-k pkey -c cert] \\
+           (-H hostname | -f hostfile) [-a altnames] [-d write_directory]
+       %prog [--debug] -u username [-k pkey -c cert] -T
+       %prog -h
+       %prog -V'''
     parser = OptionParser(usage, version=VERSION_NUMBER)
     group = OptionGroup(parser, 'Hostname Options',
                         '''Use either of these options.
@@ -67,7 +67,7 @@ or specify from a file using -f/--hostfile.''')
         '--hostfile',
         action='store',
         dest='hostfile',
-        help='Filename with one host (hostname or service/hostname and its optional,' + \
+        help='Filename with one host (hostname or service/hostname and its optional, ' + \
         'alternative hostnames, separated by spaces) per line',
         metavar='HOSTFILE',
         default=None,
@@ -85,7 +85,7 @@ or specify from a file using -f/--hostfile.''')
         '--pkey',
         action='store',
         dest='userprivkey',
-        help="Specify Requestor's private key (PEM Format). If not specified" + \
+        help="Specify Requestor's private key (PEM Format). If not specified " + \
              "will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem",
         metavar='PKEY',
         default=None
@@ -95,7 +95,7 @@ or specify from a file using -f/--hostfile.''')
         '--cert',
         action='store',
         dest='usercert',
-        help="Specify requestor's user certificate (PEM Format). If not specified" + \
+        help="Specify requestor's user certificate (PEM Format). If not specified " + \
              "will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
         metavar='CERT',
         default=None
