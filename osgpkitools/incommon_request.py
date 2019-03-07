@@ -19,7 +19,7 @@ import time
 import traceback
 
 import logging
-logger = logging.getLogger('osg-incommon-cert-request')
+logger = logging.getLogger('incommon_request')
 logging.basicConfig()
 
 from ssl import SSLError
@@ -28,7 +28,6 @@ from optparse import OptionParser, OptionGroup
 from ExceptionDefinitions import *
 from utils import *
 from rest_client import InCommonApiClient
-#from sslcontextadapter import SSLContextAdapter
 
 MAX_RETRY_RETRIEVAL = 20
 WAIT_RETRIEVAL= 5
@@ -43,7 +42,11 @@ def parse_args():
     in a dictionary that is used throughout the script."""
 
     usage = \
-        'usage: %prog [options] arg\nUsage: %prog -h/--help [for detailed explanations of options]'
+        'Usage: %prog [--debug] -u username [-k pkey -c cert] \\\n' + \
+        '           (-H hostname | -f hostfile) [-a altnames] [-d write_directory]\n' + \
+        '       %prog [--debug] -u username [-k pkey -c cert] -T\n' + \
+        '       %prog -h\n' + \
+        '       %prog -V\n'
     parser = OptionParser(usage, version=VERSION_NUMBER)
     group = OptionGroup(parser, 'Hostname Options',
                         '''Use either of these options.
