@@ -48,7 +48,7 @@ Usage: osg-incommon-cert-request [--debug] -u username [-k pkey -c cert] \
            (-H hostname | -f hostfile) [-a altnames] [-d write_directory]
        osg-incommon-cert-request [--debug] -u username [-k pkey -c cert] -T
        osg-incommon-cert-request -h
-       osg-incommon-cert-request -V
+       osg-incommon-cert-request --version
 ```
 
 See osg-incommon-cert-request -h for a description of the options.

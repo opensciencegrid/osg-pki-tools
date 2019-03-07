@@ -67,7 +67,7 @@ def parse_args():
            (-H hostname | -f hostfile) [-a altnames] [-d write_directory]
        %prog [--debug] -u username [-k pkey -c cert] -T
        %prog -h
-       %prog -V'''
+       %prog --version'''
     parser = OptionParser(usage, version=VERSION_NUMBER)
     group = OptionGroup(parser, 'Hostname Options',
                         '''Use either of these options.
