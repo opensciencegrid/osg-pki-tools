@@ -229,7 +229,7 @@ def buildHeaders(config):
 
 
 def testInCommonConnection(config, restclient):
-    """This function test the connection to InCommon API. 
+    """This function tests the connection to InCommon API. 
        Invokes the listing SSL types function. 
        Successful if response is HTTP 200 OK
     """
@@ -238,10 +238,10 @@ def testInCommonConnection(config, restclient):
     response = None
     
     response = restclient.get_request(config['listingurl'], headers)
-    response.read()
+    response_text = response.read()
+    logger.debug('response text: ' + str(response_text))
     try:
         if response.status == 200:
-            response.read()
             charlimit_textwrap("HTTP " + str(response.status) + " " + str(response.reason)) 
             charlimit_textwrap("Successful connection to InCommon API")
         else:
@@ -286,7 +286,9 @@ def submit_request(config, restclient, hostname, cert_csr, sans=None):
         response = restclient.post_request(config['enrollurl'], headers, payload)
         
         if response.status == 200:
-            response_data = json.loads(response.read())
+            response_text = response.read()
+            logger.debug('response text: ' + str(response_text))
+            response_data = json.loads(response_text)
             response_data = response_data['sslId']
     except httplib.HTTPException as exc:
         raise
@@ -314,16 +316,14 @@ def retrieve_cert(config, sslcontext, sslId):
             # InCommon API responds with 400 Bad Request when the certificate is still being procesed
             # "code": 0, "description": "Being processed by Sectigo"
             # It triggers the BadStatusLine exception avoiding to reuse the HTTPSConnection
-            # Ignore the read() stream when status is not 200
+            response_text = response.read()
+            logger.debug('response text: ' + str(response_text))
             if response.status == 200:
-                response_data = response.read()
+                response_data = response_text
                 restclient.closeConnection()
                 break
-            else:
-                response.read()
-                pass
         except httplib.BadStatusLine as exc:
-            # BadStatusLine is raised as the server responded with a HTTP status code that we don’t understand.
+            # BadStatusLine is raised as the server responded with a HTTP status code that we don't understand.
             pass
         except httplib.HTTPException as exc:
             raise

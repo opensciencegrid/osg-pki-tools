@@ -38,7 +38,8 @@ class InCommonApiClient():
         url = urljoin(self.base_url, url)
         
         logger.debug('posting to ' + url)
-        logger.debug('data ' + str(data))
+        logger.debug('headers ' + str(headers))
+        logger.debug('post data ' + str(data))
         
         params = urllib.urlencode(data, doseq=True)
         
@@ -49,7 +50,7 @@ class InCommonApiClient():
 
             check_response_500(post_response)
 
-            logger.debug('post response text ' + str(post_response.status) + ': ' + str(post_response.reason))
+            logger.debug('post response status ' + str(post_response.status) + ': ' + str(post_response.reason))
 
         except httplib.HTTPException as exc:
             charlimit_textwrap('Connection to %s failed : %s' % (url, exc))
@@ -66,6 +67,7 @@ class InCommonApiClient():
         url = urljoin(self.base_url, url)
 
         logger.debug('requesting to ' + url)
+        logger.debug('headers ' + str(headers))
         
         try:
             self.connection.request("GET", url, None, headers)
@@ -73,7 +75,7 @@ class InCommonApiClient():
             
             check_response_500(get_response)
         
-            logger.debug('get response text' + str(get_response.status) + ': ' + str(get_response.reason))
+            logger.debug('get response status ' + str(get_response.status) + ': ' + str(get_response.reason))
         except httplib.BadStatusLine as exc:
             raise
         except httplib.HTTPException as exc:
