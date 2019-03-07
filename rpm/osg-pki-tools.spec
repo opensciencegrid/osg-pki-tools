@@ -22,13 +22,12 @@ Requires: python-argparse
 %build
 
 %install
-%{__python} setup.py install --no-compile --root=%{buildroot}
+%{__python} setup.py install --root=%{buildroot}
 rm -f %{buildroot}%{python_sitelib}/*.egg-info
 
 %files
 %dir %{python_sitelib}/osgpkitools
-%{python_sitelib}/osgpkitools/*.py
-%exclude %{python_sitelib}/osgpkitools/*.pyc
+%{python_sitelib}/osgpkitools
 %exclude %{python_sitelib}/osgpkitools/*.pyo
 %{_bindir}/osg-cert-request
 %{_bindir}/osg-incommon-cert-request
