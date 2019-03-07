@@ -5,7 +5,7 @@ The Open Science Grid (OSG) Private Key Infrastructure (PKI) Tools provide a con
 common X.509 certificate commands used by OSG site administrators.
 Formerly, this repository contained a collection of tools to request, approve, renew, and revoke certificates from the
 [OSG Certificate Authority (CA)](https://opensciencegrid.org/technology/policy/service-migrations-spring-2018/#osg-ca).
-Currently, this repository only contains the `osg-cert-request` tool.
+Currently, this repository contains tools for generating Certificate Signing Requests and for getting host or service certificates from the InCommon CA.
 
 osg-cert-request
 ----------------
@@ -25,26 +25,30 @@ usage: osg-cert-request (-H HOSTNAME | -F HOSTFILE) -C COUNTRY -S STATE -L LOCAL
                         [-h] [-a ALTNAMES] [-d WRITE_DIRECTORY] [-V]
 ```
 
-### Options  ###
+See osg-cert-request -h for a description of the options.
 
-**Required options (specify only one of -H/--hostname and -F/--hostfile):**
 
-| Option                 | Description                                                              |
-|------------------------|--------------------------------------------------------------------------|
-| `-H`, `--hostname`     | The hostname (FQDN) to request                                           |
-| `-F`, `--hostfile`     | File containing list of hostnames (FQDN), one per line, to request.      |
-|                        | Space separated SANs may be specified on the same line as each hostname. |
-| `-C`, `--country`      | The 2-letter country code to associate with the generated CSR(s).        |
-| `-S`, `--state`        | The unabbreviated state/province to associate with the generated CSR(s)  |
-| `-L`, `--locality`     | The locality (i.e., city, town) to associate with the generated CSR(s)   |
-| `-O`, `--organization` | The organization to associate with the generated CSR(s)                  |
+osg-incommon-cert-request
+-------------------------
 
-**Optional options:**
+The `osg-incommon-cert-request` retrieves host or service certificates
+from the InCommon CA.  It requires a user account with InCommon
+authorized to use the remote API, and a user certificate and key issued
+by InCommon that is authorized to create host certificates for that account.
 
-| Option              | Description                                                                    |
-|---------------------|--------------------------------------------------------------------------------|
-| `-h`, `--help`      | Print the help message and exit                                                |
-| `-a`, `--altname`   | Specify the SAN for the requested certificate (only works with -H/--hostname). |
-|                     | May be specified more than once for additional SANs                            |
-| `-d`, `--directory` | The directory to write the generated CSR(s) and host key(s)                    |
-| `-V`, `--version`   | Show program's version number and exit                                         |
+**Features:**
+
+- Bulk retrieval of certificates & keys
+- Easy addition of Subject Alternative Names (SANs) to each CSR
+
+### Synopsis ###
+
+```
+Usage: osg-incommon-cert-request [--debug] -u username [-k pkey -c cert] \
+           (-H hostname | -f hostfile) [-a altnames] [-d write_directory]
+       osg-incommon-cert-request [--debug] -u username [-k pkey -c cert] -T
+       osg-incommon-cert-request -h
+       osg-incommon-cert-request -V
+```
+
+See osg-incommon-cert-request -h for a description of the options.
