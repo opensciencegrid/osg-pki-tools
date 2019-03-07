@@ -39,7 +39,7 @@ by InCommon that is authorized to create host certificates for that account.
 **Features:**
 
 - Bulk retrieval of certificates & keys
-- Easy addition of Subject Alternative Names (SANs) to each CSR
+- Easy addition of Subject Alternative Names (SANs) to each certificate
 
 ### Synopsis ###
 
