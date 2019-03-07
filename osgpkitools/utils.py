@@ -19,7 +19,7 @@ from M2Crypto import SSL, m2, RSA, EVP, X509
 
 from ExceptionDefinitions import *
 
-VERSION_NUMBER = "3.0.1"
+VERSION_NUMBER = "3.1.0"
 HELP_EMAIL = 'help@opensciencegrid.org'
 
 # These flags are for the purpose of passing to the M2Crypto calls and are used later in the script
