@@ -414,7 +414,7 @@ def main():
                 utils.safe_rename(cert_path)
                 utils.atomic_write(cert_path, response_retrieve)
         
-        utils.charlimit_textwrap("%s certificates were specified" % len(certs))
+        utils.charlimit_textwrap("%s certificates were specified" % len(csrs))
         utils.charlimit_textwrap("%s certificates were requested and retrieved successfully" % len(requests))
         
 
