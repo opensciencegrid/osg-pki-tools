@@ -5,7 +5,7 @@ The Open Science Grid (OSG) Private Key Infrastructure (PKI) Tools provide a con
 common X.509 certificate commands used by OSG site administrators.
 Formerly, this repository contained a collection of tools to request, approve, renew, and revoke certificates from the
 [OSG Certificate Authority (CA)](https://opensciencegrid.org/technology/policy/service-migrations-spring-2018/#osg-ca).
-Currently, this repository contains tools for generating Certificate Signing Requests and for getting host or service certificates from the InCommon CA.
+This repository contains tools for generating Certificate Signing Requests and for getting host or service certificates from the InCommon CA.
 
 osg-cert-request
 ----------------
