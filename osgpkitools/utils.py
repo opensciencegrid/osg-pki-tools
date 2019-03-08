@@ -195,7 +195,6 @@ class Csr(object):
 
         This function accepts the CN and final path for the key as well as optional list of subject alternative names
         and optional requestor e-mail.  """
-        escaped_common_name = common_name.replace('/', '_') # Remove slashes
         self.keypair = RSA.gen_key(self.KEY_LENGTH,
                                    self.PUB_EXPONENT,
                                    self.callback)
@@ -203,7 +202,7 @@ class Csr(object):
         if not output_dir:
             output_dir = os.getcwd()
         self.output_dir = output_dir
-        self.final_keypath = os.path.join(output_dir, escaped_common_name + '-key.pem')
+        self.final_keypath = os.path.join(output_dir, common_name + '-key.pem')
         # The message digest shouldn't matter here since we don't use
         # PKey.sign_*() or PKey.verify_*() but there's no harm in keeping it and
         # it ensures a strong hashing algo (default is sha1) if we do decide to
