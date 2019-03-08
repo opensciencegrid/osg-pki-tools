@@ -17,16 +17,19 @@ import sys
 import os
 import time
 import traceback
+import json
+import ConfigParser
 
 import logging
 logger = logging.getLogger('incommon_request')
 logging.basicConfig()
 
+from StringIO import StringIO
 from ssl import SSLError
 from optparse import OptionParser, OptionGroup
 
+import utils
 from ExceptionDefinitions import *
-from utils import *
 from rest_client import InCommonApiClient
 
 MAX_RETRY_RETRIEVAL = 20
@@ -68,7 +71,7 @@ def parse_args():
        %prog [--debug] -u username [-k pkey -c cert] -T
        %prog -h
        %prog --version'''
-    parser = OptionParser(usage, version=VERSION_NUMBER)
+    parser = OptionParser(usage, version=utils.VERSION_NUMBER)
     group = OptionGroup(parser, 'Hostname Options',
                         '''Use either of these options.
 Specify hostname as a single hostname using -H/--hostname
@@ -181,9 +184,7 @@ or specify from a file using -f/--hostfile.''')
         
     if not args.test:
         if not args.hostname:
-            if os.path.exists(hostfile):
-                pass
-            else:
+            if not os.path.exists(hostfile):
                 raise FileNotFoundException(hostfile, 'Error: could not locate the hostfile')
             
 
@@ -201,7 +202,7 @@ or specify from a file using -f/--hostfile.''')
     arguments.update({'login': args.login})
     
     if args.usercert and args.userprivkey:
-        usercert, userkey = find_user_cred(args.usercert, args.userprivkey)
+        usercert, userkey = utils.find_user_cred(args.usercert, args.userprivkey)
         arguments.update({'usercert': usercert})
         arguments.update({'userprivkey': userkey})
 
@@ -212,7 +213,7 @@ or specify from a file using -f/--hostfile.''')
     
     return arguments
 
-def buildHeaders(config):
+def build_headers(config):
     """"This function build the headers for the HTTP request.
 
         Returns headers for the HTTP request
@@ -228,13 +229,13 @@ def buildHeaders(config):
     return headers
 
 
-def testInCommonConnection(config, restclient):
+def test_incommon_connection(config, restclient):
     """This function tests the connection to InCommon API. 
        Invokes the listing SSL types function. 
        Successful if response is HTTP 200 OK
     """
     # Build and update headers. Headers will be reused for all requests 
-    headers = buildHeaders(config)
+    headers = build_headers(config)
     response = None
     
     response = restclient.get_request(config['listingurl'], headers)
@@ -242,16 +243,16 @@ def testInCommonConnection(config, restclient):
     logger.debug('response text: ' + str(response_text))
     try:
         if response.status == 200:
-            charlimit_textwrap("HTTP " + str(response.status) + " " + str(response.reason)) 
-            charlimit_textwrap("Successful connection to InCommon API")
+            utils.charlimit_textwrap("HTTP " + str(response.status) + " " + str(response.reason)) 
+            utils.charlimit_textwrap("Successful connection to InCommon API")
         else:
             #InCommon API HTTP Error codes and messages are not consistent with documentation
-            charlimit_textwrap("HTTP " + str(response.status) + " " + str(response.reason))
-            charlimit_textwrap("Failed connection to InCommon API. Check your authentication credentials.")
+            utils.charlimit_textwrap("HTTP " + str(response.status) + " " + str(response.reason))
+            utils.charlimit_textwrap("Failed connection to InCommon API. Check your authentication credentials.")
     except httplib.HTTPException as exc:
-        charlimit_textwrap('InCommon API connection error')
-        charlimit_textwrap('Connection failure details: %s' % str(exc))
-        charlimit_textwrap('Check your configuration parameters or contact InCommon support.')
+        utils.charlimit_textwrap('InCommon API connection error')
+        utils.charlimit_textwrap('Connection failure details: %s' % str(exc))
+        utils.charlimit_textwrap('Check your configuration parameters or contact InCommon support.')
         
 
 def submit_request(config, restclient, hostname, cert_csr, sans=None):
@@ -259,7 +260,7 @@ def submit_request(config, restclient, hostname, cert_csr, sans=None):
        If successful returns a self-enrollment certificate Id = sslId
     """
     # Build and update headers for the restclient. Headers will be reused for all requests 
-    headers = buildHeaders(config)
+    headers = build_headers(config)
 
     response = None
     response_data = None
@@ -300,7 +301,7 @@ def retrieve_cert(config, sslcontext, sslId):
     """
     
     # Build and update headers for the restclient. Headers will be reused for all requests
-    headers = buildHeaders(config)
+    headers = build_headers(config)
 
     response = None
     response_data = None    
@@ -327,7 +328,7 @@ def retrieve_cert(config, sslcontext, sslId):
             pass
         except httplib.HTTPException as exc:
             raise
-        charlimit_textwrap('    Waiting for %s seconds before retrying certificate retrieval' % WAIT_RETRIEVAL )
+        utils.charlimit_textwrap('    Waiting for %s seconds before retrying certificate retrieval' % WAIT_RETRIEVAL )
         # Closing the connection before sleeping
         restclient.closeConnection()
         time.sleep(WAIT_RETRIEVAL)
@@ -342,17 +343,17 @@ def main():
         CONFIG = dict(config_parser.items('InCommon'))
 
         ARGS = parse_args()
-        check_permissions(ARGS['certdir'])
+        utils.check_permissions(ARGS['certdir'])
         
         # Creating SSLContext with cert and key provided
         # usercert and userprivkey are already validated by utils.findusercred
-        ssl_context = get_ssl_context(usercert=ARGS['usercert'], userkey=ARGS['userprivkey'])
+        ssl_context = utils.get_ssl_context(usercert=ARGS['usercert'], userkey=ARGS['userprivkey'])
         
         restclient = InCommonApiClient(CONFIG['apiurl'], ssl_context)
 
         if ARGS['test']:
-            charlimit_textwrap("Beginning testing mode: ignoring parameters.")
-            testInCommonConnection(CONFIG, restclient)
+            utils.charlimit_textwrap("Beginning testing mode: ignoring parameters.")
+            test_incommon_connection(CONFIG, restclient)
             restclient.closeConnection()
             sys.exit(0)
 
@@ -365,86 +366,85 @@ def main():
             hosts = [tuple(line.split()) for line in host_lines if line.strip()]
         
         requests = list()
-        certs = list()
+        csrs = list()
         
-        charlimit_textwrap('Beginning request process for the following certificate(s):')
-        charlimit_textwrap('='*60)
+        utils.charlimit_textwrap('Beginning request process for the following certificate(s):')
+        utils.charlimit_textwrap('='*60)
 
-        # Building the lists with certificates --> Cert(object) 
+        # Building the lists with certificates --> utils.Csr(object) 
         for host in set(hosts):
             common_name = host[0]
             sans = host[1:]
             
-            charlimit_textwrap('CN: %s, SANS: %s' % (common_name, sans))
-            cert_obj = Cert(common_name, ARGS['certdir'], altnames=sans)
-            logger.debug(cert_obj.x509request.as_text())
-            certs.append(cert_obj)
+            utils.charlimit_textwrap('CN: %s, SANS: %s' % (common_name, sans))
+            csr_obj = utils.Csr(common_name, ARGS['certdir'], altnames=sans)
+            logger.debug(csr_obj.x509request.as_text())
+            csrs.append(csr_obj)
 
-        charlimit_textwrap('='*60)
+        utils.charlimit_textwrap('='*60)
 
-        for cert in certs:
-            subj = str(cert.x509request.get_subject())
-            charlimit_textwrap('Requesting certificate for %s' % subj)
-            response_request = submit_request(CONFIG, restclient, subj, cert.base64_csr(), sans=cert.altnames)
+        for csr in csrs:
+            subj = str(csr.x509request.get_subject())
+            utils.charlimit_textwrap('Requesting certificate for %s' % subj)
+            response_request = submit_request(CONFIG, restclient, subj, csr.base64_csr(), sans=csr.altnames)
             
             # response_request stores the sslId for the certificate request
             if response_request:
                 requests.append(tuple([response_request, subj]))
 
-                charlimit_textwrap("Writing key file: %s" % cert.final_keypath)
-                cert.write_pkey() 
+                utils.charlimit_textwrap("Writing key file: %s" % csr.final_keypath)
+                csr.write_pkey() 
         
         # Closing the restclient connection before going idle waiting for approval
         restclient.closeConnection()
 
-        charlimit_textwrap('Waiting %s seconds for certificate approval...' % WAIT_APPROVAL)
+        utils.charlimit_textwrap('Waiting %s seconds for certificate approval...' % WAIT_APPROVAL)
         time.sleep(WAIT_APPROVAL) 
         
         # Certificate retrieval has to retry until it gets the certificate
         # A restclient (InCommonApiClient) needs to be created for each retrieval attempt
         for request in requests:
             subj = request[1]
-            charlimit_textwrap('Retrieving certificate for %s' % subj)
+            utils.charlimit_textwrap('Retrieving certificate for %s' % subj)
             response_retrieve = retrieve_cert(CONFIG, ssl_context, request[0])
 
             if response_retrieve is not None:
                 cert_path = os.path.join(ARGS['certdir'], subj.split("=")[1] + '-cert.pem')
-                charlimit_textwrap("Writing certificate file: %s" % cert_path)
-                safe_rename(cert_path)
-                atomic_write(cert_path, response_retrieve)
+                utils.charlimit_textwrap("Writing certificate file: %s" % cert_path)
+                utils.safe_rename(cert_path)
+                utils.atomic_write(cert_path, response_retrieve)
         
-        charlimit_textwrap("%s certificates were specified" % len(certs))
-        charlimit_textwrap("%s certificates were requested and retrieved successfully" % len(requests))
+        utils.charlimit_textwrap("%s certificates were specified" % len(certs))
+        utils.charlimit_textwrap("%s certificates were requested and retrieved successfully" % len(requests))
         
 
     except SystemExit:
         raise
     except IOError as exc:
-        charlimit_textwrap('Certificate and/or key files not found. More details below:')
-        print_exception_message(exc)
+        utils.charlimit_textwrap('Certificate and/or key files not found. More details below:')
+        utils.print_exception_message(exc)
         sys.exit(1)
     except KeyboardInterrupt as exc:
-        print_exception_message(exc)
+        utils.print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
     except KeyError as exc:
-        charlimit_textwrap('Key %s not found' % exc)
+        utils.charlimit_textwrap('Key %s not found' % exc)
         sys.exit(1)
     except FileWriteException as exc:
-        charlimit_textwrap(str(exc))
-        charlimit_textwrap("The script will exit now\n")
+        utils.charlimit_textwrap(str(exc))
         sys.exit(1)
     except FileNotFoundException as exc:
-        charlimit_textwrap(str(exc) + ':' + exc.filename)
+        utils.charlimit_textwrap(str(exc) + ':' + exc.filename)
         sys.exit(1)
     except SSLError as exc:
-        print_exception_message(exc)
+        utils.print_exception_message(exc)
         sys.exit('Please check for valid certificate.\n')
-    except (BadCertificateException, BadPassphraseException, HandshakeFailureException, AttributeError, EnvironmentError, ValueError, EOFError, SSL.SSLError, UnexpectedBehaviourException) as exc:
-        charlimit_textwrap(str(exc))
+    except (BadPassphraseException, AttributeError, EnvironmentError, ValueError, EOFError, SSLError) as exc:
+        utils.charlimit_textwrap(str(exc))
         sys.exit(1)
     except InsufficientArgumentException as exc:
-        charlimit_textwrap('Insufficient arguments provided. More details below:')
-        print_exception_message(exc)
+        utils.charlimit_textwrap('Insufficient arguments provided. More details below:')
+        utils.print_exception_message(exc)
         sys.stderr.write("Usage: incommon-cert-request -h for help \n")
         sys.exit(1)
     except Exception:

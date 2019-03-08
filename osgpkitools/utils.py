@@ -1,17 +1,14 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import ConfigParser
 import errno
 import os
-import re
-import time
 import shutil
 import sys
 import tempfile
 import textwrap
 import json
-import signal
-import subprocess
 import traceback
 import getpass
 from StringIO import StringIO
@@ -57,7 +54,7 @@ def get_ssl_context(usercert, userkey):
                 raise
 
     # if we fell off the loop, the passphrase was incorrect twice
-    raise BadPassphraseException('Incorrect passphrase. Attempt failed twice. Exiting script')
+    raise BadPassphraseException('Incorrect passphrase. Attempt failed twice.')
 
 
 def charlimit_textwrap(string):
@@ -121,7 +118,7 @@ def safe_rename(filename):
     old_filename = filename + '.old'
     try:
         shutil.move(filename, old_filename)
-        print "Renamed existing file from %s to %s" % (filename, old_filename)
+        print("Renamed existing file from %s to %s" % (filename, old_filename))
     except IOError, exc:
         if exc.errno != errno.ENOENT:
             charlimit_textwrap(exc)
@@ -140,7 +137,7 @@ def check_permissions(path):
     if os.access(path, os.W_OK):
         return
     else:
-        raise FileWriteException("User does not have appropriate permissions for writing to current directory.")
+        raise FileWriteException("User does not have appropriate permissions for writing to " + path)
 
 
 def find_user_cred(usercert=None, userkey=None):
@@ -187,7 +184,7 @@ def print_failure_reason_exit(data):
     sys.exit('\n'.join(textwrap.wrap(separator + msg, width=80)))
 
 
-class Cert(object):
+class Csr(object):
 
     KEY_LENGTH = 2048
     PUB_EXPONENT = 0x10001
@@ -198,7 +195,7 @@ class Cert(object):
 
         This function accepts the CN and final path for the key as well as optional list of subject alternative names
         and optional requestor e-mail.  """
-        escaped_common_name = common_name.replace('/', '_') # Remove / from service requests for writing keys
+        escaped_common_name = common_name.replace('/', '_') # Remove slashes
         self.keypair = RSA.gen_key(self.KEY_LENGTH,
                                    self.PUB_EXPONENT,
                                    self.callback)

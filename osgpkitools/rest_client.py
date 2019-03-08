@@ -7,8 +7,8 @@ import urllib
 from json import dumps
 from urlparse import urljoin
 
+import utils
 from ExceptionDefinitions import *
-from utils import *
 
 logger = logging.getLogger(__name__)
 
@@ -45,15 +45,11 @@ class InCommonApiClient():
         
         try:
             self.connection.request("POST", url, body=dumps(data), headers=headers)
-
             post_response = self.connection.getresponse()
-
-            check_response_500(post_response)
-
+            utils.check_response_500(post_response)
             logger.debug('post response status ' + str(post_response.status) + ': ' + str(post_response.reason))
-
         except httplib.HTTPException as exc:
-            charlimit_textwrap('Connection to %s failed : %s' % (url, exc))
+            utils.charlimit_textwrap('Connection to %s failed : %s' % (url, exc))
             raise
 
         return post_response
@@ -73,13 +69,13 @@ class InCommonApiClient():
             self.connection.request("GET", url, None, headers)
             get_response = self.connection.getresponse()
             
-            check_response_500(get_response)
+            utils.check_response_500(get_response)
         
             logger.debug('get response status ' + str(get_response.status) + ': ' + str(get_response.reason))
         except httplib.BadStatusLine as exc:
             raise
         except httplib.HTTPException as exc:
-            charlimit_textwrap('Connection to %s failed : %s' % (url, exc))
+            utils.charlimit_textwrap('Connection to %s failed : %s' % (url, exc))
             raise
        
         return get_response
