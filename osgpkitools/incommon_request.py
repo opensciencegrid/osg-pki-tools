@@ -3,7 +3,10 @@
 
 """
 This script is used to submit multiple certificate requests to InCommon certificate service.
-The intended user for the script is the Department Registration Authority Officer (DRAO) with auto-approval enabled.
+The intended user for the script is the Department Registration Authority Officer (DRAO) with SSL auto-approval and Certificate Auth enabled.
+
+The DRAO must authenticate with  a user certificate issued by InCommon. The certificate must be configured for the DRAO in the InCommon Certificate Manager interface > Admins section. 
+
 This script works in two modes:
 1) Requesting single host certificate with -H option
 2) Request multiple host certificates with hostnames stored in a file -f option
@@ -219,7 +222,6 @@ def build_headers(config):
         Returns headers for the HTTP request
     """
     
-    #Requests tightened its interface to only allow header values to be strings
     headers = {
             "Content-type": str(config['content_type']), 
             "login": str(ARGS['login']), 
@@ -230,8 +232,9 @@ def build_headers(config):
 
 
 def test_incommon_connection(config, restclient):
-    """This function tests the connection to InCommon API. 
-       Invokes the listing SSL types function. 
+    """This function tests the connection to InCommon API
+       and the credentials for authentication: cert and key.
+       Performs a call to the listing SSL types endpoint. 
        Successful if response is HTTP 200 OK
     """
     # Build and update headers. Headers will be reused for all requests 
@@ -259,7 +262,7 @@ def submit_request(config, restclient, hostname, cert_csr, sans=None):
     """This function submits an enrollment request for a certificate
        If successful returns a self-enrollment certificate Id = sslId
     """
-    # Build and update headers for the restclient. Headers will be reused for all requests 
+    # Build and update headers for the restclient 
     headers = build_headers(config)
 
     response = None
