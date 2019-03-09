@@ -1,7 +1,7 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
 Version: 3.1.0
-Release: 1%{?dist}
+Release: 1.1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
 Group: Grid
@@ -9,6 +9,7 @@ URL: http://github.com/opensciencegrid/osg-pki-tools
 BuildArch: noarch
 Requires: python
 Requires: m2crypto
+BuildRequires: m2crypto
 %if 0%{?rhel} < 7
 Requires: python-argparse
 %endif
@@ -34,6 +35,9 @@ rm -f %{buildroot}%{python_sitelib}/*.egg-info
 
 
 %changelog
+* Fri Mar  8 2019 Dave Dykstra <dwd@fnal.gov> - 3.1.1-1
+- Add BuildRequires: m2crypto
+
 * Fri Mar  8 2019 Dave Dykstra <dwd@fnal.gov> - 3.1.0-1
 - Add osg-incommon-cert-request
 
