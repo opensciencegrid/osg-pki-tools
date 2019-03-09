@@ -35,7 +35,7 @@ rm -f %{buildroot}%{python_sitelib}/*.egg-info
 
 
 %changelog
-* Fri Mar  8 2019 Dave Dykstra <dwd@fnal.gov> - 3.1.1-1
+* Fri Mar  8 2019 Dave Dykstra <dwd@fnal.gov> - 3.1.0-1.1
 - Add BuildRequires: m2crypto
 
 * Fri Mar  8 2019 Dave Dykstra <dwd@fnal.gov> - 3.1.0-1
