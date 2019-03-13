@@ -189,7 +189,6 @@ or specify from a file using -f/--hostfile.''')
         if not args.hostname:
             if not os.path.exists(hostfile):
                 raise FileNotFoundException(hostfile, 'Error: could not locate the hostfile')
-            
 
     arguments = dict()
 
@@ -204,10 +203,13 @@ or specify from a file using -f/--hostfile.''')
     arguments.update({'test': args.test})
     arguments.update({'login': args.login})
     
-    if args.usercert and args.userprivkey:
-        usercert, userkey = utils.find_user_cred(args.usercert, args.userprivkey)
-        arguments.update({'usercert': usercert})
-        arguments.update({'userprivkey': userkey})
+    if not args.usercert or not args.userprivkey:
+        raise InsufficientArgumentException("InsufficientArgumentException: " + \
+                                            "Please provide certificate(-c, --cert) and key(-k, --pkey) files\n")
+    
+    usercert, userkey = utils.verify_user_cred(args.usercert, args.userprivkey)
+    arguments.update({'usercert': usercert})
+    arguments.update({'userprivkey': userkey})
 
     arguments.update({'certdir': args.write_directory})
     
@@ -346,6 +348,7 @@ def main():
         CONFIG = dict(config_parser.items('InCommon'))
 
         ARGS = parse_args()
+
         utils.check_permissions(ARGS['certdir'])
         
         # Creating SSLContext with cert and key provided
@@ -424,7 +427,7 @@ def main():
     except SystemExit:
         raise
     except IOError as exc:
-        utils.charlimit_textwrap('Certificate and/or key files not found. More details below:')
+        utils.charlimit_textwrap('Certificate and/or key files were not found. More details below:')
         utils.print_exception_message(exc)
         sys.exit(1)
     except KeyboardInterrupt as exc:
