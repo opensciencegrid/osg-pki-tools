@@ -69,9 +69,9 @@ def parse_args():
     in a dictionary that is used throughout the script."""
 
     usage = \
-'''Usage: %prog [--debug] -u username [-k pkey -c cert] \\
+'''Usage: %prog [--debug] -u username -k pkey -c cert \\
            (-H hostname | -f hostfile) [-a altnames] [-d write_directory]
-       %prog [--debug] -u username [-k pkey -c cert] -T
+       %prog [--debug] -u username -k pkey -c cert -T
        %prog -h
        %prog --version'''
     parser = OptionParser(usage, version=utils.VERSION_NUMBER)
