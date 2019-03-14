@@ -24,7 +24,7 @@ class InCommonApiClient():
         self.base_url = base_url
         self.connection = M2Crypto.httpslib.HTTPSConnection(base_url, strict=False, ssl_context=ssl_context)
     
-    def closeConnection(self):
+    def close_connection(self):
         self.connection.close()
 
     def post_request(self, url, headers, data):
