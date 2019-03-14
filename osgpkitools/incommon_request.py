@@ -112,8 +112,7 @@ or specify from a file using -f/--hostfile.''')
         '--pkey',
         action='store',
         dest='userprivkey',
-        help="Specify Requestor's private key (PEM Format). If not specified " + \
-             "will take the value of X509_USER_KEY or $HOME/.globus/userkey.pem",
+        help="Specify requestor's private key (PEM Format)",
         metavar='PKEY',
         default=None
     )
@@ -122,8 +121,7 @@ or specify from a file using -f/--hostfile.''')
         '--cert',
         action='store',
         dest='usercert',
-        help="Specify requestor's user certificate (PEM Format). If not specified " + \
-             "will take the value of X509_USER_CERT or $HOME/.globus/usercert.pem",
+        help="Specify requestor's user certificate (PEM Format)",
         metavar='CERT',
         default=None
     )
