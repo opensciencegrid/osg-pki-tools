@@ -52,13 +52,6 @@ def handle_empty_exceptions(exc):
     #charlimit_textwrap('Please report the bug to %s.' % HELP_EMAIL)
 
 
-def format_csr(csr):
-    """Extract the base64 encoded string from the contents of a CSR"""
-    return csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n', '')\
-              .replace('-----END CERTIFICATE REQUEST-----\n', '')\
-              .replace('\n', '')
-
-
 def atomic_write(filename, contents):
     """Write to a temporary file then move it to its final location
     """
@@ -93,6 +86,7 @@ def safe_write(filename, contents):
     """
     safe_rename(filename)
     atomic_write(filename, contents)
+
 
 def check_permissions(path):
     """The function checks for write permissions for the given path to verify if the user has write permissions

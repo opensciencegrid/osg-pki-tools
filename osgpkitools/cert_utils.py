@@ -1,11 +1,15 @@
 #!/usr/bin/python
 
+import getpass
 import os
 import sys
+import tempfile
 
 from M2Crypto import SSL, m2, RSA, EVP, X509
 
 from ExceptionDefinitions import *
+from osgpkitools import utils
+
 
 # These flags are for the purpose of passing to the M2Crypto calls
 MBSTRING_FLAG = 0x1000
@@ -49,20 +53,31 @@ class Csr(object):
     KEY_LENGTH = 2048
     PUB_EXPONENT = 0x10001
 
-    def __init__(self, common_name, output_dir=None, altnames=None):
-        """Create a certificate request (stored in the x509request attribute) and associated keys (stored in keypair attribute).
+    def __init__(self, hostname, output_dir=None, altnames=None, location=None):
+        """
+        Create a certificate signing request (CSR - stored in the x509request attribute) and associated keys (stored in keypair attribute).
+       
+        The caller should use write_csr to write CSR when ready. 
         The caller should use write_pkey to write private key when ready.
-
-        This function accepts the CN and final path for the key as well as optional list of subject alternative names
-        and optional requestor e-mail.  """
-        self.keypair = RSA.gen_key(self.KEY_LENGTH,
-                                   self.PUB_EXPONENT,
-                                   self.callback)
-
-        if not output_dir:
-            output_dir = os.getcwd()
+  
+        INPUT
+            - hostname: common name for the CN field 
+            - output_dir (optional): The destination directory to write the request and key
+            - altnames (optional): Additional hostnames to be added to the Subject Alternative Names.
+            - location (optional): A namedtuple containing country (e.g., US), state (e.g., Wisconsin),
+            locality (e.g., Madison), and organization (e.g., University of Wisconsin)
+        """
         self.output_dir = output_dir
-        self.final_keypath = os.path.join(output_dir, common_name + '-key.pem')
+        # TODO this check should come from the main commands
+        if not output_dir:
+            self.output_dir = os.getcwd()
+
+        # Set up CSR and PKEY file paths 
+        self.csrpath = os.path.join(output_dir, hostname + '.req')
+        self.keypath = os.path.join(output_dir, hostname + '-key.pem')
+
+        self.keypair = RSA.gen_key(self.KEY_LENGTH,  self.PUB_EXPONENT, lambda: None)
+        
         # The message digest shouldn't matter here since we don't use
         # PKey.sign_*() or PKey.verify_*() but there's no harm in keeping it and
         # it ensures a strong hashing algo (default is sha1) if we do decide to
@@ -72,17 +87,23 @@ class Csr(object):
 
         self.x509request = X509.Request()
         x509name = X509.X509_Name()
+        
+        # Build entries for x509 name
+        entries = list()
+        entries.append(('CN', hostname))
 
-        x509name.add_entry_by_txt(  # common name
-            field='CN',
-            type=MBSTRING_ASC,
-            entry=common_name,
-            len=-1,
-            loc=-1,
-            set=0,
-            )
+        if location:
+            entries.append(('C', location.country))
+            entries.append(('ST', location.state))
+            entries.append(('L', location.locality))
+            entries.append(('O', location.organization))
+        
+        for key, val in entries:
+            x509name.add_entry_by_txt(field=key, type=MBSTRING_ASC, entry=val, len=-1, loc=-1, set=0)
 
         self.x509request.set_subject_name(x509name)
+        
+        # Build altnames
         self.altnames = None
 
         if altnames:
@@ -95,20 +116,29 @@ class Csr(object):
             extension_stack.push(extension)
             self.x509request.add_extensions(extension_stack)
 
+        # Set up pubkey and sign CSR with privkey
         self.x509request.set_pubkey(pkey=self.pkey)
         self.x509request.set_version(0)
         self.x509request.sign(pkey=self.pkey, md='sha256')
+    
+    def write_csr(self, csrpath=None):
+        """Write the certificate signing request"""
+        if not csrpath:
+            csrpath = self.csrpath
 
-    def callback(self, *args):
-        return None
+        try:
+            utils.safe_write(csrpath, self.x509request.as_pem())
+        except:
+            os.remove(self.keypath) # if we can't write the CSR, remove its associated private key
+            raise
 
     def write_pkey(self, keypath=None):
         """Write the instance's private key to keypath, backing up keypath to keypath.old if necessary"""
         if not keypath:
-            keypath = self.final_keypath
+            keypath = self.keypath
 
         # Handle already existing key file...
-        safe_rename(keypath)
+        utils.safe_rename(keypath)
 
         # this is like atomic_write except writing with save_key
         temp_fd, temp_name = tempfile.mkstemp(dir=self.output_dir)
@@ -116,6 +146,19 @@ class Csr(object):
         self.keypair.save_key(temp_name, cipher=None)
         os.rename(temp_name, keypath)
 
+    def format_csr(self, csr):
+        """Extract the base64 encoded string from the contents of a CSR"""
+        return csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n', '')\
+                .replace('-----END CERTIFICATE REQUEST-----\n', '')\
+                .replace('\n', '')
+
     def base64_csr(self):
         """Extract the base64 encoded string from the contents of a certificate signing request"""
-        return format_csr(self.x509request.as_pem())
+        return self.format_csr(self.x509request.as_pem())
+
+
+ 
+
+
+
+    

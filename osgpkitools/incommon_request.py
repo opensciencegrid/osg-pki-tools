@@ -354,7 +354,7 @@ def main():
         
         # Creating SSLContext with cert and key provided
         # usercert and userprivkey are already validated by utils.findusercred
-        ssl_context = cert-utils.get_ssl_context(usercert=ARGS['usercert'], userkey=ARGS['userprivkey'])
+        ssl_context = cert_utils.get_ssl_context(usercert=ARGS['usercert'], userkey=ARGS['userprivkey'])
         
         restclient = InCommonApiClient(CONFIG['apiurl'], ssl_context)
 
@@ -384,7 +384,8 @@ def main():
             sans = host[1:]
             
             utils.charlimit_textwrap('CN: %s, SANS: %s' % (common_name, sans))
-            csr_obj = cert-utils.Csr(common_name, ARGS['certdir'], altnames=sans)
+            csr_obj = cert_utils.Csr(common_name, output_dir=ARGS['certdir'], altnames=sans)
+            
             logger.debug(csr_obj.x509request.as_text())
             csrs.append(csr_obj)
 
@@ -399,7 +400,7 @@ def main():
             if response_request:
                 requests.append(tuple([response_request, subj]))
 
-                utils.charlimit_textwrap("Writing key file: %s" % csr.final_keypath)
+                utils.charlimit_textwrap("Writing key file: %s" % csr.keypath)
                 csr.write_pkey() 
         
         # Closing the restclient connection before going idle waiting for approval

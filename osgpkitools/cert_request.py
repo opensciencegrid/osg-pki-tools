@@ -9,6 +9,7 @@ import argparse
 
 from collections import namedtuple
 from M2Crypto import RSA, EVP, X509
+from osgpkitools import cert_utils
 from osgpkitools import utils
 
 
@@ -87,55 +88,6 @@ class StateAction(argparse.Action):
             raise ValueError("Values for -S/--state should be the unabbreviated form of the state or province.")
 
 
-def write_csr(output_dir, hostnames, location):
-    """Write a Certificate Signing Request and private key
-
-    Input:
-    - output_dir: The destination directory to write the request and key
-    - hostnames: A list of hostnames, the first of which is used as the Common Name.
-    Additional hostnames are added to the list of Subject Alternative Names
-    - location: A namedtuple containing country (e.g., US), state (e.g., Wisconsin),
-    locality (e.g., Madison), and organization (e.g. Unversity of WIsconsin)
-    """
-    path = os.path.join(output_dir, hostnames[0] + '.req')
-    keypath = os.path.join(output_dir, hostnames[0] + '-key.pem')
-
-    keypair = RSA.gen_key(2048, 0x10001, lambda: None)
-    utils.safe_write(keypath, keypair.as_pem(cipher=None))
-
-    # The message digest shouldn't matter here since we don't use
-    # PKey.sign_*() or PKey.verify_*() but there's no harm in keeping it and
-    # it ensures a strong hashing algo (default is sha1) if we do decide to
-    # sign things in the future
-
-    x509request = X509.Request()
-    x509name = X509.X509_Name()
-
-    for key, val in [('C', location.country), ('ST', location.state), ('L', location.locality),
-                     ('O', location.organization), ('CN', hostnames[0])]:
-        x509name.add_entry_by_txt(field=key, type=0x1000 | 1, entry=val, len=-1, loc=-1, set=0)
-
-    x509request.set_subject_name(x509name)
-
-    extension_stack = X509.X509_Extension_Stack()
-    extension = X509.new_extension('subjectAltName', ", ".join(['DNS:%s' % name for name in hostnames]))
-    extension.set_critical(1)
-    extension_stack.push(extension)
-    x509request.add_extensions(extension_stack)
-
-    pubkey = EVP.PKey(md='sha256')
-    pubkey.assign_rsa(keypair)
-    x509request.set_pubkey(pkey=pubkey)
-    x509request.set_version(0)
-    x509request.sign(pkey=pubkey, md='sha256')
-
-    try:
-        utils.safe_write(path, x509request.as_pem())
-    except:
-        os.remove(keypath)  # if we can't write the CSR, remove its associated privkey
-        raise
-
-
 def main():
     """The entrypoint for osg-cert-request
     """
@@ -156,4 +108,6 @@ def main():
 
     for fqdns in fqdns_list:
         print("Writing CSR for {0}...".format(fqdns[0]))
-        write_csr(os.path.abspath(args.write_directory), fqdns, loc)
+        csr_obj = cert_utils.Csr(fqdns[0], output_dir=os.path.abspath(args.write_directory), altnames=fqdns[1:], location=loc)
+        csr_obj.write_pkey()
+        csr_obj.write_csr()
