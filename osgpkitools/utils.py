@@ -140,35 +140,27 @@ def check_permissions(path):
         raise FileWriteException("User does not have appropriate permissions for writing to " + path)
 
 
-def find_user_cred(usercert=None, userkey=None):
-    """Find a readable user cert/key pair, trying pairs in the following order:
-    1. usercert, userkey
-    2. X509_USER_CERT, X509_USER_KEY environment variables
-    3. '~/.globus/usercert.pem', '~/.globus/userkey.pem'
-    INPUT (optional)
-    usercert: path to user certificate
-    userkey: path to private key of user
-    OUTPUT
-    Paths to the user cert and key
+def verify_user_cred(usercert, userkey):
+    """Verify the  readable user cert/key pair
+    INPUT
+        usercert: path to user certificate 
+        userkey: path to private key of user 
+    OUTPUT 
+        Paths to the verified user cert and key 
     """
-    
-    # list of cert/key pairs to try
-    input_pairs = [(usercert, userkey),
-                   ((os.environ.get('X509_USER_CERT'), os.environ.get('X509_USER_KEY'))),
-                   (os.path.expanduser('~/.globus/usercert.pem'), os.path.expanduser('~/.globus/userkey.pem'))]
-    cert_key_pairs = [t for t in input_pairs if None not in t] # remove undefined pairs for an improved err msg below
 
+    cert = os.path.expanduser(usercert)
+    key = os.path.expanduser(userkey)
+    
     # M2Crypto doesn't raise exceptions when encountering missing or unreadable
-    # cert/key pairs so we force the issue
-    for cert, key in cert_key_pairs:
-        try:
-            open(cert, 'r')
-            open(key, 'r')
-            return cert, key
-        except IOError:
-            continue
-    raise IOError("Unable to read the following certificate/key pairs:\n- %s" %
-                  "\n- ".join([", ".join(pair) for pair in cert_key_pairs]))
+    # cert/key pair so we force the issue
+
+    try:
+        open(cert, 'r')
+        open(key, 'r')
+        return cert, key
+    except IOError:
+        raise IOError("Unable to read the certificate/key pair at:  %s" % cert + " " + key)
 
 
 def print_failure_reason_exit(data):

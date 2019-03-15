@@ -44,9 +44,9 @@ by InCommon that is authorized to create host certificates for that account.
 ### Synopsis ###
 
 ```
-Usage: osg-incommon-cert-request [--debug] -u username [-k pkey -c cert] \
+Usage: osg-incommon-cert-request [--debug] -u username -k pkey -c cert \
            (-H hostname | -f hostfile) [-a altnames] [-d write_directory]
-       osg-incommon-cert-request [--debug] -u username [-k pkey -c cert] -T
+       osg-incommon-cert-request [--debug] -u username -k pkey -c cert -T
        osg-incommon-cert-request -h
        osg-incommon-cert-request --version
 ```
