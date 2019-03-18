@@ -8,7 +8,7 @@ from itertools import permutations
 from contextlib import contextmanager
 from StringIO import StringIO
 
-from osgpkitools import cert_request`
+from osgpkitools import cert_request
 
 HOST_ARGS = [('--hostname', 'hostname.example.edu')]
 HOSTFILE_ARGS = [('--hostfile', 'hosts.txt')]
