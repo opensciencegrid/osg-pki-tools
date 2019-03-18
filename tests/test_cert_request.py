@@ -8,7 +8,7 @@ from itertools import permutations
 from contextlib import contextmanager
 from StringIO import StringIO
 
-from osgpkitools import request
+from osgpkitools import cert_request
 
 HOST_ARGS = [('--hostname', 'hostname.example.edu')]
 HOSTFILE_ARGS = [('--hostfile', 'hosts.txt')]
@@ -51,7 +51,7 @@ def parse_cli_flatten_args(args):
     args_list = []
     for arg in args:
         args_list.extend(arg)
-    return request.parse_cli(args_list)
+    return cert_request.parse_cli(args_list)
 
 
 class CertRequestTests(unittest.TestCase):

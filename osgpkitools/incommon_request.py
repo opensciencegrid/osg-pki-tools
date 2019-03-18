@@ -32,6 +32,7 @@ from ssl import SSLError
 from optparse import OptionParser, OptionGroup
 
 import utils
+import cert_utils
 from ExceptionDefinitions import *
 from rest_client import InCommonApiClient
 
@@ -324,7 +325,7 @@ def retrieve_cert(config, sslcontext, sslId):
             logger.debug('response text: ' + str(response_text))
             if response.status == 200:
                 response_data = response_text
-                restclient.closeConnection()
+                restclient.close_connection()
                 break
         except httplib.BadStatusLine as exc:
             # BadStatusLine is raised as the server responded with a HTTP status code that we don't understand.
@@ -333,7 +334,7 @@ def retrieve_cert(config, sslcontext, sslId):
             raise
         utils.charlimit_textwrap('    Waiting for %s seconds before retrying certificate retrieval' % WAIT_RETRIEVAL )
         # Closing the connection before sleeping
-        restclient.closeConnection()
+        restclient.close_connection()
         time.sleep(WAIT_RETRIEVAL)
     
     return response_data
@@ -351,14 +352,14 @@ def main():
         
         # Creating SSLContext with cert and key provided
         # usercert and userprivkey are already validated by utils.findusercred
-        ssl_context = utils.get_ssl_context(usercert=ARGS['usercert'], userkey=ARGS['userprivkey'])
+        ssl_context = cert_utils.get_ssl_context(usercert=ARGS['usercert'], userkey=ARGS['userprivkey'])
         
         restclient = InCommonApiClient(CONFIG['apiurl'], ssl_context)
 
         if ARGS['test']:
             utils.charlimit_textwrap("Beginning testing mode: ignoring parameters.")
             test_incommon_connection(CONFIG, restclient)
-            restclient.closeConnection()
+            restclient.close_connection()
             sys.exit(0)
 
         #Create tuple(s) either with a single hostname and altnames or with a set of hostnames and altnames from the hostfile
@@ -381,7 +382,8 @@ def main():
             sans = host[1:]
             
             utils.charlimit_textwrap('CN: %s, SANS: %s' % (common_name, sans))
-            csr_obj = utils.Csr(common_name, ARGS['certdir'], altnames=sans)
+            csr_obj = cert_utils.Csr(common_name, output_dir=ARGS['certdir'], altnames=sans)
+            
             logger.debug(csr_obj.x509request.as_text())
             csrs.append(csr_obj)
 
@@ -396,11 +398,11 @@ def main():
             if response_request:
                 requests.append(tuple([response_request, subj]))
 
-                utils.charlimit_textwrap("Writing key file: %s" % csr.final_keypath)
+                utils.charlimit_textwrap("Writing key file: %s" % csr.keypath)
                 csr.write_pkey() 
         
         # Closing the restclient connection before going idle waiting for approval
-        restclient.closeConnection()
+        restclient.close_connection()
 
         utils.charlimit_textwrap('Waiting %s seconds for certificate approval...' % WAIT_APPROVAL)
         time.sleep(WAIT_APPROVAL) 
@@ -418,9 +420,9 @@ def main():
                 utils.safe_rename(cert_path)
                 utils.atomic_write(cert_path, response_retrieve)
         
-        utils.charlimit_textwrap("%s certificates were specified" % len(csrs))
-        utils.charlimit_textwrap("%s certificates were requested and retrieved successfully" % len(requests))
-        
+        utils.charlimit_textwrap("%s certificates were specified." % len(csrs))
+        utils.charlimit_textwrap("%s certificates were requested and retrieved successfully." % len(requests))
+        utils.charlimit_textwrap("%s out of %s certificates were issued and retrieved successfully." % (len(requests), len(csrs)))
 
     except SystemExit:
         raise

@@ -4,6 +4,6 @@ import os, sys
 if __name__ == "__main__" and __package__ is None:
     sys.path.append(os.path.abspath(__file__+"/../.."))
 
-from osgpkitools import request
+from osgpkitools import cert_request
 
-request.main()
+cert_request.main()
