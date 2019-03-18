@@ -14,7 +14,7 @@ rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-${OS_VERSION}
 # Broken mirror?
 echo "exclude=mirror.beyondhosting.net" >> /etc/yum/pluginconf.d/fastestmirror.conf
 
-PKG_REQS='yum-plugin-priorities rpm-build git gzip m2crypto'
+PKG_REQS='yum-plugin-priorities rpm-build git gzip'
 if [ $OS_VERSION -eq '6' ]; then
     PKG_REQS="$PKG_REQS python-unittest2"
 fi
