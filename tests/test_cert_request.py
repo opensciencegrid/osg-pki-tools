@@ -51,7 +51,7 @@ def parse_cli_flatten_args(args):
     args_list = []
     for arg in args:
         args_list.extend(arg)
-    return request.parse_cli(args_list)
+    return cert_request.parse_cli(args_list)
 
 
 class CertRequestTests(unittest.TestCase):
