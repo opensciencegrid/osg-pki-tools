@@ -12,7 +12,6 @@ import json
 import traceback
 import getpass
 from StringIO import StringIO
-from M2Crypto import SSL, m2, RSA, EVP, X509
 
 from ExceptionDefinitions import *
 
