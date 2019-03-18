@@ -145,6 +145,7 @@ class Csr(object):
         os.close(temp_fd)
         self.keypair.save_key(temp_name, cipher=None)
         os.rename(temp_name, keypath)
+        os.chmod(keypath, 0600)
 
     def format_csr(self, csr):
         """Extract the base64 encoded string from the contents of a CSR"""
