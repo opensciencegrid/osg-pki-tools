@@ -15,7 +15,7 @@ from StringIO import StringIO
 
 from ExceptionDefinitions import *
 
-VERSION_NUMBER = "3.1.0"
+VERSION_NUMBER = "3.1.1"
 HELP_EMAIL = 'help@opensciencegrid.org'
 
 

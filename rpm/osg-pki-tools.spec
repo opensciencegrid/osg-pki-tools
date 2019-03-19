@@ -1,6 +1,6 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.1.0
+Version: 3.1.1
 Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
@@ -34,6 +34,14 @@ rm -f %{buildroot}%{python_sitelib}/*.egg-info
 
 
 %changelog
+* Mon Mar 18 2019 Dave Dykstra <dwd@fnal.gov> - 3.1.1-1
+- Rename request.py to cert_request.py
+- Move common crypto code to cert_utils.py
+- Change permissions on generated keys to 644
+- Make -k and -c required in osg-incommon-cert-request, with no default
+- Expand tildes in --cert= and --key= osg-incommon-cert-request options
+- Immediately fail osg-incommon-cert-request if InCommon authentication fails
+
 * Fri Mar  8 2019 Dave Dykstra <dwd@fnal.gov> - 3.1.0-1
 - Add osg-incommon-cert-request
 
