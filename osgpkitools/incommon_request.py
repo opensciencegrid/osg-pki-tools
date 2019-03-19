@@ -295,6 +295,8 @@ def submit_request(config, restclient, hostname, cert_csr, sans=None):
             logger.debug('response text: ' + str(response_text))
             response_data = json.loads(response_text)
             response_data = response_data['sslId']
+        else:
+            raise AuthenticationFailureException(response.status, "Failed connection to InCommon API.")
     except httplib.HTTPException as exc:
         raise
     
@@ -419,7 +421,8 @@ def main():
                 utils.charlimit_textwrap("Writing certificate file: %s" % cert_path)
                 utils.safe_rename(cert_path)
                 utils.atomic_write(cert_path, response_retrieve)
-        
+                os.chmod(cert_path, 0644)
+
         utils.charlimit_textwrap("%s certificates were specified." % len(csrs))
         utils.charlimit_textwrap("%s certificates were requested and retrieved successfully." % len(requests))
         utils.charlimit_textwrap("%s out of %s certificates were issued and retrieved successfully." % (len(requests), len(csrs)))
@@ -453,6 +456,9 @@ def main():
         utils.print_exception_message(exc)
         sys.stderr.write("Usage: incommon-cert-request -h for help \n")
         sys.exit(1)
+    except AuthenticationFailureException as exc:
+        utils.print_exception_message(exc)
+        sys.exit('Check your authentication credentials.\n')
     except Exception:
         traceback.print_exc()
         sys.exit(1)

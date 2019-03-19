@@ -68,3 +68,12 @@ class FileWriteException(Exception):
         return str(self.message)
 
 
+class AuthenticationFailureException(Exception):
+    """This exception is raised when the credentials provided by the user are invalid"""
+
+    def __init__(self, status, message):
+        self.status = status
+        self.message = message
+
+    def __str__(self):
+        return str(self.message)
