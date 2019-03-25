@@ -13,7 +13,9 @@ This script works in two modes:
 
 This script retrieves the certificates and output a set of files: hostname.key (private key) and hostname.pem (certificate)
 """
+from __future__ import print_function
 
+import argparse
 import httplib
 import socket
 import sys
@@ -60,172 +62,97 @@ certbin: /bin
 content_type: application/json
 """
 
-
-# Set up Option Parser
-
-ARGS = {}
-
-def parse_args():
+def parse_cli():
     """This function parses all the arguments, validates them and then stores them
     in a dictionary that is used throughout the script."""
-
-    usage = \
-'''Usage: %prog [--debug] -u username -k pkey -c cert \\
-           (-H hostname | -f hostfile) [-a altnames] [-d write_directory]
-       %prog [--debug] -u username -k pkey -c cert -T
-       %prog -h
-       %prog --version'''
-    parser = OptionParser(usage, version=utils.VERSION_NUMBER)
-    group = OptionGroup(parser, 'Hostname Options',
-                        '''Use either of these options.
-Specify hostname as a single hostname using -H/--hostname
-or specify from a file using -f/--hostfile.''')
-    group.add_option(
-        '-H',
-        '--hostname',
-        action='store',
-        dest='hostname',
-        help='Specify the hostname or service/hostname for which you want to request ' + \
-        'the certificate for. If specified, -f/--hostfile will be ignored',
-        metavar='HOSTNAME',
-        default=None,
-        )
-    group.add_option(
-        '-f',
-        '--hostfile',
-        action='store',
-        dest='hostfile',
-        help='Filename with one host (hostname or service/hostname and its optional, ' + \
-        'alternative hostnames, separated by spaces) per line',
-        metavar='HOSTFILE',
-        default=None,
-        )
-    parser.add_option(
-        '-d',
-        '--directory',
-        action='store',
-        dest='write_directory',
-        help="Write the output files to this directory",
-        default='.'
-        )
-    parser.add_option(
-        '-k',
-        '--pkey',
-        action='store',
-        dest='userprivkey',
-        help="Specify requestor's private key (PEM Format)",
-        metavar='PKEY',
-        default=None
-    )
-    parser.add_option(
-        '-c',
-        '--cert',
-        action='store',
-        dest='usercert',
-        help="Specify requestor's user certificate (PEM Format)",
-        metavar='CERT',
-        default=None
-    )
-    parser.add_option(
-        '-a',
-        '--altname',
-        action='append',
-        dest='alt_names',
-        help='Specify an alternative hostname for CSR (FQDN). May be used more than ' + \
-             'once and if specified, -f/--hostfile will be ignored',
-        metavar='HOSTNAME',
-        default=[]
-    )
-    parser.add_option(
-        '-u',
-        '--username',
-        action='store',
-        dest='login',
-        help='Provide the InCommon username (login).',
-        metavar='LOGIN',
-        default=[]
-    )
-    parser.add_option(
-        '-T',
-        '--test',
-        action='store_true',
-        dest='test',
-        help='Test connection to InCommon API. Useful to test authentication credentials',
-        default=False
-    )
-    parser.add_option(
-        '',
-        '--debug',
-        dest='debug',
-        help="Write debug output to stdout",
-        action='store_true',
-        default=False
-    )
     
-    parser.add_option_group(group)
-    (args, values) = parser.parse_args()
+    usage = \
+    '''%(prog)s [--debug] -u username -k pkey -c cert \\
+           (-H hostname | -F hostfile) [-a altnames] [-d write_directory]
+       %(prog)s [--debug] -u username -k pkey -c cert -t
+       %(prog)s -h
+       %(prog)s --version'''
+ 
+    parser = argparse.ArgumentParser(add_help=False, usage=usage, 
+                                     description='Request and retrieve certificates from the  InCommon IGTF server CA.')
 
-    if args.debug:
+    required = parser.add_argument_group('Required', 'Specify only one of -H/--hostname and -F/--hostfile')
+    hosts = required.add_mutually_exclusive_group()
+    hosts.add_argument('-H', '--hostname', action='store', dest='hostname',
+                        help='The hostname (FQDN) to request. If specified, -F/--hostfile will be ignored')
+    hosts.add_argument('-F', '--hostfile', action=FilePathAction, dest='hostfile',
+                       help='File containing list of hostnames (FQDN), one per line, to request. Space separated '
+                       'subject alternative names (SANs) may be specified on the same line as each hostname.')
+
+    required.add_argument('-u', '--username', action='store', required=True, dest='login',
+                          help="Specify requestor's InCommon username/login")
+
+    required.add_argument('-c', '--cert', action=FilePathAction, required=True, dest='usercert',
+                          help="Specify requestor's user certificate (PEM Format)")
+    
+    required.add_argument('-k', '--pkey', action=FilePathAction, required=True, dest='userprivkey',
+                          help="Specify requestor's private key (PEM Format)")
+
+    optional = parser.add_argument_group("Optional")
+    optional.add_argument('-h', '--help', action='help',
+                          help='show this help message and exit')
+    optional.add_argument('-a', '--altname', action='append', dest='altnames', default=[],
+                          help='Specify the SAN for the requested certificate (only works with -H/--hostname). '
+                          'May be specified more than once for additional SANs.')
+    optional.add_argument('-o', '--outputdir', action='store', dest='write_directory', default='.',
+                          help="The directory to write the host certificate(s) and key(s)")
+    optional.add_argument('-d', '--debug', action='store_true', dest='debug', default=False,
+                          help="Write debug output to stdout")
+    optional.add_argument('-t', '--test', action='store_true', dest='test', default=False,
+                              help='Testing mode: test connection to InCommon API but does not request certificates. '
+                              'Useful to test authentication credentials, optional arguments are ignored.')
+    optional.add_argument('-v', '--version', action='version', version=utils.VERSION_NUMBER)
+
+    parsed_args = parser.parse_args()
+
+    # We can't add altnames to the mutually exclusive 'hosts' group since it's not a required opt
+    if parsed_args.hostfile and parsed_args.altnames:
+        parsed_args.altnames = []
+        print("-a/--altname option ignored with -F/--hostfile", file=sys.stderr)
+    
+    if parsed_args.debug:
         # this sets the root debug level
         logging.getLogger().setLevel(logging.DEBUG)
         logger.debug('Debug mode enabled')
     
-    if not args.login:
+    # (-H/--hostname | -F/--hostfile) are mutually exclusive but not required so testing mode can be enabled with optional param -t/--test 
+    if not parsed_args.test and not parsed_args.hostname and not parsed_args.hostfile:
+        parser.print_usage()
         raise InsufficientArgumentException("InsufficientArgumentException: " + \
-                                            "Please provide the InCommon username (login)\n")
+                                            "Please provide -H/--hostname and -F/--hostfile for normal mode. " + \
+                                            "For testing mode, use -t/--test")
+
+    return parsed_args
+
+
+class FilePathAction(argparse.Action):
+    """Action for validating if the file exists and there are read permissions
+    """
+    def __call__(self, parser, namespace, values, option_string=None):
+        values = os.path.expanduser(values)
+
+        if not os.path.exists(values):
+            raise IOError("Unable to locate the file at: %s" % values)
         
-    if not args.test:    
-        if not args.hostname:
-            if args.hostfile is None:
-                raise InsufficientArgumentException("InsufficientArgumentException: " + \
-                                                    "Please provide hostname(-H) or file name containing hosts(-f)\n")
-            else:
-                    hostfile = args.hostfile
-        else:
-            hostname = args.hostname
-        
-    if not args.test:
-        if not args.hostname:
-            if not os.path.exists(hostfile):
-                raise FileNotFoundException(hostfile, 'Error: could not locate the hostfile')
-
-    arguments = dict()
-
-    if vars().has_key('args'):
-        arguments.update({'args': args})
-    if vars().has_key('values'):
-        arguments.update({'values': values})
-    if vars().has_key('hostname'):
-        arguments.update({'hostname': hostname})
-    
-    arguments.update({'alt_names': args.alt_names})
-    arguments.update({'test': args.test})
-    arguments.update({'login': args.login})
-    
-    if not args.usercert or not args.userprivkey:
-        raise InsufficientArgumentException("InsufficientArgumentException: " + \
-                                            "Please provide certificate(-c, --cert) and key(-k, --pkey) files\n")
-    
-    usercert, userkey = utils.verify_user_cred(args.usercert, args.userprivkey)
-    arguments.update({'usercert': usercert})
-    arguments.update({'userprivkey': userkey})
-
-    arguments.update({'certdir': args.write_directory})
-    
-    if vars().has_key('hostfile'):
-        arguments.update({'hostfile': hostfile})
-    
-    return arguments
+        try:
+            open(values, 'r')
+            setattr(namespace, self.dest, values)
+        except IOError:
+            raise IOError("Unable to read the file at: %s" % values)
+   
 
 def build_headers(config):
     """"This function build the headers for the HTTP request.
-
         Returns headers for the HTTP request
     """
-    
     headers = {
             "Content-type": str(config['content_type']), 
-            "login": str(ARGS['login']), 
+            "login": str(args.login), 
             "customerUri": str(config['customeruri']) 
     }
 
@@ -238,7 +165,7 @@ def test_incommon_connection(config, restclient):
        Performs a call to the listing SSL types endpoint. 
        Successful if response is HTTP 200 OK
     """
-    # Build and update headers. Headers will be reused for all requests 
+    # Build headers.
     headers = build_headers(config)
     response = None
     
@@ -247,16 +174,13 @@ def test_incommon_connection(config, restclient):
     logger.debug('response text: ' + str(response_text))
     try:
         if response.status == 200:
-            utils.charlimit_textwrap("HTTP " + str(response.status) + " " + str(response.reason)) 
-            utils.charlimit_textwrap("Successful connection to InCommon API")
+            print("Connection successful to InCommon API") 
         else:
-            #InCommon API HTTP Error codes and messages are not consistent with documentation
-            utils.charlimit_textwrap("HTTP " + str(response.status) + " " + str(response.reason))
-            utils.charlimit_textwrap("Failed connection to InCommon API. Check your authentication credentials.")
+            # InCommon API HTTP Error codes and messages are not consistent with documentation.
+            # {Unknown user}
+            print("Connection failure to InCommon API. Check your authentication credentials.")
     except httplib.HTTPException as exc:
-        utils.charlimit_textwrap('InCommon API connection error')
-        utils.charlimit_textwrap('Connection failure details: %s' % str(exc))
-        utils.charlimit_textwrap('Check your configuration parameters or contact InCommon support.')
+        print("HTTPS Connection error. Details: \n %s" % str(exc))
         
 
 def submit_request(config, restclient, hostname, cert_csr, sans=None):
@@ -296,7 +220,7 @@ def submit_request(config, restclient, hostname, cert_csr, sans=None):
             response_data = json.loads(response_text)
             response_data = response_data['sslId']
         else:
-            raise AuthenticationFailureException(response.status, "Failed connection to InCommon API.")
+            raise AuthenticationFailureException(response.status, "Connection failure to InCommon API. Check your authentication credentials.")
     except httplib.HTTPException as exc:
         raise
     
@@ -320,12 +244,14 @@ def retrieve_cert(config, sslcontext, sslId):
             # If the HTTPSConnection is reused 
             restclient = InCommonApiClient(config['apiurl'], sslcontext)
             response = restclient.get_request(retrieve_url, headers)
-            # InCommon API responds with 400 Bad Request when the certificate is still being procesed
+            # InCommon API responds with HTTP 400 Bad Request when the certificate is still being procesed
             # "code": 0, "description": "Being processed by Sectigo"
-            # It triggers the BadStatusLine exception avoiding to reuse the HTTPSConnection
+            # Triggers the BadStatusLine exception avoiding to reuse the HTTPSConnection
             response_text = response.read()
             logger.debug('response text: ' + str(response_text))
+            # HTTP 200 OK brings the certificate in the response, HTTPSConnection will be closed before exiting the loop 
             if response.status == 200:
+                print("    - Certificate request is approved. Downloading certificate now.")
                 response_data = response_text
                 restclient.close_connection()
                 break
@@ -334,125 +260,141 @@ def retrieve_cert(config, sslcontext, sslId):
             pass
         except httplib.HTTPException as exc:
             raise
-        utils.charlimit_textwrap('    Waiting for %s seconds before retrying certificate retrieval' % WAIT_RETRIEVAL )
-        # Closing the connection before sleeping
+        print("    - Certificate request is pending approval...")    
+        print("    - Waiting for %s seconds before retrying certificate retrieval" % WAIT_RETRIEVAL )
+        # Closing the connection before going to sleep
         restclient.close_connection()
         time.sleep(WAIT_RETRIEVAL)
     
     return response_data
            
 def main():
-    global ARGS
-    try:	
+    """The entrypoint for osg-incommon-cert-request
+    """
+    global args
+    try:
+        args = parse_cli()
+   
         config_parser = ConfigParser.ConfigParser()
         config_parser.readfp(StringIO(CONFIG_TEXT))
         CONFIG = dict(config_parser.items('InCommon'))
 
-        ARGS = parse_args()
-
-        utils.check_permissions(ARGS['certdir'])
+        utils.check_permissions(args.write_directory)
         
+        if args.test:
+            print("Beginning testing mode: ignoring optional parameters.")
+
         # Creating SSLContext with cert and key provided
         # usercert and userprivkey are already validated by utils.findusercred
-        ssl_context = cert_utils.get_ssl_context(usercert=ARGS['usercert'], userkey=ARGS['userprivkey'])
+        ssl_context = cert_utils.get_ssl_context(usercert=args.usercert, userkey=args.userprivkey)
         
         restclient = InCommonApiClient(CONFIG['apiurl'], ssl_context)
 
-        if ARGS['test']:
-            utils.charlimit_textwrap("Beginning testing mode: ignoring parameters.")
+        if args.test:
             test_incommon_connection(CONFIG, restclient)
             restclient.close_connection()
             sys.exit(0)
 
+        print("Beginning certificate request")
+        print("="*60)
+        
         #Create tuple(s) either with a single hostname and altnames or with a set of hostnames and altnames from the hostfile
-        if 'hostname' in ARGS:
-            hosts = [tuple([ARGS['hostname'].strip()] + ARGS['alt_names'])]
+        if args.hostname:
+            hosts = [tuple([args.hostname.strip()] + args.altnames)]
         else:
-            with open(ARGS['hostfile'], 'rb') as hosts_file:
+            with open(args.hostfile, 'rb') as hosts_file:
                 host_lines = hosts_file.readlines()
             hosts = [tuple(line.split()) for line in host_lines if line.strip()]
         
         requests = list()
         csrs = list()
-        
-        utils.charlimit_textwrap('Beginning request process for the following certificate(s):')
-        utils.charlimit_textwrap('='*60)
 
+        print("The following Common Name (CN) and Subject Alternative Names (SANS) have been specified: ")
         # Building the lists with certificates --> utils.Csr(object) 
         for host in set(hosts):
             common_name = host[0]
             sans = host[1:]
             
-            utils.charlimit_textwrap('CN: %s, SANS: %s' % (common_name, sans))
-            csr_obj = cert_utils.Csr(common_name, output_dir=ARGS['certdir'], altnames=sans)
+            print("CN: %s, SANS: %s" % (common_name, sans))
+            csr_obj = cert_utils.Csr(common_name, output_dir=args.write_directory, altnames=sans)
             
             logger.debug(csr_obj.x509request.as_text())
             csrs.append(csr_obj)
 
-        utils.charlimit_textwrap('='*60)
+        print("="*60)
 
         for csr in csrs:
             subj = str(csr.x509request.get_subject())
-            utils.charlimit_textwrap('Requesting certificate for %s' % subj)
+            print("Requesting certificate for %s: " % subj)
             response_request = submit_request(CONFIG, restclient, subj, csr.base64_csr(), sans=csr.altnames)
             
             # response_request stores the sslId for the certificate request
             if response_request:
                 requests.append(tuple([response_request, subj]))
-
-                utils.charlimit_textwrap("Writing key file: %s" % csr.keypath)
-                csr.write_pkey() 
+                print("Request successful. Writing key file at: %s" % csr.keypath)
+                csr.write_pkey()
+            else:
+                print("Request failed for %s" % subj)
+            
+            print("-"*60)
         
         # Closing the restclient connection before going idle waiting for approval
         restclient.close_connection()
-
-        utils.charlimit_textwrap('Waiting %s seconds for certificate approval...' % WAIT_APPROVAL)
+        
+        print("%s certificate(s) was(were) requested successfully." % len(requests))
+        print("Waiting %s seconds for requests approval..." % WAIT_APPROVAL)
         time.sleep(WAIT_APPROVAL) 
         
+        print("\nStarting certificate retrieval")
+        print("="*60)
         # Certificate retrieval has to retry until it gets the certificate
         # A restclient (InCommonApiClient) needs to be created for each retrieval attempt
         for request in requests:
             subj = request[1]
-            utils.charlimit_textwrap('Retrieving certificate for %s' % subj)
+            print("Retrieving certificate for %s: " % subj)
             response_retrieve = retrieve_cert(CONFIG, ssl_context, request[0])
 
             if response_retrieve is not None:
-                cert_path = os.path.join(ARGS['certdir'], subj.split("=")[1] + '-cert.pem')
-                utils.charlimit_textwrap("Writing certificate file: %s" % cert_path)
+                cert_path = os.path.join(args.write_directory, subj.split("=")[1] + '-cert.pem')
+                print("Retrieval successful. Writing certificate file at: %s" % cert_path)
                 utils.safe_rename(cert_path)
                 utils.atomic_write(cert_path, response_retrieve)
                 os.chmod(cert_path, 0644)
-
-        utils.charlimit_textwrap("%s certificates were specified." % len(csrs))
-        utils.charlimit_textwrap("%s certificates were requested and retrieved successfully." % len(requests))
-        utils.charlimit_textwrap("%s out of %s certificates were issued and retrieved successfully." % (len(requests), len(csrs)))
+            else:
+                print("Retrieval failure for %" % subj)
+                print("The certificate can be retrieved directly from the InCommon Cert Manager interface.")
+                print("CN %s, Self-enrollment Certificate ID (sslId): %s" % (subj, request[0]))
+            
+            print("-"*60)
 
     except SystemExit:
         raise
+    except ValueError as exc:
+        sys.exit(exc)
     except IOError as exc:
-        utils.charlimit_textwrap('Certificate and/or key files were not found. More details below:')
+        print("Error: more details below.")
         utils.print_exception_message(exc)
         sys.exit(1)
     except KeyboardInterrupt as exc:
         utils.print_exception_message(exc)
         sys.exit('''Interrupted by user\n''')
     except KeyError as exc:
-        utils.charlimit_textwrap('Key %s not found' % exc)
+        print('Key %s not found' % exc)
         sys.exit(1)
     except FileWriteException as exc:
-        utils.charlimit_textwrap(str(exc))
+        print(str(exc))
         sys.exit(1)
     except FileNotFoundException as exc:
-        utils.charlimit_textwrap(str(exc) + ':' + exc.filename)
+        print(str(exc) + ':' + exc.filename)
         sys.exit(1)
     except SSLError as exc:
         utils.print_exception_message(exc)
         sys.exit('Please check for valid certificate.\n')
     except (BadPassphraseException, AttributeError, EnvironmentError, ValueError, EOFError, SSLError) as exc:
-        utils.charlimit_textwrap(str(exc))
+        print(str(exc))
         sys.exit(1)
     except InsufficientArgumentException as exc:
-        utils.charlimit_textwrap('Insufficient arguments provided. More details below:')
+        print("Insufficient arguments provided. More details below: ")
         utils.print_exception_message(exc)
         sys.stderr.write("Usage: incommon-cert-request -h for help \n")
         sys.exit(1)
