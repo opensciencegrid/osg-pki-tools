@@ -397,6 +397,7 @@ def main():
         print(prog + ": error " + str(exc))
         sys.exit(1)
     except httplib.HTTPException as exc:
+        print(str(exc))
         sys.exit(1)
     except Exception:
         traceback.print_exc()
