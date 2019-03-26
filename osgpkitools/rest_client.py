@@ -4,6 +4,7 @@ import socket
 import M2Crypto
 import urllib
 
+prog = "osg-incommon-cert-request"
 from json import dumps
 from urlparse import urljoin
 
@@ -49,7 +50,7 @@ class InCommonApiClient():
             utils.check_response_500(post_response)
             logger.debug('post response status ' + str(post_response.status) + ': ' + str(post_response.reason))
         except httplib.HTTPException as exc:
-            utils.charlimit_textwrap('Connection to %s failed : %s' % (url, exc))
+            print(prog + ": error: Connection to %s failed : %s" % (url, exc))
             raise
 
         return post_response
@@ -68,14 +69,12 @@ class InCommonApiClient():
         try:
             self.connection.request("GET", url, None, headers)
             get_response = self.connection.getresponse()
-            
             utils.check_response_500(get_response)
-        
             logger.debug('get response status ' + str(get_response.status) + ': ' + str(get_response.reason))
         except httplib.BadStatusLine as exc:
             raise
         except httplib.HTTPException as exc:
-            utils.charlimit_textwrap('Connection to %s failed : %s' % (url, exc))
+            print(prog + ": error: Connection to %s failed : %s" % (url, exc))
             raise
        
         return get_response

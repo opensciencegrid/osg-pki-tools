@@ -171,17 +171,17 @@ def test_incommon_connection(config, restclient):
     logger.debug('response text: ' + str(response_text))
     try:
         if response.status == 200:
-            print(prog + ": " + "Connection successful to InCommon API") 
+            print(prog + ": Connection successful to InCommon API") 
         else:
             # InCommon API HTTP Error codes and messages are not consistent with documentation.
-            print(prog + ": " + "Connection failure to InCommon API")
+            print(prog + ": Connection failure to InCommon API")
 
             if response.status == 401:
                 print("Check your authentication credentials")
 
-        print("HTTP " + str(response.status) + " " + str(response.reason))
+            print("HTTP " + str(response.status) + " " + str(response.reason))
     except httplib.HTTPException as exc:
-        print(prog + ": " + "HTTPS Connection error. Details: \n %s" % str(exc))
+        print(prog + ": HTTPS Connection error. Details: \n %s" % str(exc))
 
 
 def submit_request(config, restclient, hostname, cert_csr, sans=None):
@@ -223,9 +223,10 @@ def submit_request(config, restclient, hostname, cert_csr, sans=None):
         elif response.status == 401:
             raise AuthenticationFailureException(response.status, "Connection failure to InCommon API. Check your authentication credentials.")
         else:
-            raise httplib.HTTPException(response.status, "Connection failure to InCommon API")
+            print(prog + ": Connection failure to InCommon API. HTTP " + str(response.status) + " " + str(response.reason))
+            raise httplib.HTTPException()
     except httplib.HTTPException as exc:
-        raise httplib.HTTPException("Connection failure to InCommon API: " + exc) 
+        raise  
     
     return response_data
     
@@ -392,8 +393,10 @@ def main():
     except SSLError as exc:
         print(prog + ": " + str(exc))
         sys.exit('Please check for valid certificate.\n')
-    except (FileWriteException, BadPassphraseException, AttributeError, EnvironmentError, ValueError, EOFError, SSLError, AuthenticationFailureException, httplib.HTTPException) as exc:
+    except (FileWriteException, BadPassphraseException, AttributeError, EnvironmentError, ValueError, EOFError, SSLError, AuthenticationFailureException) as exc:
         print(prog + ": error " + str(exc))
+        sys.exit(1)
+    except httplib.HTTPException as exc:
         sys.exit(1)
     except Exception:
         traceback.print_exc()
