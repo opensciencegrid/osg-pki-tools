@@ -19,27 +19,6 @@ VERSION_NUMBER = "3.1.1"
 HELP_EMAIL = 'help@opensciencegrid.org'
 
 
-def print_exception_message(exc):
-    """Checks if the str representation of the exception is empty or not
-    if empty, it prints an generic error message stating the type of exception
-    and traceback.
-    """
-
-    if str(exc) != "":
-        print("Got an exception %s" % exc.__class__.__name__)
-        print(exc)
-    else:
-        handle_empty_exceptions(exc)
-
-
-def handle_empty_exceptions(exc):
-    """The method handles all empty exceptions and displays a meaningful message and
-    traceback for such exceptions."""
-
-    print(traceback.format_exc())
-    print('Encountered exception of type %s' % exc.__class__.__name__)
-
-
 def atomic_write(filename, contents):
     """Write to a temporary file then move it to its final location
     """

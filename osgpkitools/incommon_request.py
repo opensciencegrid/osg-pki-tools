@@ -15,6 +15,7 @@ This script retrieves the certificates and output a set of files: hostname.key (
 """
 from __future__ import print_function
 
+prog = "osg-incommon-cert-request"
 import argparse
 import httplib
 import socket
@@ -31,14 +32,13 @@ logging.basicConfig()
 
 from StringIO import StringIO
 from ssl import SSLError
-from optparse import OptionParser, OptionGroup
 
 import utils
 import cert_utils
 from ExceptionDefinitions import *
 from rest_client import InCommonApiClient
 
-MAX_RETRY_RETRIEVAL = 20
+MAX_RETRY_RETRIEVAL = 40
 WAIT_RETRIEVAL= 5
 WAIT_APPROVAL = 30
 
@@ -99,9 +99,9 @@ def parse_cli():
     optional.add_argument('-a', '--altname', action='append', dest='altnames', default=[],
                           help='Specify the SAN for the requested certificate (only works with -H/--hostname). '
                           'May be specified more than once for additional SANs.')
-    optional.add_argument('-o', '--outputdir', action='store', dest='write_directory', default='.',
+    optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
                           help="The directory to write the host certificate(s) and key(s)")
-    optional.add_argument('-d', '--debug', action='store_true', dest='debug', default=False,
+    optional.add_argument('--debug', action='store_true', dest='debug', default=False,
                           help="Write debug output to stdout")
     optional.add_argument('-t', '--test', action='store_true', dest='test', default=False,
                               help='Testing mode: test connection to InCommon API but does not request certificates. '
@@ -122,10 +122,7 @@ def parse_cli():
     
     # (-H/--hostname | -F/--hostfile) are mutually exclusive but not required so testing mode can be enabled with optional param -t/--test 
     if not parsed_args.test and not parsed_args.hostname and not parsed_args.hostfile:
-        parser.print_usage()
-        raise InsufficientArgumentException("InsufficientArgumentException: " + \
-                                            "Please provide -H/--hostname and -F/--hostfile for normal mode. " + \
-                                            "For testing mode, use -t/--test")
+        parser.error('argument -H/--hostname or -F/--hostfile is required.')
 
     return parsed_args
 
@@ -174,14 +171,18 @@ def test_incommon_connection(config, restclient):
     logger.debug('response text: ' + str(response_text))
     try:
         if response.status == 200:
-            print("Connection successful to InCommon API") 
+            print(prog + ": " + "Connection successful to InCommon API") 
         else:
             # InCommon API HTTP Error codes and messages are not consistent with documentation.
-            # {Unknown user}
-            print("Connection failure to InCommon API. Check your authentication credentials.")
+            print(prog + ": " + "Connection failure to InCommon API")
+
+            if response.status == 401:
+                print("Check your authentication credentials")
+
+        print("HTTP " + str(response.status) + " " + str(response.reason))
     except httplib.HTTPException as exc:
-        print("HTTPS Connection error. Details: \n %s" % str(exc))
-        
+        print(prog + ": " + "HTTPS Connection error. Details: \n %s" % str(exc))
+
 
 def submit_request(config, restclient, hostname, cert_csr, sans=None):
     """This function submits an enrollment request for a certificate
@@ -219,10 +220,12 @@ def submit_request(config, restclient, hostname, cert_csr, sans=None):
             logger.debug('response text: ' + str(response_text))
             response_data = json.loads(response_text)
             response_data = response_data['sslId']
-        else:
+        elif response.status == 401:
             raise AuthenticationFailureException(response.status, "Connection failure to InCommon API. Check your authentication credentials.")
+        else:
+            raise httplib.HTTPException(response.status, "Connection failure to InCommon API")
     except httplib.HTTPException as exc:
-        raise
+        raise httplib.HTTPException("Connection failure to InCommon API: " + exc) 
     
     return response_data
     
@@ -283,6 +286,7 @@ def main():
         
         if args.test:
             print("Beginning testing mode: ignoring optional parameters.")
+            print("="*60)
 
         # Creating SSLContext with cert and key provided
         # usercert and userprivkey are already validated by utils.findusercred
@@ -372,35 +376,25 @@ def main():
     except ValueError as exc:
         sys.exit(exc)
     except IOError as exc:
-        print("Error: more details below.")
-        utils.print_exception_message(exc)
+        print(prog + ": error: more details below:")
+        traceback.print_exc()
+        print(str(exc))
         sys.exit(1)
     except KeyboardInterrupt as exc:
-        utils.print_exception_message(exc)
+        print(str(exc))
         sys.exit('''Interrupted by user\n''')
     except KeyError as exc:
-        print('Key %s not found' % exc)
-        sys.exit(1)
-    except FileWriteException as exc:
-        print(str(exc))
+        print(prog + ": error: " + "Key %s not found in dictionary" % exc)
         sys.exit(1)
     except FileNotFoundException as exc:
-        print(str(exc) + ':' + exc.filename)
+        print(prog + ": error: " + str(exc) + ':' + exc.filename)
         sys.exit(1)
     except SSLError as exc:
-        utils.print_exception_message(exc)
+        print(prog + ": " + str(exc))
         sys.exit('Please check for valid certificate.\n')
-    except (BadPassphraseException, AttributeError, EnvironmentError, ValueError, EOFError, SSLError) as exc:
-        print(str(exc))
+    except (FileWriteException, BadPassphraseException, AttributeError, EnvironmentError, ValueError, EOFError, SSLError, AuthenticationFailureException, httplib.HTTPException) as exc:
+        print(prog + ": error " + str(exc))
         sys.exit(1)
-    except InsufficientArgumentException as exc:
-        print("Insufficient arguments provided. More details below: ")
-        utils.print_exception_message(exc)
-        sys.stderr.write("Usage: incommon-cert-request -h for help \n")
-        sys.exit(1)
-    except AuthenticationFailureException as exc:
-        utils.print_exception_message(exc)
-        sys.exit('Check your authentication credentials.\n')
     except Exception:
         traceback.print_exc()
         sys.exit(1)
