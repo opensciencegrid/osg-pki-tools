@@ -376,11 +376,6 @@ def main():
         raise
     except ValueError as exc:
         sys.exit(exc)
-    except IOError as exc:
-        print(prog + ": error: more details below:")
-        traceback.print_exc()
-        print(str(exc))
-        sys.exit(1)
     except KeyboardInterrupt as exc:
         print(str(exc))
         sys.exit('''Interrupted by user\n''')
@@ -393,8 +388,8 @@ def main():
     except SSLError as exc:
         print(prog + ": " + str(exc))
         sys.exit('Please check for valid certificate.\n')
-    except (FileWriteException, BadPassphraseException, AttributeError, EnvironmentError, ValueError, EOFError, SSLError, AuthenticationFailureException) as exc:
-        print(prog + ": error " + str(exc))
+    except (IOError, FileWriteException, BadPassphraseException, AttributeError, EnvironmentError, ValueError, EOFError, SSLError, AuthenticationFailureException) as exc:
+        print(prog + ": error: " + str(exc))
         sys.exit(1)
     except httplib.HTTPException as exc:
         print(str(exc))

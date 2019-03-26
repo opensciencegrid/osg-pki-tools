@@ -36,8 +36,13 @@ rm -f %{buildroot}%{python_sitelib}/*.egg-info
 %changelog
 * Tue Mar 26 2019 Jeny Teheran <jteheran@fnal.gov> - 3.2.0
 - Change -f/--hostfile to -F/--hostfile
+- Change -T/--test to -t/--test
 - Switch argparsing to ArgumentParser
+- Validate if filepath exists and can be read at the ArgumentParser
+- Stop wrapping text messages
+- Include the program name in error messages
 - Show message per certificate when request or retrieval fails
+- Increased the number of retries for certificate retrieval
 
 * Mon Mar 18 2019 Dave Dykstra <dwd@fnal.gov> - 3.1.1-1
 - Rename request.py to cert_request.py
