@@ -48,16 +48,6 @@ class BadPassphraseException(Exception):
         return str(self.message)
 
 
-class InsufficientArgumentException(Exception):
-    """This exception is raised when insufficient number of arguments are passed to a script."""
-
-    def __init__(self, message):
-        self.message = message
-
-    def __str__(self):
-        return str(self.message)
-
-
 class FileWriteException(Exception):
     """This exception is raised when the user does not have permission to write in the current directory"""
 

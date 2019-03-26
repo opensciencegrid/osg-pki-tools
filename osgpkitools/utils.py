@@ -15,40 +15,8 @@ from StringIO import StringIO
 
 from ExceptionDefinitions import *
 
-VERSION_NUMBER = "3.1.1"
+VERSION_NUMBER = "3.2.0"
 HELP_EMAIL = 'help@opensciencegrid.org'
-
-
-def charlimit_textwrap(string):
-    """This function wraps up the output to 80 characters. Accepts string and print the wrapped output"""
-
-    list_string = textwrap.wrap(str(string), width=80)
-    for line in list_string:
-        print(line)
-    return
-
-
-def print_exception_message(exc):
-    """Checks if the str representation of the exception is empty or not
-    if empty, it prints an generic error message stating the type of exception
-    and traceback.
-    """
-
-    if str(exc) != "":
-        charlimit_textwrap("Got an exception %s" % exc.__class__.__name__)
-        charlimit_textwrap(exc)
-        #charlimit_textwrap('Please report the bug to %s.' % HELP_EMAIL)
-    else:
-        handle_empty_exceptions(exc)
-
-
-def handle_empty_exceptions(exc):
-    """The method handles all empty exceptions and displays a meaningful message and
-    traceback for such exceptions."""
-
-    print(traceback.format_exc())
-    charlimit_textwrap('Encountered exception of type %s' % exc.__class__.__name__)
-    #charlimit_textwrap('Please report the bug to %s.' % HELP_EMAIL)
 
 
 def atomic_write(filename, contents):
@@ -76,7 +44,7 @@ def safe_rename(filename):
         print("Renamed existing file from %s to %s" % (filename, old_filename))
     except IOError, exc:
         if exc.errno != errno.ENOENT:
-            charlimit_textwrap(exc)
+            print(exc)
             raise RuntimeError('ERROR: Failed to rename %s to %s' % (filename, old_filename))
 
 
@@ -94,40 +62,3 @@ def check_permissions(path):
         return
     else:
         raise FileWriteException("User does not have appropriate permissions for writing to " + path)
-
-
-def verify_user_cred(usercert, userkey):
-    """Verify the  readable user cert/key pair
-    INPUT
-        usercert: path to user certificate 
-        userkey: path to private key of user 
-    OUTPUT 
-        Paths to the verified user cert and key 
-    """
-
-    cert = os.path.expanduser(usercert)
-    key = os.path.expanduser(userkey)
-    
-    # M2Crypto doesn't raise exceptions when encountering missing or unreadable
-    # cert/key pair so we force the issue
-
-    try:
-        open(cert, 'r')
-        open(key, 'r')
-        return cert, key
-    except IOError:
-        raise IOError("Unable to read the certificate/key pair at:  %s" % cert + " " + key)
-
-
-def print_failure_reason_exit(data):
-    """This functions prints the failure reasons and exits"""
-    try:
-        msg = 'The request has failed for the following reason: %s' % \
-        json.loads(data)['detail'].split('--')[1].lstrip()
-    except IndexError:
-        msg = 'The request has failed for the following reason: %s' % json.loads(data)['detail'].lstrip() + \
-              'Status : %s ' % json.loads(data)['status']
-
-    separator = '='*80
-    sys.exit('\n'.join(textwrap.wrap(separator + msg, width=80)))
-
