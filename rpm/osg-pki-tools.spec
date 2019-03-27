@@ -25,7 +25,7 @@ Requires: python-argparse
 %{__python} setup.py install --root=%{buildroot}
 rm -f %{buildroot}%{python_sitelib}/*.egg-info
 mkdir -p %{buildroot}%{_datadir}/man/man1
-gzip -c osgpkitools/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-incommon-cert-request.1.gz
+gzip -c man/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-incommon-cert-request.1.gz
 
 %files
 %dir %{python_sitelib}/osgpkitools
@@ -36,6 +36,10 @@ gzip -c osgpkitools/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man
 %{_datadir}/man/man1/osg-incommon-cert-request*
 
 %changelog
+* Wed Mar 27 2019 Jeny Teheran <jteheran@fnal.gov> - 3.2.1
+- Add man page for osg-incommon-cert-request
+- Add .html version of man page for osg-incommon-cert-request
+
 * Tue Mar 26 2019 Jeny Teheran <jteheran@fnal.gov> - 3.2.0
 - Change -f/--hostfile to -F/--hostfile
 - Change -T/--test to -t/--test
