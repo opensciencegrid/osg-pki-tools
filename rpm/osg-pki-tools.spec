@@ -1,6 +1,6 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.2.0
+Version: 3.2.1
 Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
@@ -24,6 +24,8 @@ Requires: python-argparse
 %install
 %{__python} setup.py install --root=%{buildroot}
 rm -f %{buildroot}%{python_sitelib}/*.egg-info
+mkdir -p %{buildroot}%{_datadir}/man/man1
+gzip -c osgpkitools/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-incommon-cert-request.1.gz
 
 %files
 %dir %{python_sitelib}/osgpkitools
@@ -31,7 +33,7 @@ rm -f %{buildroot}%{python_sitelib}/*.egg-info
 %exclude %{python_sitelib}/osgpkitools/*.pyo
 %{_bindir}/osg-cert-request
 %{_bindir}/osg-incommon-cert-request
-
+%{_datadir}/man/man1/osg-incommon-cert-request*
 
 %changelog
 * Tue Mar 26 2019 Jeny Teheran <jteheran@fnal.gov> - 3.2.0
