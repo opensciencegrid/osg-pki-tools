@@ -2,5 +2,5 @@
 # documentation via http://htmlpreview.github.io.
 # Run make after updating osg-incommon-cert-request.1 and pushed the
 # .html file into git.
-osgincommoncertrequest.html: man/osg-incommon-cert-request.1
+man/osgincommoncertrequest.html: man/osg-incommon-cert-request.1
 	groff -mandoc -Thtml man/osg-incommon-cert-request.1 > man/osgincommoncertrequest.html
