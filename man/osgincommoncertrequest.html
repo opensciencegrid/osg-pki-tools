@@ -1,5 +1,5 @@
 <!-- Creator     : groff version 1.22.2 -->
-<!-- CreationDate: Wed Mar 27 17:41:52 2019 -->
+<!-- CreationDate: Thu Mar 28 14:31:03 2019 -->
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 "http://www.w3.org/TR/html4/loose.dtd">
 <html>
@@ -94,7 +94,8 @@ certificates.</p>
 <p style="margin-left:11%;"><b>&minus;u,</b>&minus;&minus;username</p>
 
 <p style="margin-left:22%;">Specify requestor&rsquo;s
-InCommon username/login.</p>
+InCommon username/login. Use the same login credential as
+InCommon Cert Manager. It is typically an email address.</p>
 
 
 <p style="margin-left:11%;"><b>&minus;c,</b>&minus;&minus;cert</p>
@@ -153,6 +154,17 @@ multiple certificates from a hostfile</p>
 <p style="margin-left:22%; margin-top: 1em">osg-incommon-cert-request
 -u incommonuser -c certpath.pem -k keypath.pem -F
 hostfilepath.txt</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><i>hostfilepath.txt
+example</i></p>
+
+
+<p style="margin-left:32%; margin-top: 1em">hostname01.yourdomain
+<br>
+hostname02.yourdomain hostnamealias.yourdomain
+hostname03.yourdomain <br>
+hostname04.yourdomain hostname05.yourdomain</p>
 
 <h2>AUTHOR
 <a name="AUTHOR"></a>
