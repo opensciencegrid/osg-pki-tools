@@ -1,0 +1,178 @@
+<!-- Creator     : groff version 1.22.2 -->
+<!-- CreationDate: Thu Mar 28 17:43:07 2019 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>osg-incommon-cert-request</title>
+
+</head>
+<body>
+
+<h1 align="center">osg-incommon-cert-request</h1>
+
+<a href="#NAME">NAME</a><br>
+<a href="#SYNOPSIS">SYNOPSIS</a><br>
+<a href="#DESCRIPTION">DESCRIPTION</a><br>
+<a href="#OPTIONS">OPTIONS</a><br>
+<a href="#EXAMPLES">EXAMPLES</a><br>
+<a href="#AUTHOR">AUTHOR</a><br>
+
+<hr>
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">osg-incommon-cert-request
+&minus; retrieves host and service certificates from the
+InCommon CA</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>osg-incommon-cert-request</b>
+[<i>OPTION</i>]...</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>osg-incommon-cert-request</b>
+retrieves host and service certificates from the InCommon
+IGTF Server CA. It requires an Incommon user account
+authorized as a Department Registration Authority to issue
+InCommon IGTF Server CA certificates with SSL auto approval.
+It authenticates the requestor with an InCommon client
+certificate.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It allows bulk
+retrieval of certificates and keys.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;version</b></p>
+
+<p style="margin-left:22%;">Show the program&rsquo;s
+version number and exit.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;h,&nbsp;</b>&minus;&minus;help</p>
+
+<p style="margin-left:22%;">Show a help message and
+exit.</p>
+
+<p style="margin-left:11%;"><b>&minus;&minus;debug</b></p>
+
+<p style="margin-left:22%;">Write debug output to stdout.
+<b>&minus;t,</b>&minus;&minus;test Testing mode: test
+connection to InCommon API but does not request
+certificates.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;u,</b>&minus;&minus;username</p>
+
+<p style="margin-left:22%;">Specify requestor&rsquo;s
+InCommon username/login. Use the same login credential as
+InCommon Cert Manager. It is typically an email address.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;c,</b>&minus;&minus;cert</p>
+
+<p style="margin-left:22%;">Specify requestor&rsquo;s user
+certificate (PEM format).</p>
+
+
+<p style="margin-left:11%;"><b>&minus;k,</b>&minus;&minus;pkey</p>
+
+<p style="margin-left:22%;">Specify requestor&rsquo;s
+private key (PEM format).</p>
+
+
+<p style="margin-left:11%;"><b>&minus;a,</b>&minus;&minus;altname</p>
+
+<p style="margin-left:22%;">Specify a Subject Alternative
+Name (SAN) for the requested certificate (only works with
+<i>&minus;H, &minus;&minus;hostname).</i> May be specified
+more than once for additional SANs.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;d,</b>&minus;&minus;directory</p>
+
+<p style="margin-left:22%;">The directory to write the host
+certificate(s) and key(s).</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">To generate a
+certificate with no Subject Alternative Names (SANS)</p>
+
+
+<p style="margin-left:22%; margin-top: 1em">osg-incommon-cert-request
+-u incommonuser -c certpath.pem -k keypath.pem -H
+hostname.yourdomain</p>
+
+<p style="margin-left:11%; margin-top: 1em">To generate a
+certificate with multiple Subject Alternative Names
+(SANS)</p>
+
+
+<p style="margin-left:22%; margin-top: 1em">osg-incommon-cert-request
+-u incommonuser -c certpath.pem -k keypath.pem -H
+hostname.yourdomain \ <br>
+-a hostalternative.yourdomain -a
+hostalternative2.yourdomain</p>
+
+<p style="margin-left:11%; margin-top: 1em">To generate
+multiple certificates from a hostfile</p>
+
+
+<p style="margin-left:22%; margin-top: 1em">osg-incommon-cert-request
+-u incommonuser -c certpath.pem -k keypath.pem -F
+hostfilepath.txt</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><i>hostfilepath.txt
+example</i></p>
+
+
+<p style="margin-left:32%; margin-top: 1em">hostname01.yourdomain
+<br>
+hostname02.yourdomain hostnamealias.yourdomain
+hostname03.yourdomain <br>
+hostname04.yourdomain hostname05.yourdomain</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Jeny
+Teheran</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,83 @@
+.TH osg-incommon-cert-request 1
+.SH NAME
+osg-incommon-cert-request \- retrieves host and service certificates from the InCommon CA
+.SH SYNOPSIS
+.B osg-incommon-cert-request
+.RI [ OPTION ]...
+.SH DESCRIPTION
+.B osg-incommon-cert-request
+retrieves host and service certificates from the InCommon IGTF Server CA. 
+It requires an Incommon user account authorized as a Department 
+Registration Authority to issue InCommon IGTF Server CA certificates  
+with SSL auto approval. 
+It authenticates the requestor with an InCommon client certificate.
+.PP
+It allows bulk retrieval of certificates and keys. 
+.SH OPTIONS
+.PP
+.TP
+.BR \-\-version
+Show the program's version number and exit.
+.TP
+.BR \-h, \ \-\-help
+Show a help message and exit.
+.TP
+.BR \-\-debug
+Write debug output to stdout.
+.BR \-t, \-\-test
+Testing mode: test connection to InCommon API but does not request certificates.
+.TP
+.BR \-u, \-\-username
+Specify requestor's InCommon username/login. Use the same login credential as InCommon Cert Manager. It is typically an email address.
+.TP
+.BR \-c, \-\-cert
+Specify requestor's user certificate (PEM format).
+.TP
+.BR \-k, \-\-pkey
+Specify requestor's private key (PEM format).
+.TP
+.BR \-a, \-\-altname
+Specify a Subject Alternative Name (SAN) for the requested certificate 
+(only works with
+.I \-H, \-\-hostname). 
+May be specified more than once for additional SANs.
+.TP
+.BR \-d, \-\-directory
+The directory to write the host certificate(s) and key(s).
+.SH EXAMPLES
+.PP
+To generate a certificate with no Subject Alternative Names (SANS)
+.PP
+.RS
+.nf
+osg-incommon-cert-request -u incommonuser -c certpath.pem -k keypath.pem -H hostname.yourdomain
+.fi
+.RE
+.PP
+To generate a certificate with multiple Subject Alternative Names (SANS)
+.PP
+.RS
+.nf
+osg-incommon-cert-request -u incommonuser -c certpath.pem -k keypath.pem -H hostname.yourdomain \\ 
+-a hostalternative.yourdomain -a hostalternative2.yourdomain 
+.fi
+.RE
+.PP
+To generate multiple certificates from a hostfile
+.PP
+.RS
+.nf
+osg-incommon-cert-request -u incommonuser -c certpath.pem -k keypath.pem -F hostfilepath.txt
+.PP
+.I hostfilepath.txt example 
+.PP
+.RS
+hostname01.yourdomain
+hostname02.yourdomain hostnamealias.yourdomain hostname03.yourdomain
+hostname04.yourdomain hostname05.yourdomain
+.RE
+.fi
+.RE
+.SH AUTHOR
+Jeny Teheran
+
