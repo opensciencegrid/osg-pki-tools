@@ -36,7 +36,7 @@ gzip -c man/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-in
 %{_datadir}/man/man1/osg-incommon-cert-request*
 
 %changelog
-- Improve formatting of osg-incommon-cert-request man page
+#- Improve formatting of osg-incommon-cert-request man page
 
 * Wed Mar 27 2019 Jeny Teheran <jteheran@fnal.gov> - 3.2.1
 - Add man page for osg-incommon-cert-request
