@@ -39,7 +39,7 @@ from ExceptionDefinitions import *
 from rest_client import InCommonApiClient
 
 MAX_RETRY_RETRIEVAL = 40
-WAIT_RETRIEVAL= 5
+WAIT_RETRIEVAL= 10
 WAIT_APPROVAL = 30
 
 CONFIG_TEXT = """[InCommon]
@@ -366,7 +366,7 @@ def main():
                 utils.atomic_write(cert_path, response_retrieve)
                 os.chmod(cert_path, 0644)
             else:
-                print("Retrieval failure for %" % subj)
+                print("Retrieval failure for %s" % subj)
                 print("The certificate can be retrieved directly from the InCommon Cert Manager interface.")
                 print("CN %s, Self-enrollment Certificate ID (sslId): %s" % (subj, request[0]))
             
