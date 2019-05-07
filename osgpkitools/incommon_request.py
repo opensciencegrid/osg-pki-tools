@@ -101,6 +101,10 @@ def parse_cli():
                           'May be specified more than once for additional SANs.')
     optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
                           help="The directory to write the host certificate(s) and key(s)")
+    optional.add_argument('-O', '--organization', action='store', dest='organization', default='9697',
+                          help='The organization identifier for the InCommon Certificate Service')
+    optional.add_argument('-OU', '--department', action='store', dest='department', default='9732',
+                          help='The department identifier for the InCommon Certificate Service')
     optional.add_argument('--debug', action='store_true', dest='debug', default=False,
                           help="Write debug output to stdout")
     optional.add_argument('-t', '--test', action='store_true', dest='test', default=False,
