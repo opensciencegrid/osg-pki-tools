@@ -44,6 +44,9 @@ May be specified more than once for additional SANs.
 .TP
 .BR \-d, \-\-directory
 The directory to write the host certificate(s) and key(s).
+.TP
+.BR \-O, \-\-orgcode
+Specify alternative organization and department codes for the InCommon Certificate Service. Defaults are Fermilab\'s codes.
 .SH EXAMPLES
 .PP
 To generate a certificate with no Subject Alternative Names (SANS)
@@ -77,6 +80,14 @@ hostname01.yourdomain
 hostname02.yourdomain hostnamealias.yourdomain hostname03.yourdomain
 hostname04.yourdomain hostname05.yourdomain
 .RE
+.fi
+.RE
+.PP
+To provide alternative organization and department codes for the InCommon Certificate Service. 
+.PP
+.RS
+.nf
+osg-incommon-cert-request -O 4567,8912 -u incommonuser -c certpath.pem -k keypath.pem -H hostname.yourdomain
 .fi
 .RE
 .SH AUTHOR

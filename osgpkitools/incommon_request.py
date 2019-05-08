@@ -102,7 +102,7 @@ def parse_cli():
                           'May be specified more than once for additional SANs.')
     optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
                           help="The directory to write the host certificate(s) and key(s)")
-    optional.add_argument('-O', '--orgcode', action='store', dest='orgcode', default='9697,9732',
+    optional.add_argument('-O', '--orgcode', action='store', dest='orgcode', default='9697,9732', metavar='ORG,DEPT',
                           help='Organization and Department codes for the InCommon Certificate Service. Defaults are Fermilab\'s codes.')
     optional.add_argument('--debug', action='store_true', dest='debug', default=False,
                           help="Write debug output to stdout")
