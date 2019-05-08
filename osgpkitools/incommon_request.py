@@ -70,6 +70,7 @@ def parse_cli():
     '''%(prog)s [--debug] -u username -k pkey -c cert \\
            (-H hostname | -F hostfile) [-a altnames] [-d write_directory]
        %(prog)s [--debug] -u username -k pkey -c cert -t
+       %(prog)s [--orgcode org,dept] (-H hostname | -F hostfile) -u username -k pkey -c cert
        %(prog)s -h
        %(prog)s --version'''
  
@@ -101,10 +102,8 @@ def parse_cli():
                           'May be specified more than once for additional SANs.')
     optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
                           help="The directory to write the host certificate(s) and key(s)")
-    optional.add_argument('-O', '--organization', action='store', dest='organization', default='9697',
-                          help='The organization identifier for the InCommon Certificate Service')
-    optional.add_argument('-OU', '--department', action='store', dest='department', default='9732',
-                          help='The department identifier for the InCommon Certificate Service')
+    optional.add_argument('-O', '--orgcode', action='store', dest='orgcode', default='9697,9732',
+                          help='Organization and Department codes for the InCommon Certificate Service. Defaults are Fermilab\'s codes.')
     optional.add_argument('--debug', action='store_true', dest='debug', default=False,
                           help="Write debug output to stdout")
     optional.add_argument('-t', '--test', action='store_true', dest='test', default=False,
@@ -286,9 +285,15 @@ def main():
         config_parser = ConfigParser.ConfigParser()
         config_parser.readfp(StringIO(CONFIG_TEXT))
         CONFIG = dict(config_parser.items('InCommon'))
+        
+        if args.orgcode:
+            codes = [code.strip() for code in args.orgcode.split(',')]
+            CONFIG['organization'] = codes[0]
+            CONFIG['department'] = codes[1]
+            print("Switching organization code to %s and department code to %s" % (CONFIG['organization'], CONFIG['department']))
 
         utils.check_permissions(args.write_directory)
-        
+         
         if args.test:
             print("Beginning testing mode: ignoring optional parameters.")
             print("="*60)
