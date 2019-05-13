@@ -47,6 +47,13 @@ The directory to write the host certificate(s) and key(s).
 .TP
 .BR \-O, \-\-orgcode
 Specify alternative organization and department codes for the InCommon Certificate Service.
+Codes can be found at the InCommon Cert Manager web interface (https://cert-manager.com/customer/InCommon):
+.RS
+.IP - 2
+Organization Code is shown as OrgID under Settings > Organizations > Edit
+.IP -
+Department Code is shown as OrgID under Settings > Organizations > Departments > Edit
+.RE
 .SH EXAMPLES
 .PP
 To generate a certificate with no Subject Alternative Names (SANS)
@@ -94,12 +101,6 @@ osg-incommon-cert-request -O 4567,8912 -u incommonuser \\
     -c certpath.pem -k keypath.pem -H hostname.yourdomain
 .fi
 .RE
-.PP
-Codes can be found at the InCommon Cert Manager web interface (https://cert-manager.com/customer/InCommon):
-.IP - 2
-Organization Code is shown as OrgID under Settings > Organizations > Edit
-.IP - 2
-Department Code is shown as OrgID under Settings > Organizations > Departments > Edit
 .SH AUTHOR
 Jeny Teheran
 
