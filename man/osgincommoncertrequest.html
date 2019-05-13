@@ -1,5 +1,5 @@
 <!-- Creator     : groff version 1.22.2 -->
-<!-- CreationDate: Mon May 13 10:18:58 2019 -->
+<!-- CreationDate: Mon May 13 11:30:20 2019 -->
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 "http://www.w3.org/TR/html4/loose.dtd">
 <html>
@@ -37,7 +37,7 @@
 
 
 <p style="margin-left:11%; margin-top: 1em">osg-incommon-cert-request
-&minus; retrieves host and service certificates from the \
+&minus; retrieves host and service certificates from the
 InCommon CA</p>
 
 <h2>SYNOPSIS
@@ -94,7 +94,7 @@ certificates.</p>
 <p style="margin-left:11%;"><b>&minus;u,</b>&minus;&minus;username</p>
 
 <p style="margin-left:22%;">Specify requestor&rsquo;s
-InCommon username/login. Use the same login credential as \
+InCommon username/login. Use the same login credential as
 InCommon Cert Manager. It is typically an email address.</p>
 
 
@@ -127,9 +127,8 @@ certificate(s) and key(s).</p>
 <p style="margin-left:11%;"><b>&minus;O,</b>&minus;&minus;orgcode</p>
 
 <p style="margin-left:22%;">Specify alternative
-organization and department codes for the InCommon \
-Certificate Service. Defaults are Fermilab&acute;s
-codes.</p>
+organization and department codes for the InCommon
+Certificate Service.</p>
 
 <h2>EXAMPLES
 <a name="EXAMPLES"></a>
@@ -141,8 +140,8 @@ certificate with no Subject Alternative Names (SANS)</p>
 
 
 <p style="margin-left:22%; margin-top: 1em">osg-incommon-cert-request
--u incommonuser -c certpath.pem -k keypath.pem \ <br>
--H hostname.yourdomain</p>
+-u incommonuser -c certpath.pem \ <br>
+-k keypath.pem -H hostname.yourdomain</p>
 
 <p style="margin-left:11%; margin-top: 1em">To generate a
 certificate with multiple Subject Alternative Names
@@ -150,17 +149,18 @@ certificate with multiple Subject Alternative Names
 
 
 <p style="margin-left:22%; margin-top: 1em">osg-incommon-cert-request
--u incommonuser -c certpath.pem -k keypath.pem \ <br>
--H hostname.yourdomain -a hostalt.yourdomain -a
-hostalt2.yourdomain</p>
+-u incommonuser -c certpath.pem \ <br>
+-k keypath.pem -H hostname.yourdomain -a hostalt.yourdomain
+\ <br>
+-a hostalt2.yourdomain</p>
 
 <p style="margin-left:11%; margin-top: 1em">To generate
 multiple certificates from a hostfile</p>
 
 
 <p style="margin-left:22%; margin-top: 1em">osg-incommon-cert-request
--u incommonuser -c certpath.pem -k keypath.pem \ <br>
--F hostfilepath.txt</p>
+-u incommonuser -c certpath.pem \ <br>
+-k keypath.pem -F hostfilepath.txt</p>
 
 
 <p style="margin-left:11%; margin-top: 1em">hostfilepath.txt
@@ -175,42 +175,24 @@ hostname04.yourdomain hostname05.yourdomain</p>
 
 <p style="margin-left:11%; margin-top: 1em">To provide
 alternative organization and department codes for the
-InCommon \ Certificate Service. Codes can be found at the
-InCommon Cert Manager web \ interface
-(https://cert-manager.com/customer/InCommon): \</p>
-
-<table width="100%" border="0" rules="none" frame="void"
-       cellspacing="0" cellpadding="0">
-<tr valign="top" align="left">
-<td width="11%"></td>
-<td width="1%">
-
-
-<p>&bull;</p></td>
-<td width="2%"></td>
-<td width="86%">
-
-
-<p>Organization Code is shown as OrgID under Settings &gt;
-Organizations &gt; Edit</p></td></tr>
-<tr valign="top" align="left">
-<td width="11%"></td>
-<td width="1%">
-
-
-<p>&bull;</p></td>
-<td width="2%"></td>
-<td width="86%">
-
-
-<p>Department Code is shown as OrgID under Settings &gt;
-Organizations &gt; \ Departments &gt; Edit</p></td></tr>
-</table>
+InCommon Certificate Service.</p>
 
 
 <p style="margin-left:22%; margin-top: 1em">osg-incommon-cert-request
--O 4567,8912 -u incommonuser -c certpath.pem \ <br>
--k keypath.pem -H hostname.yourdomain</p>
+-O 4567,8912 -u incommonuser \ <br>
+-c certpath.pem -k keypath.pem -H hostname.yourdomain</p>
+
+<p style="margin-left:11%; margin-top: 1em">Codes can be
+found at the InCommon Cert Manager web interface
+(https://cert-manager.com/customer/InCommon):</p>
+
+<p style="margin-left:32%; margin-top: 1em">&minus;
+Organization Code is shown as OrgID under Settings &gt;
+Organizations &gt; Edit</p>
+
+<p style="margin-left:32%; margin-top: 1em">&minus;
+Department Code is shown as OrgID under Settings &gt;
+Organizations &gt; Departments &gt; Edit</p>
 
 <h2>AUTHOR
 <a name="AUTHOR"></a>
