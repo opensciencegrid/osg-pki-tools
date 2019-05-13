@@ -1,6 +1,6 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.2.3
+Version: 3.3.0
 Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
@@ -36,6 +36,10 @@ gzip -c man/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-in
 %{_datadir}/man/man1/osg-incommon-cert-request*
 
 %changelog
+* Mon May 13 2019 Dave Dykstra <dwd@fnal.gov> - 3.3.0
+- Bump to new middle version number because of the new -O/--orgid option.
+- Slightly reorganize the man page documentation of the new option.
+
 * Wed May 8 2019 Jeny Teheran <jteheran@fnal.gov> - 3.2.3
 - Add organization and department code option
 
