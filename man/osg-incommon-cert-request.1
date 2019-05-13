@@ -54,7 +54,7 @@ To generate a certificate with no Subject Alternative Names (SANS)
 .RS
 .nf
 osg-incommon-cert-request -u incommonuser -c certpath.pem \\
--k keypath.pem -H hostname.yourdomain
+    -k keypath.pem -H hostname.yourdomain
 .fi
 .RE
 .PP
@@ -63,8 +63,8 @@ To generate a certificate with multiple Subject Alternative Names (SANS)
 .RS
 .nf
 osg-incommon-cert-request -u incommonuser -c certpath.pem \\
--k keypath.pem -H hostname.yourdomain -a hostalt.yourdomain \\
--a hostalt2.yourdomain 
+    -k keypath.pem -H hostname.yourdomain -a hostalt.yourdomain \\
+    -a hostalt2.yourdomain 
 .fi
 .RE
 .PP
@@ -73,7 +73,7 @@ To generate multiple certificates from a hostfile
 .RS
 .nf
 osg-incommon-cert-request -u incommonuser -c certpath.pem \\
--k keypath.pem -F hostfilepath.txt
+    -k keypath.pem -F hostfilepath.txt
 .RE
 .PP
 hostfilepath.txt example 
@@ -91,7 +91,7 @@ To provide alternative organization and department codes for the InCommon Certif
 .RS
 .nf
 osg-incommon-cert-request -O 4567,8912 -u incommonuser \\
--c certpath.pem -k keypath.pem -H hostname.yourdomain
+    -c certpath.pem -k keypath.pem -H hostname.yourdomain
 .fi
 .RE
 .PP
