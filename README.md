@@ -52,4 +52,6 @@ Usage: osg-incommon-cert-request [--debug] -u username -k pkey -c cert \
        osg-incommon-cert-request --version
 ```
 
-See osg-incommon-cert-request -h for a description of the options.
+See osg-incommon-cert-request -h or the 
+[man page](https://htmlpreview.github.io/?https://github.com/opensciencegrid/osg-pki-tools/blob/master/man/osgincommoncertrequest.html)
+for a description of the options.
