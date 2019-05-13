@@ -1,6 +1,6 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.2.2
+Version: 3.2.3
 Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
@@ -36,6 +36,9 @@ gzip -c man/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-in
 %{_datadir}/man/man1/osg-incommon-cert-request*
 
 %changelog
+* Wed May 8 2019 Jeny Teheran <jteheran@fnal.gov> - 3.2.3
+- Add organization and department code option
+
 * Tue Apr 9 2019 Jeny Teheran <jteheran@fnal.gov> - 3.2.2
 - Fix format error for message when retrieval times out
 - Increased the wait time between retrieval attempts

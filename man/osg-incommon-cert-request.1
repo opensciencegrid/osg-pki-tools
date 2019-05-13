@@ -6,10 +6,10 @@ osg-incommon-cert-request \- retrieves host and service certificates from the In
 .RI [ OPTION ]...
 .SH DESCRIPTION
 .B osg-incommon-cert-request
-retrieves host and service certificates from the InCommon IGTF Server CA. 
-It requires an Incommon user account authorized as a Department 
+retrieves host and service certificates from the InCommon IGTF Server CA.
+It requires an Incommon user account authorized as a Department
 Registration Authority to issue InCommon IGTF Server CA certificates  
-with SSL auto approval. 
+with SSL auto approval.
 It authenticates the requestor with an InCommon client certificate.
 .PP
 It allows bulk retrieval of certificates and keys. 
@@ -44,13 +44,17 @@ May be specified more than once for additional SANs.
 .TP
 .BR \-d, \-\-directory
 The directory to write the host certificate(s) and key(s).
+.TP
+.BR \-O, \-\-orgcode
+Specify alternative organization and department codes for the InCommon Certificate Service.
 .SH EXAMPLES
 .PP
 To generate a certificate with no Subject Alternative Names (SANS)
 .PP
 .RS
 .nf
-osg-incommon-cert-request -u incommonuser -c certpath.pem -k keypath.pem -H hostname.yourdomain
+osg-incommon-cert-request -u incommonuser -c certpath.pem \\
+    -k keypath.pem -H hostname.yourdomain
 .fi
 .RE
 .PP
@@ -58,8 +62,9 @@ To generate a certificate with multiple Subject Alternative Names (SANS)
 .PP
 .RS
 .nf
-osg-incommon-cert-request -u incommonuser -c certpath.pem -k keypath.pem -H hostname.yourdomain \\ 
--a hostalternative.yourdomain -a hostalternative2.yourdomain 
+osg-incommon-cert-request -u incommonuser -c certpath.pem \\
+    -k keypath.pem -H hostname.yourdomain -a hostalt.yourdomain \\
+    -a hostalt2.yourdomain 
 .fi
 .RE
 .PP
@@ -67,18 +72,34 @@ To generate multiple certificates from a hostfile
 .PP
 .RS
 .nf
-osg-incommon-cert-request -u incommonuser -c certpath.pem -k keypath.pem -F hostfilepath.txt
+osg-incommon-cert-request -u incommonuser -c certpath.pem \\
+    -k keypath.pem -F hostfilepath.txt
 .RE
 .PP
 hostfilepath.txt example 
 .PP
 .RS
 hostname01.yourdomain
-hostname02.yourdomain hostnamealias.yourdomain hostname03.yourdomain
+hostname02.yourdomain althostname.yourdomain hostname03.yourdomain
 hostname04.yourdomain hostname05.yourdomain
 .RE
 .fi
 .RE
+.PP
+To provide alternative organization and department codes for the InCommon Certificate Service. 
+.PP
+.RS
+.nf
+osg-incommon-cert-request -O 4567,8912 -u incommonuser \\
+    -c certpath.pem -k keypath.pem -H hostname.yourdomain
+.fi
+.RE
+.PP
+Codes can be found at the InCommon Cert Manager web interface (https://cert-manager.com/customer/InCommon):
+.IP - 2
+Organization Code is shown as OrgID under Settings > Organizations > Edit
+.IP - 2
+Department Code is shown as OrgID under Settings > Organizations > Departments > Edit
 .SH AUTHOR
 Jeny Teheran
 
