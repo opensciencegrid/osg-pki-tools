@@ -68,9 +68,9 @@ def parse_cli():
     
     usage = \
     '''%(prog)s [--debug] -u username -k pkey -c cert \\
-           (-H hostname | -F hostfile) [-a altnames] [-d write_directory]
+           (-H hostname | -F hostfile) [-a altnames] [-d write_directory] \\
+           [-O org,dept]
        %(prog)s [--debug] -u username -k pkey -c cert -t
-       %(prog)s [--orgcode org,dept] (-H hostname | -F hostfile) -u username -k pkey -c cert
        %(prog)s -h
        %(prog)s --version'''
  
@@ -290,7 +290,8 @@ def main():
             codes = [code.strip() for code in args.orgcode.split(',')]
             CONFIG['organization'] = codes[0]
             CONFIG['department'] = codes[1]
-            print("Switching organization code to %s and department code to %s" % (CONFIG['organization'], CONFIG['department']))
+        
+        print("Using organization code of %s and department code of %s" % (CONFIG['organization'], CONFIG['department']))
 
         utils.check_permissions(args.write_directory)
          

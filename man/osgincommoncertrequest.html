@@ -1,5 +1,5 @@
 <!-- Creator     : groff version 1.22.2 -->
-<!-- CreationDate: Wed May  8 12:10:28 2019 -->
+<!-- CreationDate: Mon May 13 10:18:58 2019 -->
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 "http://www.w3.org/TR/html4/loose.dtd">
 <html>
@@ -37,7 +37,7 @@
 
 
 <p style="margin-left:11%; margin-top: 1em">osg-incommon-cert-request
-&minus; retrieves host and service certificates from the
+&minus; retrieves host and service certificates from the \
 InCommon CA</p>
 
 <h2>SYNOPSIS
@@ -94,7 +94,7 @@ certificates.</p>
 <p style="margin-left:11%;"><b>&minus;u,</b>&minus;&minus;username</p>
 
 <p style="margin-left:22%;">Specify requestor&rsquo;s
-InCommon username/login. Use the same login credential as
+InCommon username/login. Use the same login credential as \
 InCommon Cert Manager. It is typically an email address.</p>
 
 
@@ -127,7 +127,7 @@ certificate(s) and key(s).</p>
 <p style="margin-left:11%;"><b>&minus;O,</b>&minus;&minus;orgcode</p>
 
 <p style="margin-left:22%;">Specify alternative
-organization and department codes for the InCommon
+organization and department codes for the InCommon \
 Certificate Service. Defaults are Fermilab&acute;s
 codes.</p>
 
@@ -141,8 +141,8 @@ certificate with no Subject Alternative Names (SANS)</p>
 
 
 <p style="margin-left:22%; margin-top: 1em">osg-incommon-cert-request
--u incommonuser -c certpath.pem -k keypath.pem -H
-hostname.yourdomain</p>
+-u incommonuser -c certpath.pem -k keypath.pem \ <br>
+-H hostname.yourdomain</p>
 
 <p style="margin-left:11%; margin-top: 1em">To generate a
 certificate with multiple Subject Alternative Names
@@ -150,18 +150,17 @@ certificate with multiple Subject Alternative Names
 
 
 <p style="margin-left:22%; margin-top: 1em">osg-incommon-cert-request
--u incommonuser -c certpath.pem -k keypath.pem -H
-hostname.yourdomain \ <br>
--a hostalternative.yourdomain -a
-hostalternative2.yourdomain</p>
+-u incommonuser -c certpath.pem -k keypath.pem \ <br>
+-H hostname.yourdomain -a hostalt.yourdomain -a
+hostalt2.yourdomain</p>
 
 <p style="margin-left:11%; margin-top: 1em">To generate
 multiple certificates from a hostfile</p>
 
 
 <p style="margin-left:22%; margin-top: 1em">osg-incommon-cert-request
--u incommonuser -c certpath.pem -k keypath.pem -F
-hostfilepath.txt</p>
+-u incommonuser -c certpath.pem -k keypath.pem \ <br>
+-F hostfilepath.txt</p>
 
 
 <p style="margin-left:11%; margin-top: 1em">hostfilepath.txt
@@ -170,18 +169,48 @@ example</p>
 
 <p style="margin-left:22%; margin-top: 1em">hostname01.yourdomain
 <br>
-hostname02.yourdomain hostnamealias.yourdomain
+hostname02.yourdomain althostname.yourdomain
 hostname03.yourdomain <br>
 hostname04.yourdomain hostname05.yourdomain</p>
 
 <p style="margin-left:11%; margin-top: 1em">To provide
 alternative organization and department codes for the
-InCommon Certificate Service.</p>
+InCommon \ Certificate Service. Codes can be found at the
+InCommon Cert Manager web \ interface
+(https://cert-manager.com/customer/InCommon): \</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>Organization Code is shown as OrgID under Settings &gt;
+Organizations &gt; Edit</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>Department Code is shown as OrgID under Settings &gt;
+Organizations &gt; \ Departments &gt; Edit</p></td></tr>
+</table>
 
 
 <p style="margin-left:22%; margin-top: 1em">osg-incommon-cert-request
--O 4567,8912 -u incommonuser -c certpath.pem -k keypath.pem
--H hostname.yourdomain</p>
+-O 4567,8912 -u incommonuser -c certpath.pem \ <br>
+-k keypath.pem -H hostname.yourdomain</p>
 
 <h2>AUTHOR
 <a name="AUTHOR"></a>
