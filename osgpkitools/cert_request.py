@@ -103,8 +103,9 @@ def main():
         fqdns_list = [[args.hostname] + args.altnames]
     elif args.hostfile:
         with open(args.hostfile, 'r') as hfile:
-            hostfile = hfile.readlines()
-        fqdns_list = [re.split(r' +', x) for x in hostfile]
+            hostfiles = [x.strip() for x in hfile.readlines()]
+            hostfiles = [x for x in hostfiles if x]
+        fqdns_list = [re.split(r' +', x) for x in hostfiles]
 
     for fqdns in fqdns_list:
         print("Writing CSR for {0}...".format(fqdns[0]))
