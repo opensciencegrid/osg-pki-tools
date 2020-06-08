@@ -146,9 +146,9 @@ class Csr(object):
         # this is like atomic_write except writing with save_key
         temp_fd, temp_name = tempfile.mkstemp(dir=self.output_dir)
         os.close(temp_fd)
+        os.chmod(temp_name, 0o600)
         self.keypair.save_key(temp_name, cipher=None)
         os.rename(temp_name, keypath)
-        os.chmod(keypath, 0600)
 
     def format_csr(self, csr):
         """Extract the base64 encoded string from the contents of a CSR"""
