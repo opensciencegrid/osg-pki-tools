@@ -97,6 +97,8 @@ class Csr(object):
             entries.append(('ST', location.state))
             entries.append(('L', location.locality))
             entries.append(('O', location.organization))
+            for ou in location.organizational_unit:
+                entries.append(('OU', ou))
         
         for key, val in entries:
             x509name.add_entry_by_txt(field=key, type=MBSTRING_ASC, entry=val, len=-1, loc=-1, set=0)

@@ -42,6 +42,8 @@ def parse_cli(args):
     optional.add_argument('-a', '--altname', action='append', dest='altnames', default=[],
                           help='Specify the SAN for the requested certificate (only works with -H/--hostname). '
                           'May be specified more than once for additional SANs.')
+    required.add_argument('-U', '--organizational-unit', action='append', dest='organizational_unit', default=[],
+                          help='The organizational unit(s) to associate with the generated CSR(s)')
     optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
                           help="The directory to write the generated CSR(s) and host key(s)")
     optional.add_argument('-V', '--version', action='version', version=utils.VERSION_NUMBER)
@@ -96,8 +98,8 @@ def main():
     except ValueError as exc:
         sys.exit(exc)
 
-    location = namedtuple('Location', ['country', 'state', 'locality', 'organization'])
-    loc = location(args.country, args.state, args.locality, args.organization)
+    location = namedtuple('Location', ['country', 'state', 'locality', 'organization', 'organizational_unit'])
+    loc = location(args.country, args.state, args.locality, args.organization, args.organizational_unit)
 
     if args.hostname:
         fqdns_list = [[args.hostname] + args.altnames]
