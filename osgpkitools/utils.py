@@ -1,17 +1,10 @@
 #!/usr/bin/python
 
 from __future__ import print_function
-import ConfigParser
 import errno
 import os
 import shutil
-import sys
 import tempfile
-import textwrap
-import json
-import traceback
-import getpass
-from StringIO import StringIO
 
 from ExceptionDefinitions import *
 
@@ -42,7 +35,7 @@ def safe_rename(filename):
     try:
         shutil.move(filename, old_filename)
         print("Renamed existing file from %s to %s" % (filename, old_filename))
-    except IOError, exc:
+    except IOError as exc:
         if exc.errno != errno.ENOENT:
             print(exc)
             raise RuntimeError('ERROR: Failed to rename %s to %s' % (filename, old_filename))
