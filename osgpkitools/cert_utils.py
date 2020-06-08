@@ -90,7 +90,6 @@ class Csr(object):
         
         # Build entries for x509 name
         entries = list()
-        entries.append(('CN', hostname))
 
         if location:
             entries.append(('C', location.country))
@@ -99,6 +98,8 @@ class Csr(object):
             entries.append(('O', location.organization))
             for ou in location.organizational_unit:
                 entries.append(('OU', ou))
+
+        entries.append(('CN', hostname))
         
         for key, val in entries:
             x509name.add_entry_by_txt(field=key, type=MBSTRING_ASC, entry=val, len=-1, loc=-1, set=0)
