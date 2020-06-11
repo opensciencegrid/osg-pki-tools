@@ -38,7 +38,7 @@ def get_ssl_context(usercert, userkey):
         try:
             ssl_context.load_cert_chain(usercert, userkey, callback=prompt_for_password)
             return ssl_context
-        except SSL.SSLError, exc:
+        except SSL.SSLError as exc:
             if 'bad decrypt' in exc:
                 pass_str = 'Incorrect password. Please enter the password again for'
             else:
@@ -90,13 +90,16 @@ class Csr(object):
         
         # Build entries for x509 name
         entries = list()
-        entries.append(('CN', hostname))
 
         if location:
             entries.append(('C', location.country))
             entries.append(('ST', location.state))
             entries.append(('L', location.locality))
             entries.append(('O', location.organization))
+            for ou in location.organizational_unit:
+                entries.append(('OU', ou))
+
+        entries.append(('CN', hostname))
         
         for key, val in entries:
             x509name.add_entry_by_txt(field=key, type=MBSTRING_ASC, entry=val, len=-1, loc=-1, set=0)
@@ -143,9 +146,9 @@ class Csr(object):
         # this is like atomic_write except writing with save_key
         temp_fd, temp_name = tempfile.mkstemp(dir=self.output_dir)
         os.close(temp_fd)
+        os.chmod(temp_name, 0o600)
         self.keypair.save_key(temp_name, cipher=None)
         os.rename(temp_name, keypath)
-        os.chmod(keypath, 0600)
 
     def format_csr(self, csr):
         """Extract the base64 encoded string from the contents of a CSR"""
