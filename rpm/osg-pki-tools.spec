@@ -1,6 +1,6 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.3.0
+Version: 3.4.0
 Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
@@ -36,6 +36,9 @@ gzip -c man/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-in
 %{_datadir}/man/man1/osg-incommon-cert-request*
 
 %changelog
+* Tue Jul 14 2020 Brian Lin <blin@cs.wisc.edu> - 3.4.0
+- Add the ability to specify "Organizational Unit" (SOFTWARE-4121)
+
 * Mon May 13 2019 Dave Dykstra <dwd@fnal.gov> - 3.3.0
 - Bump to new middle version number because of the new -O/--orgid option.
 - Slightly reorganize the man page documentation of the new option.
