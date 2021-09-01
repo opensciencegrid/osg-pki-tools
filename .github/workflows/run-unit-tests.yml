@@ -1,0 +1,17 @@
+name: run python unit tests
+
+on:
+  push:
+  pull_request:
+  
+jobs:
+  run-unit-tests:
+    runs-on: ubuntu-18.04 #change to ubuntu-latest for python3
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: install m2crypto
+        run: sudo apt-get install m2crypto
+      
+      - name: execute tests
+        run: python2 -m unittest discover -v tests
