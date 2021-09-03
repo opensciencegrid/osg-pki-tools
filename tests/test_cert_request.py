@@ -6,7 +6,7 @@ import unittest
 
 from itertools import permutations
 from contextlib import contextmanager
-from StringIO import StringIO
+from io import StringIO
 
 from osgpkitools import cert_request
 
@@ -73,7 +73,7 @@ class CertRequestTests(unittest.TestCase):
                 with capture_sys_output() as (_, stderr):
                     self.assertRaises(SystemExit, parse_cli_flatten_args, args)
 
-                self.assert_(re.search(r'error.*is required.*', stderr.getvalue()))
+                self.assertIsNone(re.search(r'error.*is required.*', stderr.getvalue()))
 
     def test_ignored_opts(self):
         """-A/--altname should be ignored when specifying -F/--hostfile
@@ -90,8 +90,7 @@ class CertRequestTests(unittest.TestCase):
             self.assertRaises(ValueError, parse_cli_flatten_args, HOST_ARGS + [('--state', 'WI')])
 
         args = parse_cli_flatten_args(HOST_ARGS + LOCATION_ARGS)
-        self.assertEqual(args.state, 'New York', "Unexpected value '{0}' for state option:\n{1}".
-                         format(args.state, args))
+        self.assertEqual(args.state, 'New York', f"Unexpected value '{args.state}' for state option:\n{args}")
 
     def test_country_opt(self):
         """Country values should be the abbreviated, 2-letter country code
@@ -100,8 +99,7 @@ class CertRequestTests(unittest.TestCase):
             self.assertRaises(ValueError, parse_cli_flatten_args, HOST_ARGS + [('--country', 'United States')])
 
         args = parse_cli_flatten_args(HOST_ARGS + LOCATION_ARGS)
-        self.assertEqual(args.country, 'US', "Unexpected value '{0}' for country option:\n{1}".
-                         format(args.country, args))
+        self.assertEqual(args.country, 'US', f"Unexpected value '{args.country}' for country option:\n{args}")
 
     def test_help_opt(self):
         """Verify help option

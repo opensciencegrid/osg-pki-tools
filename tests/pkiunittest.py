@@ -15,7 +15,7 @@ from subprocess import Popen, PIPE
 from M2Crypto import RSA, X509
 
 global TEST_PATH
-global orig_env
+orig_env = None
 
 # Flag to indicate we are testing an RPM install
 TESTING_RPM_INSTALL = False
@@ -56,10 +56,10 @@ def test_env_setup():
     # Set path and python path for tests
     orig_env = deepcopy(os.environ)
     try:
-        os.environ['PYTHONPATH'] += ':%s' % PYPATH
+        os.environ['PYTHONPATH'] += f':{PYPATH}'
     except KeyError:
         os.environ['PYTHONPATH'] = PYPATH
-    os.environ['PATH'] += ':%s' % SCRIPTS_PATH
+    os.environ['PATH'] += f':{SCRIPTS_PATH}'
 
     # Create temp dir and place necessary config in the cwd
     ini_file = os.path.join(SCRIPTS_PATH, 'pki-clients.ini')
@@ -77,8 +77,8 @@ def run_command(cmd, env=None):
     proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=env)
     stdout, stderr = proc.communicate()
     rc = proc.returncode
-    diagnostic = "Command: %s\n" % ' '.join(cmd) \
-                 + "Return code: %d\n" % rc \
+    diagnostic = f"Command: {' '.join(cmd)}\n"  \
+                 + f"Return code: {rc}\n"  \
                  + "STDOUT:\n" + stdout \
                  + "STDERR:\n" + stderr
     return rc, stdout, stderr, diagnostic
@@ -120,7 +120,7 @@ class OIM(object):
             try:
                 key = OIM.verify_key(key_path)
                 self.keys.append(key)
-            except KeyFileError, key_err:
+            except KeyFileError as key_err:
                 raise KeyFileError(key_err + msg)
         return rc, stdout, stderr, msg
 
@@ -150,9 +150,9 @@ class OIM(object):
                 subject = HOST_SUBJECT_PREFIX + os.path.basename(os.path.splitext(cert_path)[0]).replace('_', '/')
                 cert = OIM.verify_cert(cert_path, subject)
                 key = OIM.verify_key(key_path)
-            except CertFileError, cert_err:
+            except CertFileError as cert_err:
                 raise CertFileError(cert_err + msg)
-            except KeyFileError, key_err:
+            except KeyFileError as key_err:
                 raise KeyFileError(key_err + msg)
             else:
                 self.certs.append(cert)
@@ -196,16 +196,16 @@ class OIM(object):
         fail_prefix = 'VerificationFailure: '
         if not os.path.exists(path):
             raise KeyFileError(fail_prefix + "No associated key file\n")
-        permissions = os.stat(path).st_mode & 0777 # Mask non-permission bits
-        if permissions != 0600:
-            raise KeyFileError(fail_prefix + "Bad permissions (%o) on key '%s'\n" % (permissions, path))
+        permissions = os.stat(path).st_mode & 0o777 # Mask non-permission bits
+        if permissions != 0o600:
+            raise KeyFileError(fail_prefix + f"Bad permissions ({permissions}) on key '{path}'\n")
         try:
             key = RSA.load_key(path, OIM.simple_pass_callback)
-        except RSA.RSAError, exc:
+        except RSA.RSAError as exc:
             if 'no start line' in exc:
-                raise KeyFileError(fail_prefix + "Could not load key file '%s'\n" % path)
+                raise KeyFileError(fail_prefix + f"Could not load key file '{path}'\n")
             elif 'bad pass' in exc:
-                raise KeyFileError(fail_prefix + "Incorrect pass for key file %s\n" % path)
+                raise KeyFileError(fail_prefix + f"Incorrect pass for key file {path}\n")
         return key
 
     @staticmethod
@@ -216,14 +216,14 @@ class OIM(object):
             raise CertFileError(fail_prefix + "No associated cert file\n")
         mode = os.stat(path).st_mode
         if mode & (stat.S_IWGRP | stat.S_IWOTH):
-            raise CertFileError(fail_prefix + "Cert file '%s' is excessively writable: %o\n" %(path, mode & 0777))
+            raise CertFileError(fail_prefix + f"Cert file '{path}' is excessively writable: {mode & 0o777}\n")
         try:
             cert = X509.load_cert(path)
             cert_subject = str(cert.get_subject())
         except X509.X509Error:
-            raise CertFileError('Malformed cert: %s\n' % path)
+            raise CertFileError(f'Malformed cert: {path}\n')
         if cert_subject != expected_subject:
-            raise CertFileError('Incorrect subject. EXPECTED:\n%s\nGOT:\n%s\n' % (expected_subject, cert_subject))
+            raise CertFileError(f'Incorrect subject. EXPECTED:\n{expected_subject}\nGOT:\n{cert_subject}\n')
         return cert
 
     @staticmethod
@@ -235,8 +235,7 @@ class OIM(object):
         """Verify expected number of certs"""
         num_found_certs = len(self.certs)
         if num_found_certs != num_expected_certs:
-            raise AssertionError('Expected %s cert(s), found %s\n%s' %
-                                 (num_found_certs, num_expected_certs, msg))
+            raise AssertionError(f'Expected {num_found_certs} cert(s), found {num_expected_certs}\n{msg}')
 
     def assertSans(self, hosts_list, msg):
         """Verify that the we have the correct number of certs and expected SAN contents for each cert.
@@ -250,8 +249,7 @@ class OIM(object):
             san_contents = cert.get_ext('subjectAltName').get_value()
             found_names = set(match.group(1) for match in re.finditer(r'DNS:([\w\-\.]+)', san_contents))
             if found_names != set(expected_names):
-                raise AssertionError("Did not find expected SAN contents %s:\n%s\n%s" %
-                                     (expected_names, cert.as_text(), msg))
+                raise AssertionError(f"Did not find expected SAN contents {expected_names}:\n{cert.as_text()}\n{msg}")
 
 
 class KeyFileError(AssertionError):

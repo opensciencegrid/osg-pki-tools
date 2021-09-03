@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 """
@@ -13,30 +13,31 @@ This script works in two modes:
 
 This script retrieves the certificates and output a set of files: hostname.key (private key) and hostname.pem (certificate)
 """
-from __future__ import print_function
+
 
 prog = "osg-incommon-cert-request"
+args = None
 import argparse
-import httplib
+import http.client
 import socket
 import sys
 import os
 import time
 import traceback
 import json
-import ConfigParser
+import configparser
 
 import logging
 logger = logging.getLogger('incommon_request')
 logging.basicConfig()
 
-from StringIO import StringIO
+from io import StringIO
 from ssl import SSLError
 
-import utils
-import cert_utils
-from ExceptionDefinitions import *
-from rest_client import InCommonApiClient
+from . import utils
+from . import cert_utils
+from .ExceptionDefinitions import *
+from .rest_client import InCommonApiClient
 
 MAX_RETRY_RETRIEVAL = 40
 WAIT_RETRIEVAL= 10
@@ -137,13 +138,13 @@ class FilePathAction(argparse.Action):
         values = os.path.expanduser(values)
 
         if not os.path.exists(values):
-            raise IOError("Unable to locate the file at: %s" % values)
+            raise IOError(f"Unable to locate the file at: {values}")
         
         try:
             open(values, 'r')
             setattr(namespace, self.dest, values)
         except IOError:
-            raise IOError("Unable to read the file at: %s" % values)
+            raise IOError(f"Unable to read the file at: {values}")
    
 
 def build_headers(config):
@@ -183,8 +184,8 @@ def test_incommon_connection(config, restclient):
                 print("Check your authentication credentials")
 
             print("HTTP " + str(response.status) + " " + str(response.reason))
-    except httplib.HTTPException as exc:
-        print(prog + ": HTTPS Connection error. Details: \n %s" % str(exc))
+    except http.client.HTTPException as exc:
+        print(prog + f": HTTPS Connection error. Details: \n {str(exc)}")
 
 
 def submit_request(config, restclient, hostname, cert_csr, sans=None):
@@ -227,8 +228,8 @@ def submit_request(config, restclient, hostname, cert_csr, sans=None):
             raise AuthenticationFailureException(response.status, "Connection failure to InCommon API. Check your authentication credentials.")
         else:
             print(prog + ": Connection failure to InCommon API. HTTP " + str(response.status) + " " + str(response.reason))
-            raise httplib.HTTPException()
-    except httplib.HTTPException as exc:
+            raise http.client.HTTPException()
+    except http.client.HTTPException as exc:
         raise  
     
     return response_data
@@ -262,13 +263,13 @@ def retrieve_cert(config, sslcontext, sslId):
                 response_data = response_text
                 restclient.close_connection()
                 break
-        except httplib.BadStatusLine as exc:
+        except http.client.BadStatusLine as exc:
             # BadStatusLine is raised as the server responded with a HTTP status code that we don't understand.
             pass
-        except httplib.HTTPException as exc:
+        except http.client.HTTPException as exc:
             raise
         print("    - Certificate request is pending approval...")    
-        print("    - Waiting for %s seconds before retrying certificate retrieval" % WAIT_RETRIEVAL )
+        print(f"    - Waiting for {WAIT_RETRIEVAL} seconds before retrying certificate retrieval" )
         # Closing the connection before going to sleep
         restclient.close_connection()
         time.sleep(WAIT_RETRIEVAL)
@@ -282,7 +283,7 @@ def main():
     try:
         args = parse_cli()
    
-        config_parser = ConfigParser.ConfigParser()
+        config_parser = configparser.ConfigParser()
         config_parser.readfp(StringIO(CONFIG_TEXT))
         CONFIG = dict(config_parser.items('InCommon'))
         
@@ -291,7 +292,7 @@ def main():
             CONFIG['organization'] = codes[0]
             CONFIG['department'] = codes[1]
         
-        print("Using organization code of %s and department code of %s" % (CONFIG['organization'], CONFIG['department']))
+        print(f"Using organization code of {CONFIG['organization']} and department code of {CONFIG['department']}")
 
         utils.check_permissions(args.write_directory)
          
@@ -330,7 +331,7 @@ def main():
             common_name = host[0]
             sans = host[1:]
             
-            print("CN: %s, SANS: %s" % (common_name, sans))
+            print(f"CN: {common_name}, SANS: {sans}")
             csr_obj = cert_utils.Csr(common_name, output_dir=args.write_directory, altnames=sans)
             
             logger.debug(csr_obj.x509request.as_text())
@@ -340,24 +341,24 @@ def main():
 
         for csr in csrs:
             subj = str(csr.x509request.get_subject())
-            print("Requesting certificate for %s: " % subj)
+            print(f"Requesting certificate for {subj}: ")
             response_request = submit_request(CONFIG, restclient, subj, csr.base64_csr(), sans=csr.altnames)
             
             # response_request stores the sslId for the certificate request
             if response_request:
                 requests.append(tuple([response_request, subj]))
-                print("Request successful. Writing key file at: %s" % csr.keypath)
+                print(f"Request successful. Writing key file at: {csr.keypath}")
                 csr.write_pkey()
             else:
-                print("Request failed for %s" % subj)
+                print(f"Request failed for {subj}")
             
             print("-"*60)
         
         # Closing the restclient connection before going idle waiting for approval
         restclient.close_connection()
         
-        print("%s certificate(s) was(were) requested successfully." % len(requests))
-        print("Waiting %s seconds for requests approval..." % WAIT_APPROVAL)
+        print(f"{len(requests)} certificate(s) was(were) requested successfully")
+        print(f"Waiting {WAIT_APPROVAL} seconds for requests approval...")
         time.sleep(WAIT_APPROVAL) 
         
         print("\nStarting certificate retrieval")
@@ -366,19 +367,19 @@ def main():
         # A restclient (InCommonApiClient) needs to be created for each retrieval attempt
         for request in requests:
             subj = request[1]
-            print("Retrieving certificate for %s: " % subj)
+            print(f"Retrieving certificate for {subj}: ")
             response_retrieve = retrieve_cert(CONFIG, ssl_context, request[0])
 
             if response_retrieve is not None:
                 cert_path = os.path.join(args.write_directory, subj.split("=")[1] + '-cert.pem')
-                print("Retrieval successful. Writing certificate file at: %s" % cert_path)
+                print(f"Retrieval successful. Writing certificate file at: {cert_path}")
                 utils.safe_rename(cert_path)
                 utils.atomic_write(cert_path, response_retrieve)
-                os.chmod(cert_path, 0644)
+                os.chmod(cert_path, 0o644)
             else:
-                print("Retrieval failure for %s" % subj)
+                print(f"Retrieval failure for {subj}")
                 print("The certificate can be retrieved directly from the InCommon Cert Manager interface.")
-                print("CN %s, Self-enrollment Certificate ID (sslId): %s" % (subj, request[0]))
+                print(f"CN {subj}, Self-enrollment Certificate ID (sslId): {request[0]}")
             
             print("-"*60)
 
@@ -390,7 +391,7 @@ def main():
         print(str(exc))
         sys.exit('''Interrupted by user\n''')
     except KeyError as exc:
-        print(prog + ": error: " + "Key %s not found in dictionary" % exc)
+        print(prog + ": error: " + f"Key {exc} not found in dictionary")
         sys.exit(1)
     except FileNotFoundException as exc:
         print(prog + ": error: " + str(exc) + ':' + exc.filename)
@@ -401,7 +402,7 @@ def main():
     except (IOError, FileWriteException, BadPassphraseException, AttributeError, EnvironmentError, ValueError, EOFError, SSLError, AuthenticationFailureException) as exc:
         print(prog + ": error: " + str(exc))
         sys.exit(1)
-    except httplib.HTTPException as exc:
+    except http.client.HTTPException as exc:
         print(str(exc))
         sys.exit(1)
     except Exception:

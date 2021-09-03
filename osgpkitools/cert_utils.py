@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import getpass
 import os
@@ -7,7 +7,7 @@ import tempfile
 
 from M2Crypto import SSL, m2, RSA, EVP, X509
 
-from ExceptionDefinitions import *
+from .ExceptionDefinitions import *
 from osgpkitools import utils
 
 
@@ -30,7 +30,7 @@ def get_ssl_context(usercert, userkey):
     pass_str = 'Please enter the pass phrase for'
     for _ in range(0, 2): # allow two password attempts
         def prompt_for_password(verify):
-            return getpass.getpass(pass_str+" '%s':" % userkey)
+            return getpass.getpass(pass_str+f" '{userkey}':")
 
         ssl_context = SSL.Context()
         ssl_context.set_options(m2.SSL_OP_NO_SSLv2 | m2.SSL_OP_NO_SSLv3)
