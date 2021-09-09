@@ -30,7 +30,7 @@ def get_ssl_context(usercert, userkey):
     pass_str = 'Please enter the pass phrase for'
     for _ in range(0, 2): # allow two password attempts
         def prompt_for_password(verify):
-            return getpass.getpass(pass_str+f" '{userkey}':")
+            return getpass.getpass(pass_str + f" '{userkey}':")
 
         ssl_context = SSL.Context()
         ssl_context.set_options(m2.SSL_OP_NO_SSLv2 | m2.SSL_OP_NO_SSLv3)
