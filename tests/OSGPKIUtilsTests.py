@@ -25,7 +25,7 @@ class OSGPKIUtilsTests(unittest.TestCase):
         alias = 'test-san.' + DOMAIN
         cert = OSGPKIUtils.Cert(self.FQDN, altnames=[alias], email=EMAIL)
         csr_contents = cert.x509request.as_text()
-        self.assertIsNone(re.search(r'X509v3 Subject Alternative Name: critical', csr_contents),
+        self.assertIsNotNone(re.search(r'X509v3 Subject Alternative Name: critical', csr_contents),
                      "Subject Alternative Name not marked as 'critical'\n" + csr_contents)
         found_names = set(match.group(1) for match in re.finditer(r'DNS:([\w\-\.]+)', csr_contents))
         expected_names = set([alias])
