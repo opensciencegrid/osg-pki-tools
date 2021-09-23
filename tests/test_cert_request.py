@@ -73,7 +73,7 @@ class CertRequestTests(unittest.TestCase):
                 with capture_sys_output() as (_, stderr):
                     self.assertRaises(SystemExit, parse_cli_flatten_args, args)
 
-                self.assertIsNotNone(re.search(r'error.*is required.*', stderr.getvalue()))
+                self.assertIsNotNone(re.search(r'error.*are required.*', stderr.getvalue()))
 
     def test_ignored_opts(self):
         """-A/--altname should be ignored when specifying -F/--hostfile
