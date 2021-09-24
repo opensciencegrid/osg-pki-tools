@@ -1,12 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-from __future__ import print_function
 import errno
 import os
 import shutil
 import tempfile
 
-from ExceptionDefinitions import *
+from .ExceptionDefinitions import *
 
 VERSION_NUMBER = "3.4.0"
 HELP_EMAIL = 'help@opensciencegrid.org'
@@ -34,11 +33,11 @@ def safe_rename(filename):
     old_filename = filename + '.old'
     try:
         shutil.move(filename, old_filename)
-        print("Renamed existing file from %s to %s" % (filename, old_filename))
+        print(f"Renamed existing file from {filename} to {old_filename}")
     except IOError as exc:
         if exc.errno != errno.ENOENT:
             print(exc)
-            raise RuntimeError('ERROR: Failed to rename %s to %s' % (filename, old_filename))
+            raise RuntimeError(f'ERROR: Failed to rename {filename} to {old_filename}')
 
 
 def safe_write(filename, contents):

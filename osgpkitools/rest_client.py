@@ -1,15 +1,15 @@
-import httplib
+import http.client
 import logging
 import socket
 import M2Crypto
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 prog = "osg-incommon-cert-request"
 from json import dumps
-from urlparse import urljoin
+from urllib.parse import urljoin
 
-import utils
-from ExceptionDefinitions import *
+from . import utils
+from .ExceptionDefinitions import *
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +42,15 @@ class InCommonApiClient():
         logger.debug('headers ' + str(headers))
         logger.debug('post data ' + str(data))
         
-        params = urllib.urlencode(data, doseq=True)
+        params = urllib.parse.urlencode(data, doseq=True)
         
         try:
             self.connection.request("POST", url, body=dumps(data), headers=headers)
             post_response = self.connection.getresponse()
             utils.check_response_500(post_response)
             logger.debug('post response status ' + str(post_response.status) + ': ' + str(post_response.reason))
-        except httplib.HTTPException as exc:
-            print(prog + ": error: Connection to %s failed : %s" % (url, exc))
+        except http.client.HTTPException as exc:
+            print((prog + f": error: Connection to {url} failed : {exc}"))
             raise
 
         return post_response
@@ -71,11 +71,10 @@ class InCommonApiClient():
             get_response = self.connection.getresponse()
             utils.check_response_500(get_response)
             logger.debug('get response status ' + str(get_response.status) + ': ' + str(get_response.reason))
-        except httplib.BadStatusLine as exc:
+        except http.client.BadStatusLine as exc:
             raise
-        except httplib.HTTPException as exc:
-            print(prog + ": error: Connection to %s failed : %s" % (url, exc))
+        except http.client.HTTPException as exc:
+            print((prog + f": error: Connection to {url} failed : {exc}"))
             raise
        
         return get_response
-

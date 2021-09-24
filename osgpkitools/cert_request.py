@@ -1,6 +1,5 @@
 """osg-cert-request tool module, separated from the script for unit testing
 """
-from __future__ import print_function
 
 import os
 import re
@@ -110,7 +109,7 @@ def main():
         fqdns_list = [re.split(r' +', x) for x in hostfiles]
 
     for fqdns in fqdns_list:
-        print("Writing CSR for {0}...".format(fqdns[0]))
+        print(f"Writing CSR for {fqdns[0]}...")
         csr_obj = cert_utils.Csr(fqdns[0], output_dir=os.path.abspath(args.write_directory), altnames=fqdns[1:], location=loc)
         csr_obj.write_pkey()
         csr_obj.write_csr()
