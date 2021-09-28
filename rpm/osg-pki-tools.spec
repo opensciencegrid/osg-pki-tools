@@ -7,7 +7,7 @@ License: Apache 2.0
 Group: Grid
 URL: http://github.com/opensciencegrid/osg-pki-tools
 BuildArch: noarch
-Requires: m2crypto
+Requires: python3-m2crypto
 
 %define __python python3
 
