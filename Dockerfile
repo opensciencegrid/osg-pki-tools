@@ -1,4 +1,4 @@
-FROM opensciencegrid/software-base:3.6-el7-release
+FROM opensciencegrid/software-base:3.6-el8-release
 
 LABEL maintainer OSG Software <help@opensciencegrid.org>
 
