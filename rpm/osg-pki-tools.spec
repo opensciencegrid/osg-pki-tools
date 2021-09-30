@@ -1,17 +1,16 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.4.0
+Version: 3.5.0
 Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
 Group: Grid
 URL: http://github.com/opensciencegrid/osg-pki-tools
 BuildArch: noarch
-Requires: python
-Requires: m2crypto
-%if 0%{?rhel} < 7
-Requires: python-argparse
-%endif
+Requires: python3-m2crypto
+
+%define __python python3
+
 
 %description
 %{summary}
@@ -22,6 +21,9 @@ Requires: python-argparse
 %build
 
 %install
+find . -type f -exec \
+    sed -ri '1s,^#!\s*(/usr)?/bin/(env *)?python.*,#!%{__python},' '{}' +
+
 %{__python} setup.py install --root=%{buildroot}
 rm -f %{buildroot}%{python_sitelib}/*.egg-info
 mkdir -p %{buildroot}%{_datadir}/man/man1
@@ -36,6 +38,9 @@ gzip -c man/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-in
 %{_datadir}/man/man1/osg-incommon-cert-request*
 
 %changelog
+* Tue Sep 28 2021 Carl Edquist <edquist@cs.wisc.edu> - 3.5.0-1
+- Convert scripts to python3 (SOFTWARE-4786)
+
 * Tue Jul 14 2020 Brian Lin <blin@cs.wisc.edu> - 3.4.0
 - Add the ability to specify "Organizational Unit" (SOFTWARE-4121)
 
