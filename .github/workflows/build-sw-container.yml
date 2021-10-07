@@ -32,11 +32,10 @@ jobs:
         REPO: release
         TIMESTAMP: ${{ needs.make-date-tag.outputs.dtag }}
       run: |
-        docker_repo=${GITHUB_REPOSITORY/opensciencegrid\/docker-/opensciencegrid/}
         tag_list=()
         for registry in hub.opensciencegrid.org docker.io; do
           for image_tag in "$REPO" "$REPO-$TIMESTAMP"; do
-            tag_list+=("$registry/$docker_repo":"$image_tag")
+            tag_list+=("$registry/opensciencegrid/pki-tools":"$image_tag")
           done
         done
         # This causes the tag_list array to be comma-separated below,
