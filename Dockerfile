@@ -10,5 +10,7 @@ RUN yum update -y && \
     rm -rf /var/cache/yum/* && \
     cd /src && \
     python3 setup.py install --root=/
+    
+WORKDIR /output
 
 ENTRYPOINT ["/usr/local/bin/osg-cert-request"]
