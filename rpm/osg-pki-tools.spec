@@ -1,15 +1,19 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
 Version: 3.5.0
-Release: 1%{?dist}
+Release: 2%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
 Group: Grid
 URL: http://github.com/opensciencegrid/osg-pki-tools
 BuildArch: noarch
+%global __python /usr/bin/python3
+# for brp-mangle-shebangs on EL8
+%global __python3 /usr/bin/python3
+BuildRequires: %{__python}
+BuildRequires: python3-m2crypto
 Requires: python3-m2crypto
 
-%define __python python3
 
 
 %description
@@ -30,14 +34,15 @@ mkdir -p %{buildroot}%{_datadir}/man/man1
 gzip -c man/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-incommon-cert-request.1.gz
 
 %files
-%dir %{python_sitelib}/osgpkitools
 %{python_sitelib}/osgpkitools
-%exclude %{python_sitelib}/osgpkitools/*.pyo
 %{_bindir}/osg-cert-request
 %{_bindir}/osg-incommon-cert-request
 %{_datadir}/man/man1/osg-incommon-cert-request*
 
 %changelog
+* Wed Dec 15 2021 Mátyás Selmeci <matyas@cs.wisc.edu> - 3.5.0-2
+- Fix up spec file to build on EL 8 (SOFTWARE-4786)
+
 * Tue Sep 28 2021 Carl Edquist <edquist@cs.wisc.edu> - 3.5.0-1
 - Convert scripts to python3 (SOFTWARE-4786)
 
