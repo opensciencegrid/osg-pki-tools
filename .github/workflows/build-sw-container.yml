@@ -36,7 +36,7 @@ jobs:
                 elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
                     BASE=${{github.event.before}}
                 else
-                    BASE=origin/main
+                    BASE=origin/master
                 fi
                 image_dirs=$(git diff --name-only \
                                       "$BASE" \
