@@ -17,42 +17,42 @@ jobs:
       id: mkdatetag
       run: echo "::set-output name=dtag::$(date +%Y%m%d-%H%M)"
 
-build-image-list:
-    runs-on: ubuntu-latest
-    outputs:
-      images: ${{ steps.image-list.outputs.json }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
+  build-image-list:
+      runs-on: ubuntu-latest
+      outputs:
+        images: ${{ steps.image-list.outputs.json }}
+      steps:
+        - uses: actions/checkout@v2
+          with:
+            fetch-depth: 0
 
-      - id: image-list
-        run: |
-          if [[ $GITHUB_EVENT_NAME == 'pull_request' ]] ||
-             [[ $GITHUB_EVENT_NAME == 'push' ]]; then
-               if [[ -n $GITHUB_BASE_REF ]]; then
-                   # GITHUB_BASE_REF is only set for PRs
-                   BASE=origin/$GITHUB_BASE_REF
-               elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-                   BASE=${{github.event.before}}
-               else
-                   BASE=origin/main
-               fi
-               image_dirs=$(git diff --name-only \
-                                     "$BASE" \
-                                     "$GITHUB_SHA")
-          else
-               image_dirs=$(find . -type d -printf "%P\n")
-          fi
-          images=$(echo "$image_dirs" |
-                   fgrep opensciencegrid/ |
-                   cut -d/ -f -2 |
-                   sort |
-                   uniq |
-                   head -c -1)
-          image_json=$(echo -n "${images:-dummy}" | jq -Rcs '.|split("\n")')
-          echo "::set-output name=json::$image_json"
-  
+        - id: image-list
+          run: |
+            if [[ $GITHUB_EVENT_NAME == 'pull_request' ]] ||
+              [[ $GITHUB_EVENT_NAME == 'push' ]]; then
+                if [[ -n $GITHUB_BASE_REF ]]; then
+                    # GITHUB_BASE_REF is only set for PRs
+                    BASE=origin/$GITHUB_BASE_REF
+                elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+                    BASE=${{github.event.before}}
+                else
+                    BASE=origin/main
+                fi
+                image_dirs=$(git diff --name-only \
+                                      "$BASE" \
+                                      "$GITHUB_SHA")
+            else
+                image_dirs=$(find . -type d -printf "%P\n")
+            fi
+            images=$(echo "$image_dirs" |
+                    fgrep opensciencegrid/ |
+                    cut -d/ -f -2 |
+                    sort |
+                    uniq |
+                    head -c -1)
+            image_json=$(echo -n "${images:-dummy}" | jq -Rcs '.|split("\n")')
+            echo "::set-output name=json::$image_json"
+    
   build:
     runs-on: ubuntu-latest
     needs: build-image-list
