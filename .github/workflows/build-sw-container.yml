@@ -63,7 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [ 'opensciencegrid/pki-tools' ]
+        image: [ '.' ]
         yum_repo: ['development', 'testing', 'release']
         osg_series: ['3.5', '3.6']
     steps:
@@ -83,7 +83,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [ 'opensciencegrid/pki-tools' ]
+        image: [ '.' ]
         yum_repo: ['development', 'testing', 'release']
         osg_series: ['3.5', '3.6']
         registry:
