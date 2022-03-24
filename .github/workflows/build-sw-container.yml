@@ -75,10 +75,10 @@ jobs:
 
   push:
     runs-on: ubuntu-latest
-    # if: >-
-    #   github.ref == 'refs/heads/master' &&
-    #   github.event_name != 'pull_request' &&
-    #   github.repository_owner == 'opensciencegrid'
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      github.event_name != 'pull_request' &&
+      github.repository_owner == 'opensciencegrid'
     needs: [make-date-tag, build]
     strategy:
       fail-fast: false
