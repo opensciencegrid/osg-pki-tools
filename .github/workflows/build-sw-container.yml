@@ -95,7 +95,7 @@ jobs:
         with:
           repo: ${{ matrix.yum_repo}}
           osg_series: ${{ matrix.osg_series }}
-          name: 'pki-tools'
+          name: '${{ github.repository_owner }}/pki-tools'
           registry_url: ${{ matrix.registry.url }}
           registry_user: ${{ secrets[matrix.registry.username] }}
           registry_pass: ${{ secrets[matrix.registry.password] }}
