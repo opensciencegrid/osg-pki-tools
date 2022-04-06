@@ -70,7 +70,6 @@ jobs:
         with:
           osg_series: ${{ matrix.osg_series }}
           repo: ${{ matrix.yum_repo }}
-          context: '.'
 
   push:
     runs-on: ubuntu-latest
@@ -82,7 +81,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [ '.' ]
         yum_repo: ['development', 'testing', 'release']
         osg_series: ['3.5', '3.6']
         registry:
@@ -97,7 +95,7 @@ jobs:
         with:
           repo: ${{ matrix.yum_repo}}
           osg_series: ${{ matrix.osg_series }}
-          context: ${{ matrix.image }}
+          name: 'pki-tools'
           registry_url: ${{ matrix.registry.url }}
           registry_user: ${{ secrets[matrix.registry.username] }}
           registry_pass: ${{ secrets[matrix.registry.password] }}
