@@ -52,7 +52,7 @@ jobs:
                     head -c -1)
             image_json=$(echo -n "${images:-dummy}" | jq -Rcs '.|split("\n")')
             echo "::set-output name=json::$image_json"
-    
+
   build:
     runs-on: ubuntu-latest
     needs: build-image-list
