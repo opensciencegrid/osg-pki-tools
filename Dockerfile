@@ -1,4 +1,7 @@
-FROM opensciencegrid/software-base:3.6-el8-release
+ARG BASE_OSG_SERIES=3.6
+ARG BASE_YUM_REPO=release
+
+FROM opensciencegrid/software-base:$BASE_OSG_SERIES-el8-$BASE_YUM_REPO
 
 LABEL maintainer OSG Software <help@opensciencegrid.org>
 
