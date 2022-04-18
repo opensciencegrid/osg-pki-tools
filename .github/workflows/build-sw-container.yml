@@ -5,18 +5,6 @@ on:
   workflow_dispatch:
       
 jobs:
-  make-date-tag:
-    runs-on: ubuntu-latest
-    if: startsWith(github.repository, 'opensciencegrid/')
-    outputs:
-      dtag: ${{ steps.mkdatetag.outputs.dtag }}
-    env: 
-      REPO: ${{ github.repository }}
-    steps:
-    - name: make date tag
-      id: mkdatetag
-      run: echo "::set-output name=dtag::$(date +%Y%m%d-%H%M)"
-
   build:
     runs-on: ubuntu-latest
     strategy:
