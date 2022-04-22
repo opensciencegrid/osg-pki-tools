@@ -39,7 +39,7 @@ def get_ssl_context(usercert, userkey):
             ssl_context.load_cert_chain(usercert, userkey, callback=prompt_for_password)
             return ssl_context
         except SSL.SSLError as exc:
-            if 'bad decrypt' in exc:
+            if 'bad password read' in str(exc):
                 pass_str = 'Incorrect password. Please enter the password again for'
             else:
                 raise
