@@ -30,7 +30,7 @@ def get_ssl_context(usercert, userkey):
     pass_str = 'Please enter the pass phrase for'
     for _ in range(0, 2): # allow two password attempts
         def prompt_for_password(verify):
-            return getpass.getpass(pass_str + f" '{userkey}':")
+            return getpass.getpass(pass_str + f" '{userkey}':").encode('utf-8')
 
         ssl_context = SSL.Context()
         ssl_context.set_options(m2.SSL_OP_NO_SSLv2 | m2.SSL_OP_NO_SSLv3)
@@ -39,7 +39,7 @@ def get_ssl_context(usercert, userkey):
             ssl_context.load_cert_chain(usercert, userkey, callback=prompt_for_password)
             return ssl_context
         except SSL.SSLError as exc:
-            if 'bad decrypt' in exc:
+            if 'bad password read' in str(exc):
                 pass_str = 'Incorrect password. Please enter the password again for'
             else:
                 raise
@@ -158,7 +158,7 @@ class Csr(object):
 
     def base64_csr(self):
         """Extract the base64 encoded string from the contents of a certificate signing request"""
-        return self.format_csr(self.x509request.as_pem())
+        return self.format_csr(self.x509request.as_pem().decode('utf-8'))
 
 
  
