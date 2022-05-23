@@ -318,7 +318,7 @@ def main():
         if args.hostname:
             hosts = [tuple([args.hostname.strip()] + args.altnames)]
         else:
-            with open(args.hostfile, 'rb') as hosts_file:
+            with open(args.hostfile) as hosts_file:
                 host_lines = hosts_file.readlines()
             hosts = [tuple(line.split()) for line in host_lines if line.strip()]
         
