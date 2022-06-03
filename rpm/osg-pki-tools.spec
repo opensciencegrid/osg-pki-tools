@@ -1,6 +1,6 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.5.1
+Version: 3.5.2
 Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
@@ -40,6 +40,9 @@ gzip -c man/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-in
 %{_datadir}/man/man1/osg-incommon-cert-request*
 
 %changelog
+* Fri Jun 03 2022 Carl Edquist <edquist@cs.wisc.edu> - 3.5.2-1
+- Fix another bytes vs string bug in osg-incommon-cert-request (SOFTWARE-5197)
+
 * Fri Apr 22 2022 Brian Lin <blin@cs.wisc.edu> - 3.5.1-1
 - Fix bytes vs string bug in osg-incommon-cert-request (SOFTWARE-5017)
 
