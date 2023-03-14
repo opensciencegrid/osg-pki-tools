@@ -1,20 +1,19 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
 Version: 3.5.2
-Release: 1%{?dist}
+Release: 2%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
 Group: Grid
 URL: http://github.com/opensciencegrid/osg-pki-tools
 BuildArch: noarch
-%global __python /usr/bin/python3
-# for brp-mangle-shebangs on EL8
-%global __python3 /usr/bin/python3
-BuildRequires: %{__python}
+
+%global __python %{__python3}
+
+BuildRequires: python3
+BuildRequires: python3-devel
 BuildRequires: python3-m2crypto
 Requires: python3-m2crypto
-
-
 
 %description
 %{summary}
@@ -34,12 +33,15 @@ mkdir -p %{buildroot}%{_datadir}/man/man1
 gzip -c man/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-incommon-cert-request.1.gz
 
 %files
-%{python_sitelib}/osgpkitools
+%{python3_sitelib}/osgpkitools
 %{_bindir}/osg-cert-request
 %{_bindir}/osg-incommon-cert-request
 %{_datadir}/man/man1/osg-incommon-cert-request*
 
 %changelog
+* Tue Mar 14 2023 Brian Lin <blin@cs.wisc.edu> - 3.5.2-2
+- Update RPM spec to build on EL9 (SOFTWARE-5530)
+
 * Fri Jun 03 2022 Carl Edquist <edquist@cs.wisc.edu> - 3.5.2-1
 - Fix another bytes vs string bug in osg-incommon-cert-request (SOFTWARE-5197)
 
