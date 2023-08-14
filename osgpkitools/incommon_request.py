@@ -105,6 +105,8 @@ def parse_cli():
                           help="The directory to write the host certificate(s) and key(s)")
     optional.add_argument('-O', '--orgcode', action='store', dest='orgcode', default='9697,9732', metavar='ORG,DEPT',
                           help='Organization and Department codes for the InCommon Certificate Service. Defaults are Fermilab\'s codes.')
+    optional.add_argument('-l', '--key-length', action='store', default=cert_utils.Csr.KEY_LENGTH,
+                          type=int, help='The key size to generate')
     optional.add_argument('--debug', action='store_true', dest='debug', default=False,
                           help="Write debug output to stdout")
     optional.add_argument('-t', '--test', action='store_true', dest='test', default=False,
@@ -332,7 +334,7 @@ def main():
             sans = host[1:]
             
             print(f"CN: {common_name}, SANS: {sans}")
-            csr_obj = cert_utils.Csr(common_name, output_dir=args.write_directory, altnames=sans)
+            csr_obj = cert_utils.Csr(common_name, output_dir=args.write_directory, altnames=sans, key_length=args.key_length)
             
             logger.debug(csr_obj.x509request.as_text())
             csrs.append(csr_obj)
