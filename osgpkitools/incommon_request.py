@@ -334,7 +334,9 @@ def main():
             sans = host[1:]
             
             print(f"CN: {common_name}, SANS: {sans}")
-            csr_obj = cert_utils.Csr(common_name, output_dir=args.write_directory, altnames=sans, key_length=args.key_length)
+            csr_obj = cert_utils.Csr(common_name,
+                                     output_dir=args.write_directory,
+                                     altnames=sans, key_length=args.key_length)
             
             logger.debug(csr_obj.x509request.as_text())
             csrs.append(csr_obj)

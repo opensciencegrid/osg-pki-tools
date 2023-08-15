@@ -112,6 +112,10 @@ def main():
 
     for fqdns in fqdns_list:
         print(f"Writing CSR for {fqdns[0]}...")
-        csr_obj = cert_utils.Csr(fqdns[0], output_dir=os.path.abspath(args.write_directory), altnames=fqdns[1:], location=loc, key_length=args.key_length)
+        csr_obj = cert_utils.Csr(fqdns[0],
+                                 output_dir=os.path.abspath(args.write_directory),
+                                 altnames=fqdns[1:],
+                                 location=loc,
+                                 key_length=args.key_length)
         csr_obj.write_pkey()
         csr_obj.write_csr()

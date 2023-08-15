@@ -53,7 +53,7 @@ class Csr(object):
     KEY_LENGTH = 4096
     PUB_EXPONENT = 0x10001
 
-    def __init__(self, hostname, output_dir=None, altnames=None, location=None, key_length = KEY_LENGTH):
+    def __init__(self, hostname, output_dir=None, altnames=None, location=None, key_length=KEY_LENGTH):
         """
         Create a certificate signing request (CSR - stored in the x509request attribute) and associated keys (stored in keypair attribute).
        
