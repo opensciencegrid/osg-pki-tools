@@ -45,6 +45,8 @@ def parse_cli(args):
                           help='The organizational unit(s) to associate with the generated CSR(s)')
     optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
                           help="The directory to write the generated CSR(s) and host key(s)")
+    optional.add_argument('-l', '--key-length', action='store', default=cert_utils.Csr.KEY_LENGTH,
+                          type=int, help='The key size to generate')
     optional.add_argument('-V', '--version', action='version', version=utils.VERSION_NUMBER)
 
     parsed_args = parser.parse_args(args)
@@ -110,6 +112,10 @@ def main():
 
     for fqdns in fqdns_list:
         print(f"Writing CSR for {fqdns[0]}...")
-        csr_obj = cert_utils.Csr(fqdns[0], output_dir=os.path.abspath(args.write_directory), altnames=fqdns[1:], location=loc)
+        csr_obj = cert_utils.Csr(fqdns[0],
+                                 output_dir=os.path.abspath(args.write_directory),
+                                 altnames=fqdns[1:],
+                                 location=loc,
+                                 key_length=args.key_length)
         csr_obj.write_pkey()
         csr_obj.write_csr()

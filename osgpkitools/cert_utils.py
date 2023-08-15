@@ -50,10 +50,10 @@ def get_ssl_context(usercert, userkey):
 
 class Csr(object):
 
-    KEY_LENGTH = 2048
+    KEY_LENGTH = 4096
     PUB_EXPONENT = 0x10001
 
-    def __init__(self, hostname, output_dir=None, altnames=None, location=None):
+    def __init__(self, hostname, output_dir=None, altnames=None, location=None, key_length=KEY_LENGTH):
         """
         Create a certificate signing request (CSR - stored in the x509request attribute) and associated keys (stored in keypair attribute).
        
@@ -76,7 +76,7 @@ class Csr(object):
         self.csrpath = os.path.join(output_dir, hostname + '.req')
         self.keypath = os.path.join(output_dir, hostname + '-key.pem')
 
-        self.keypair = RSA.gen_key(self.KEY_LENGTH,  self.PUB_EXPONENT, lambda: None)
+        self.keypair = RSA.gen_key(key_length,  self.PUB_EXPONENT, lambda: None)
         
         # The message digest shouldn't matter here since we don't use
         # PKey.sign_*() or PKey.verify_*() but there's no harm in keeping it and
