@@ -1,7 +1,7 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
 Version: 3.5.2
-Release: 2%{?dist}
+Release: 3%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
 Group: Grid
