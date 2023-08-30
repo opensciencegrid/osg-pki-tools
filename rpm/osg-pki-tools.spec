@@ -32,11 +32,15 @@ rm -f %{buildroot}%{python_sitelib}/*.egg-info
 mkdir -p %{buildroot}%{_datadir}/man/man1
 gzip -c man/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-incommon-cert-request.1.gz
 
+mkdir -p %{buildroot}%{_sysconfdir}/osg/pki
+mv %{buildroot}/%{_prefix}/config/ca-issuer.conf %{buildroot}%{_sysconfdir}/osg/pki/
+
 %files
 %{python3_sitelib}/osgpkitools
 %{_bindir}/osg-cert-request
 %{_bindir}/osg-incommon-cert-request
 %{_datadir}/man/man1/osg-incommon-cert-request*
+%config(noreplace) %{_sysconfdir}/osg/pki/ca-issuer.conf
 
 %changelog
 * Tue Mar 14 2023 Brian Lin <blin@cs.wisc.edu> - 3.5.2-2

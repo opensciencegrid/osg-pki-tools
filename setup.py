@@ -8,6 +8,7 @@ setup(
     author="Brian Lin",
     author_email="blin@cs.wisc.edu",
     scripts=["osgpkitools/osg-cert-request", "osgpkitools/osg-incommon-cert-request"],
+    data_files=[("config", ["config/ca-issuer.conf"])],
     description="Open Science Grid x509 certificate tools.",
     long_description="Open Science Grid x509 certificate tools.",
     packages=['osgpkitools'],

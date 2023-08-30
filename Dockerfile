@@ -12,7 +12,9 @@ RUN yum update -y && \
     yum clean all && \
     rm -rf /var/cache/yum/* && \
     cd /src && \
-    python3 setup.py install --root=/
+    python3 setup.py install --root=/ && \
+    mkdir -p /etc/osg/pki && \
+    cp /usr/local/config/ca-issuer.conf /etc/osg/pki/
     
 WORKDIR /output
 
