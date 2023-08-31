@@ -43,25 +43,6 @@ MAX_RETRY_RETRIEVAL = 40
 WAIT_RETRIEVAL= 10
 WAIT_APPROVAL = 30
 
-CONFIG_TEXT = """[InCommon]
-organization: 9697
-department: 9732
-customeruri: InCommon
-igtfservercert: 215
-igtfmultidomain: 283
-servertype: -1
-term: 395
-apiurl: cert-manager.com
-listingurl: /private/api/ssl/v1/types
-enrollurl: /private/api/ssl/v1/enroll  
-retrieveurl: /private/api/ssl/v1/collect/
-sslid: sslId
-certx509: /x509
-certx509co: /x509CO
-certbase64: /base64
-certbin: /bin
-content_type: application/json
-"""
 
 def parse_cli():
     """This function parses all the arguments, validates them and then stores them
@@ -101,6 +82,8 @@ def parse_cli():
     optional.add_argument('-a', '--altname', action='append', dest='altnames', default=[],
                           help='Specify the SAN for the requested certificate (only works with -H/--hostname). '
                           'May be specified more than once for additional SANs.')
+    optional.add_argument('-C', '--config', action='store', dest='config_file', default='/etc/osg/pki/ca-issuer.conf'
+                          'Path to configuration file')
     optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
                           help="The directory to write the host certificate(s) and key(s)")
     optional.add_argument('-O', '--orgcode', action='store', dest='orgcode', default='9697,9732', metavar='ORG,DEPT',
@@ -286,7 +269,7 @@ def main():
         args = parse_cli()
    
         config_parser = configparser.ConfigParser()
-        config_parser.readfp(StringIO(CONFIG_TEXT))
+        config_parser.read(args.config_file)
         CONFIG = dict(config_parser.items('InCommon'))
         
         if args.orgcode:
