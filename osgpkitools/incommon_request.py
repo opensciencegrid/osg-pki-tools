@@ -82,8 +82,8 @@ def parse_cli():
     optional.add_argument('-a', '--altname', action='append', dest='altnames', default=[],
                           help='Specify the SAN for the requested certificate (only works with -H/--hostname). '
                           'May be specified more than once for additional SANs.')
-    optional.add_argument('-C', '--config', action='store', dest='config_file', default='/etc/osg/pki/ca-issuer.conf'
-                          'Path to configuration file')
+    optional.add_argument('-C', '--config', action='store', dest='config_file', default='/etc/osg/pki/ca-issuer.conf',
+                          help='Path to configuration file')
     optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
                           help="The directory to write the host certificate(s) and key(s)")
     optional.add_argument('-O', '--orgcode', action='store', dest='orgcode', default='9697,9732', metavar='ORG,DEPT',
