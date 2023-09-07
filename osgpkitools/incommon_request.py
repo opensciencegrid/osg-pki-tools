@@ -132,6 +132,12 @@ class FilePathAction(argparse.Action):
             raise IOError(f"Unable to read the file at: {values}")
    
 
+def fail(message):
+    """Immediately fail with the specified message
+    """
+    sys.exit(message)
+
+
 def build_headers(config):
     """"This function build the headers for the HTTP request.
         Returns headers for the HTTP request
@@ -269,9 +275,20 @@ def main():
         args = parse_cli()
    
         config_parser = configparser.ConfigParser()
-        config_parser.read(args.config_file)
-        CONFIG = dict(config_parser.items('InCommon'))
-        
+        try:
+            with open(args.config_file, 'r', encoding='utf-8') as config_file:
+                try:
+                    config_parser.read_file(config_file)
+                except configparser.Error as exc:
+                    fail(exc)
+        except OSError as exc:
+            fail(exc)
+
+        try:
+            CONFIG = dict(config_parser.items('InCommon'))
+        except configparser.NoSectionError:
+            fail(f'Could not find [InCommon] section header in {args.config_file}')
+
         if args.orgcode:
             codes = [code.strip() for code in args.orgcode.split(',')]
             CONFIG['organization'] = codes[0]
