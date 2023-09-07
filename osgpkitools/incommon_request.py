@@ -86,7 +86,7 @@ def parse_cli():
                           help='Path to configuration file')
     optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
                           help="The directory to write the host certificate(s) and key(s)")
-    optional.add_argument('-O', '--orgcode', action='store', dest='orgcode', default='9697,9732', metavar='ORG,DEPT',
+    optional.add_argument('-O', '--orgcode', action='store', dest='orgcode', metavar='ORG,DEPT',
                           help='Organization and Department codes for the InCommon Certificate Service. Defaults are Fermilab\'s codes.')
     optional.add_argument('-l', '--key-length', action='store', default=cert_utils.Csr.KEY_LENGTH,
                           type=int, help='The key size to generate')
