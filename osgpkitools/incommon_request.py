@@ -82,11 +82,11 @@ def parse_cli():
     optional.add_argument('-a', '--altname', action='append', dest='altnames', default=[],
                           help='Specify the SAN for the requested certificate (only works with -H/--hostname). '
                           'May be specified more than once for additional SANs.')
-    optional.add_argument('-C', '--config', action='store', dest='config_file', default='/etc/osg/pki/ca-issuer.conf'
-                          'Path to configuration file')
+    optional.add_argument('-C', '--config', action='store', dest='config_file', default='/etc/osg/pki/ca-issuer.conf',
+                          help='Path to configuration file')
     optional.add_argument('-d', '--directory', action='store', dest='write_directory', default='.',
                           help="The directory to write the host certificate(s) and key(s)")
-    optional.add_argument('-O', '--orgcode', action='store', dest='orgcode', default='9697,9732', metavar='ORG,DEPT',
+    optional.add_argument('-O', '--orgcode', action='store', dest='orgcode', metavar='ORG,DEPT',
                           help='Organization and Department codes for the InCommon Certificate Service. Defaults are Fermilab\'s codes.')
     optional.add_argument('-l', '--key-length', action='store', default=cert_utils.Csr.KEY_LENGTH,
                           type=int, help='The key size to generate')
@@ -131,6 +131,12 @@ class FilePathAction(argparse.Action):
         except IOError:
             raise IOError(f"Unable to read the file at: {values}")
    
+
+def fail(message):
+    """Immediately fail with the specified message
+    """
+    sys.exit(message)
+
 
 def build_headers(config):
     """"This function build the headers for the HTTP request.
@@ -269,9 +275,20 @@ def main():
         args = parse_cli()
    
         config_parser = configparser.ConfigParser()
-        config_parser.read(args.config_file)
-        CONFIG = dict(config_parser.items('InCommon'))
-        
+        try:
+            with open(args.config_file, 'r', encoding='utf-8') as config_file:
+                try:
+                    config_parser.read_file(config_file)
+                except configparser.Error as exc:
+                    fail(exc)
+        except OSError as exc:
+            fail(exc)
+
+        try:
+            CONFIG = dict(config_parser.items('InCommon'))
+        except configparser.NoSectionError:
+            fail(f'Could not find [InCommon] section header in {args.config_file}')
+
         if args.orgcode:
             codes = [code.strip() for code in args.orgcode.split(',')]
             CONFIG['organization'] = codes[0]
