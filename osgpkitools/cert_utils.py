@@ -1,11 +1,16 @@
 #!/usr/bin/python3
 
-import getpass
 import os
 import sys
 import tempfile
 
-from M2Crypto import SSL, m2, RSA, EVP, X509
+try:
+    from urllib3.util import create_urllib3_context
+except ImportError:
+    # EL7 with python36
+    from urllib3.util.ssl_ import create_urllib3_context
+
+from M2Crypto import RSA, EVP, X509
 
 from .ExceptionDefinitions import *
 from osgpkitools import utils
@@ -18,35 +23,18 @@ MBSTRING_BMP = MBSTRING_FLAG | 2
 
 
 def get_ssl_context(usercert, userkey):
-    """ This function sets the ssl context by accepting the passphrase
-    and validating it for user private key and his certificate
-    INPUT
+    """ This function sets the ssl context for urllib3.
+        OpenSSL will prompt for password if needed.
+
         cert: Filename for user certificate.
         key: Filename for private key of user.
 
     OUTPUT
         SSL.Context() object for the HTTPS connection.
     """
-    pass_str = 'Please enter the pass phrase for'
-    for _ in range(0, 2): # allow two password attempts
-        def prompt_for_password(verify):
-            return getpass.getpass(pass_str + f" '{userkey}':").encode('utf-8')
-
-        ssl_context = SSL.Context()
-        ssl_context.set_options(m2.SSL_OP_NO_SSLv2 | m2.SSL_OP_NO_SSLv3)
-
-        try:
-            ssl_context.load_cert_chain(usercert, userkey, callback=prompt_for_password)
-            return ssl_context
-        except SSL.SSLError as exc:
-            if 'bad password read' in str(exc):
-                pass_str = 'Incorrect password. Please enter the password again for'
-            else:
-                raise
-
-    # if we fell off the loop, the passphrase was incorrect twice
-    raise BadPassphraseException('Incorrect passphrase. Attempt failed twice.')
-
+    ssl_context = create_urllib3_context()
+    ssl_context.load_cert_chain(usercert, userkey)
+    return ssl_context
 
 class Csr(object):
 
