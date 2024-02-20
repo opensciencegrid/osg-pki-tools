@@ -162,7 +162,7 @@ def test_incommon_connection(config, restclient):
     response = None
     
     response = restclient.get_request(config['listingurl'], headers)
-    response_text = response.read()
+    response_text = response.data.decode()
     logger.debug('response text: ' + str(response_text))
     try:
         if response.status == 200:
@@ -211,7 +211,7 @@ def submit_request(config, restclient, hostname, cert_csr, sans=None):
         response = restclient.post_request(config['enrollurl'], headers, payload)
         
         if response.status == 200:
-            response_text = response.read()
+            response_text = response.data.decode()
             logger.debug('response text: ' + str(response_text))
             response_data = json.loads(response_text)
             response_data = response_data['sslId']
@@ -240,15 +240,14 @@ def retrieve_cert(config, sslcontext, sslId):
     
     for _ in range(retry_count):
         try:
-            # If the HTTPSConnection is reused 
             restclient = InCommonApiClient(config['apiurl'], sslcontext)
             response = restclient.get_request(retrieve_url, headers)
             # InCommon API responds with HTTP 400 Bad Request when the certificate is still being procesed
             # "code": 0, "description": "Being processed by Sectigo"
-            # Triggers the BadStatusLine exception avoiding to reuse the HTTPSConnection
-            response_text = response.read()
+            # Triggers the BadStatusLine exception avoiding to reusing the connection
+            response_text = response.data.decode()
             logger.debug('response text: ' + str(response_text))
-            # HTTP 200 OK brings the certificate in the response, HTTPSConnection will be closed before exiting the loop 
+            # HTTP 200 OK brings the certificate in the response, connection will be closed before exiting the loop 
             if response.status == 200:
                 print("    - Certificate request is approved. Downloading certificate now.")
                 response_data = response_text
@@ -305,7 +304,7 @@ def main():
         # Creating SSLContext with cert and key provided
         # usercert and userprivkey are already validated by utils.findusercred
         ssl_context = cert_utils.get_ssl_context(usercert=args.usercert, userkey=args.userprivkey)
-        
+
         restclient = InCommonApiClient(CONFIG['apiurl'], ssl_context)
 
         if args.test:
@@ -378,7 +377,7 @@ def main():
                 cert_path = os.path.join(args.write_directory, subj.split("=")[1] + '-cert.pem')
                 print(f"Retrieval successful. Writing certificate file at: {cert_path}")
                 utils.safe_rename(cert_path)
-                utils.atomic_write(cert_path, response_retrieve)
+                utils.atomic_write(cert_path, response_retrieve.encode())
                 os.chmod(cert_path, 0o644)
             else:
                 print(f"Retrieval failure for {subj}")

@@ -13,7 +13,7 @@ BuildArch: noarch
 BuildRequires: python3
 BuildRequires: python3-devel
 BuildRequires: python3-m2crypto
-Requires: python3-m2crypto
+BuildRequires: python3-urllib3
 
 %description
 %{summary}
