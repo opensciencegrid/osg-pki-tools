@@ -1,6 +1,7 @@
 import http.client
 import logging
 import socket
+import ssl
 import urllib3
 import urllib.parse
 
@@ -28,6 +29,7 @@ class InCommonApiClient():
         self.base_url = base_url
 
         self.http = urllib3.PoolManager(ssl_context=ssl_context,
+                        ca_certs=ssl.get_default_verify_paths().cafile,
                         timeout=urllib3.util.Timeout(connect=2, read=10))
     
     def close_connection(self):
