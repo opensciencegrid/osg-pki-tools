@@ -1,6 +1,6 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.6.1
+Version: 3.7.0
 Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
@@ -43,6 +43,10 @@ mv %{buildroot}/%{_prefix}/config/ca-issuer.conf %{buildroot}%{_sysconfdir}/osg/
 %config(noreplace) %{_sysconfdir}/osg/pki/ca-issuer.conf
 
 %changelog
+* Tue Feb 20 2024 Dave Dykstra <dwd@fnal.gov> - 3.7.0
+- Convert osg-incommon-cert-request to use urllib3 instead of M2crypto 
+  for its https connection, to make it work properly on EL9.
+
 * Wed Sep 6 2023 Brian Lin <blin@cs.wisc.edu> - 3.6.1
 - Fix bug with default CA config file option (SOFTWARE-5668)
 - Update default InCommon IGTF CA IDs to point to CA 3
