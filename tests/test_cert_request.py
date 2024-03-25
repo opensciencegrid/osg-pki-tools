@@ -4,18 +4,20 @@ import re
 import sys
 import unittest
 
-from itertools import permutations
 from contextlib import contextmanager
 from io import StringIO
+from itertools import permutations
 
 from osgpkitools import cert_request
 
-HOST_ARGS = [('--hostname', 'hostname.example.edu')]
-HOSTFILE_ARGS = [('--hostfile', 'hosts.txt')]
-LOCATION_ARGS = [('--country', 'US'),
-                 ('--state', 'New York'),
-                 ('--locality', 'Stony Brook'),
-                 ('--organization', 'SUNY - Stony Brook')]
+HOST_ARGS = [("--hostname", "hostname.example.edu")]
+HOSTFILE_ARGS = [("--hostfile", "hosts.txt")]
+LOCATION_ARGS = [
+    ("--country", "US"),
+    ("--state", "New York"),
+    ("--locality", "Stony Brook"),
+    ("--organization", "SUNY - Stony Brook"),
+]
 
 
 # https://stackoverflow.com/questions/18651705/argparse-unit-tests-suppress-the-help-message
@@ -55,59 +57,53 @@ def parse_cli_flatten_args(args):
 
 
 class CertRequestTests(unittest.TestCase):
-    """Tests for CSR generation
-    """
+    """Tests for CSR generation"""
 
     def test_conflicting_opts(self):
-        """Users should not provide both a hostname and hosts file
-        """
+        """Users should not provide both a hostname and hosts file"""
         with capture_sys_output() as (_, _):
             self.assertRaises(SystemExit, parse_cli_flatten_args, HOST_ARGS + HOSTFILE_ARGS)
 
     def test_required_opts(self):
-        """Users need to provide location information and hostname or hosts file
-        """
+        """Users need to provide location information and hostname or hosts file"""
         for host in [[()], HOST_ARGS, HOSTFILE_ARGS]:
             for location in permutations(LOCATION_ARGS, 3):
                 args = host + list(location)
                 with capture_sys_output() as (_, stderr):
                     self.assertRaises(SystemExit, parse_cli_flatten_args, args)
 
-                self.assertIsNotNone(re.search(r'error.*are required.*', stderr.getvalue()))
+                self.assertIsNotNone(re.search(r"error.*are required.*", stderr.getvalue()))
 
     def test_ignored_opts(self):
-        """-A/--altname should be ignored when specifying -F/--hostfile
-        """
+        """-A/--altname should be ignored when specifying -F/--hostfile"""
         with capture_sys_output() as (_, _):
-            args = parse_cli_flatten_args(HOSTFILE_ARGS + LOCATION_ARGS +
-                                          [('--altname', 'test-san.opensciencegrid.org')])
-        self.assertEqual(args.altnames, [], 'Altname option was not ignored when --hostfile was specified')
+            args = parse_cli_flatten_args(
+                HOSTFILE_ARGS + LOCATION_ARGS + [("--altname", "test-san.opensciencegrid.org")]
+            )
+        self.assertEqual(args.altnames, [], "Altname option was not ignored when --hostfile was specified")
 
     def test_state_opt(self):
-        """State values should be unabbreviated
-        """
+        """State values should be unabbreviated"""
         with capture_sys_output() as (_, _):
-            self.assertRaises(ValueError, parse_cli_flatten_args, HOST_ARGS + [('--state', 'WI')])
+            self.assertRaises(ValueError, parse_cli_flatten_args, HOST_ARGS + [("--state", "WI")])
 
         args = parse_cli_flatten_args(HOST_ARGS + LOCATION_ARGS)
-        self.assertEqual(args.state, 'New York', f"Unexpected value '{args.state}' for state option:\n{args}")
+        self.assertEqual(args.state, "New York", f"Unexpected value '{args.state}' for state option:\n{args}")
 
     def test_country_opt(self):
-        """Country values should be the abbreviated, 2-letter country code
-        """
+        """Country values should be the abbreviated, 2-letter country code"""
         with capture_sys_output() as (_, _):
-            self.assertRaises(ValueError, parse_cli_flatten_args, HOST_ARGS + [('--country', 'United States')])
+            self.assertRaises(ValueError, parse_cli_flatten_args, HOST_ARGS + [("--country", "United States")])
 
         args = parse_cli_flatten_args(HOST_ARGS + LOCATION_ARGS)
-        self.assertEqual(args.country, 'US', f"Unexpected value '{args.country}' for country option:\n{args}")
+        self.assertEqual(args.country, "US", f"Unexpected value '{args.country}' for country option:\n{args}")
 
     def test_help_opt(self):
-        """Verify help option
-        """
-        for opt in ['-h', '--help']:
+        """Verify help option"""
+        for opt in ["-h", "--help"]:
             with capture_sys_output() as (_, _):
                 self.assertRaises(SystemExit, parse_cli_flatten_args, [opt])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
