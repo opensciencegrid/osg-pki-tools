@@ -1,0 +1,15 @@
+
+[tool.black]
+line-length = 120
+target-version = ['py39']
+
+[tool.isort]
+src_paths = ["osgpkitools", "tests"]
+py_version = 39
+profile = "black"
+line_length = 120
+combine_star = "True"
+order_by_type = "True"
+dedup_headings = "True"
+lines_between_types = 1
+force_alphabetical_sort_within_sections = "True"

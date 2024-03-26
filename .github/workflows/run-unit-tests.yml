@@ -3,15 +3,15 @@ name: run python unit tests
 on:
   push:
   pull_request:
-  
+
 jobs:
   run-unit-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: install m2crypto
         run: sudo apt-get install m2crypto
-      
+
       - name: execute tests
         run: python3 -m unittest discover -v tests

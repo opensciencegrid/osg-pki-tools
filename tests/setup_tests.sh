@@ -31,6 +31,3 @@ elif [ "$el_version" = "7" ]; then
     docker rm -v $DOCKER_CONTAINER_ID
 
 fi
-
-
-

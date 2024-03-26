@@ -1,4 +1,5 @@
 from distutils.core import setup
+
 from osgpkitools import utils
 
 setup(
@@ -11,8 +12,6 @@ setup(
     data_files=[("config", ["config/ca-issuer.conf"])],
     description="Open Science Grid x509 certificate tools.",
     long_description="Open Science Grid x509 certificate tools.",
-    packages=['osgpkitools'],
-    license='Apache 2.0',
+    packages=["osgpkitools"],
+    license="Apache 2.0",
 )
-
-
