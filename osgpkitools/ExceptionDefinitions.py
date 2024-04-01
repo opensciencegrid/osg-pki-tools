@@ -18,12 +18,12 @@ class Exception_500response(Exception):
 
 
 class FileNotFoundException(Exception):
-    """ Exception raised when a file is not found
+    """Exception raised when a file is not found
 
     Attributes:
         filename -- Name of the file that is not found
         message -- message to be printed for this exception
-        """
+    """
 
     def __init__(self, filename, message):
         self.filename = filename
@@ -34,12 +34,12 @@ class FileNotFoundException(Exception):
 
 
 class BadPassphraseException(Exception):
-    """ This Exception occurs when the passphrase entered for the private key file
+    """This Exception occurs when the passphrase entered for the private key file
     does not match the stored passphrase of the key file.
 
     Attributes:
         message -- message to be displayed
-        """
+    """
 
     def __init__(self, message):
         self.message = message

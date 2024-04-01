@@ -15,7 +15,7 @@ RUN yum update -y && \
     python3 setup.py install --root=/ && \
     mkdir -p /etc/osg/pki && \
     cp /usr/local/config/ca-issuer.conf /etc/osg/pki/
-    
+
 WORKDIR /output
 
 ENTRYPOINT ["/usr/local/bin/osg-cert-request"]

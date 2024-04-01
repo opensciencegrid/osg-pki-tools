@@ -4,16 +4,17 @@ import os
 import sys
 import tempfile
 
+from M2Crypto import EVP, RSA, X509
+
+from osgpkitools import utils
+
+from .ExceptionDefinitions import *
+
 try:
     from urllib3.util import create_urllib3_context
 except ImportError:
     # EL7 with python36
     from urllib3.util.ssl_ import create_urllib3_context
-
-from M2Crypto import RSA, EVP, X509
-
-from .ExceptionDefinitions import *
-from osgpkitools import utils
 
 
 # These flags are for the purpose of passing to the M2Crypto calls
@@ -23,7 +24,7 @@ MBSTRING_BMP = MBSTRING_FLAG | 2
 
 
 def get_ssl_context(usercert, userkey):
-    """ This function sets the ssl context for urllib3.
+    """This function sets the ssl context for urllib3.
         OpenSSL will prompt for password if needed.
 
         cert: Filename for user certificate.
@@ -36,7 +37,8 @@ def get_ssl_context(usercert, userkey):
     ssl_context.load_cert_chain(usercert, userkey)
     return ssl_context
 
-class Csr(object):
+
+class Csr:
 
     KEY_LENGTH = 4096
     PUB_EXPONENT = 0x10001
@@ -44,12 +46,12 @@ class Csr(object):
     def __init__(self, hostname, output_dir=None, altnames=None, location=None, key_length=KEY_LENGTH):
         """
         Create a certificate signing request (CSR - stored in the x509request attribute) and associated keys (stored in keypair attribute).
-       
-        The caller should use write_csr to write CSR when ready. 
+
+        The caller should use write_csr to write CSR when ready.
         The caller should use write_pkey to write private key when ready.
-  
+
         INPUT
-            - hostname: common name for the CN field 
+            - hostname: common name for the CN field
             - output_dir (optional): The destination directory to write the request and key
             - altnames (optional): Additional hostnames to be added to the Subject Alternative Names.
             - location (optional): A namedtuple containing country (e.g., US), state (e.g., Wisconsin),
@@ -60,49 +62,48 @@ class Csr(object):
         if not output_dir:
             self.output_dir = os.getcwd()
 
-        # Set up CSR and PKEY file paths 
-        self.csrpath = os.path.join(output_dir, hostname + '.req')
-        self.keypath = os.path.join(output_dir, hostname + '-key.pem')
+        # Set up CSR and PKEY file paths
+        self.csrpath = os.path.join(output_dir, hostname + ".req")
+        self.keypath = os.path.join(output_dir, hostname + "-key.pem")
 
-        self.keypair = RSA.gen_key(key_length,  self.PUB_EXPONENT, lambda: None)
-        
+        self.keypair = RSA.gen_key(key_length, self.PUB_EXPONENT, lambda: None)
+
         # The message digest shouldn't matter here since we don't use
         # PKey.sign_*() or PKey.verify_*() but there's no harm in keeping it and
         # it ensures a strong hashing algo (default is sha1) if we do decide to
         # sign things in the future
-        self.pkey = EVP.PKey(md='sha256')
+        self.pkey = EVP.PKey(md="sha256")
         self.pkey.assign_rsa(self.keypair)
 
         self.x509request = X509.Request()
         x509name = X509.X509_Name()
-        
+
         # Build entries for x509 name
         entries = list()
 
         if location:
-            entries.append(('C', location.country))
-            entries.append(('ST', location.state))
-            entries.append(('L', location.locality))
-            entries.append(('O', location.organization))
+            entries.append(("C", location.country))
+            entries.append(("ST", location.state))
+            entries.append(("L", location.locality))
+            entries.append(("O", location.organization))
             for ou in location.organizational_unit:
-                entries.append(('OU', ou))
+                entries.append(("OU", ou))
 
-        entries.append(('CN', hostname))
-        
+        entries.append(("CN", hostname))
+
         for key, val in entries:
             x509name.add_entry_by_txt(field=key, type=MBSTRING_ASC, entry=val, len=-1, loc=-1, set=0)
 
         self.x509request.set_subject_name(x509name)
-        
+
         # Build altnames
         self.altnames = None
 
         if altnames:
-            str_altnames= ",".join(altnames)
+            str_altnames = ",".join(altnames)
             self.altnames = str_altnames
             extension_stack = X509.X509_Extension_Stack()
-            extension = X509.new_extension('subjectAltName',
-                                           ", ".join(['DNS:%s' % name for name in altnames]))
+            extension = X509.new_extension("subjectAltName", ", ".join(["DNS:%s" % name for name in altnames]))
             extension.set_critical(1)
             extension_stack.push(extension)
             self.x509request.add_extensions(extension_stack)
@@ -110,8 +111,8 @@ class Csr(object):
         # Set up pubkey and sign CSR with privkey
         self.x509request.set_pubkey(pkey=self.pkey)
         self.x509request.set_version(0)
-        self.x509request.sign(pkey=self.pkey, md='sha256')
-    
+        self.x509request.sign(pkey=self.pkey, md="sha256")
+
     def write_csr(self, csrpath=None):
         """Write the certificate signing request"""
         if not csrpath:
@@ -120,7 +121,7 @@ class Csr(object):
         try:
             utils.safe_write(csrpath, self.x509request.as_pem())
         except:
-            os.remove(self.keypath) # if we can't write the CSR, remove its associated private key
+            os.remove(self.keypath)  # if we can't write the CSR, remove its associated private key
             raise
 
     def write_pkey(self, keypath=None):
@@ -140,17 +141,12 @@ class Csr(object):
 
     def format_csr(self, csr):
         """Extract the base64 encoded string from the contents of a CSR"""
-        return csr.replace('-----BEGIN CERTIFICATE REQUEST-----\n', '')\
-                .replace('-----END CERTIFICATE REQUEST-----\n', '')\
-                .replace('\n', '')
+        return (
+            csr.replace("-----BEGIN CERTIFICATE REQUEST-----\n", "")
+            .replace("-----END CERTIFICATE REQUEST-----\n", "")
+            .replace("\n", "")
+        )
 
     def base64_csr(self):
         """Extract the base64 encoded string from the contents of a certificate signing request"""
-        return self.format_csr(self.x509request.as_pem().decode('utf-8'))
-
-
- 
-
-
-
-    
+        return self.format_csr(self.x509request.as_pem().decode("utf-8"))

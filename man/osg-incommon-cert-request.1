@@ -8,11 +8,11 @@ osg-incommon-cert-request \- retrieves host and service certificates from the In
 .B osg-incommon-cert-request
 retrieves host and service certificates from the InCommon IGTF Server CA.
 It requires an Incommon user account authorized as a Department
-Registration Authority to issue InCommon IGTF Server CA certificates  
+Registration Authority to issue InCommon IGTF Server CA certificates
 with SSL auto approval.
 It authenticates the requestor with an InCommon client certificate.
 .PP
-It allows bulk retrieval of certificates and keys. 
+It allows bulk retrieval of certificates and keys.
 .SH OPTIONS
 .PP
 .TP
@@ -37,9 +37,9 @@ Specify requestor's user certificate (PEM format).
 Specify requestor's private key (PEM format).
 .TP
 .BR \-a, \-\-altname
-Specify a Subject Alternative Name (SAN) for the requested certificate 
+Specify a Subject Alternative Name (SAN) for the requested certificate
 (only works with
-.I \-H, \-\-hostname). 
+.I \-H, \-\-hostname).
 May be specified more than once for additional SANs.
 .TP
 .BR \-d, \-\-directory
@@ -71,7 +71,7 @@ To generate a certificate with multiple Subject Alternative Names (SANS)
 .nf
 osg-incommon-cert-request -u incommonuser -c certpath.pem \\
     -k keypath.pem -H hostname.yourdomain -a hostalt.yourdomain \\
-    -a hostalt2.yourdomain 
+    -a hostalt2.yourdomain
 .fi
 .RE
 .PP
@@ -83,7 +83,7 @@ osg-incommon-cert-request -u incommonuser -c certpath.pem \\
     -k keypath.pem -F hostfilepath.txt
 .RE
 .PP
-hostfilepath.txt example 
+hostfilepath.txt example
 .PP
 .RS
 hostname01.yourdomain
@@ -93,7 +93,7 @@ hostname04.yourdomain hostname05.yourdomain
 .fi
 .RE
 .PP
-To provide alternative organization and department codes for the InCommon Certificate Service. 
+To provide alternative organization and department codes for the InCommon Certificate Service.
 .PP
 .RS
 .nf
@@ -103,4 +103,3 @@ osg-incommon-cert-request -O 4567,8912 -u incommonuser \\
 .RE
 .SH AUTHOR
 Jeny Teheran
-
