@@ -1,7 +1,7 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
 Version: 3.7.1
-Release: 1%{?dist}
+Release: 2%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
 Group: Grid
@@ -12,8 +12,9 @@ BuildArch: noarch
 
 BuildRequires: python3
 BuildRequires: python3-devel
-BuildRequires: python3-m2crypto
-BuildRequires: python3-urllib3
+
+Requires: python3-m2crypto
+Requires: python3-urllib3
 
 %description
 %{summary}
@@ -43,6 +44,9 @@ mv %{buildroot}/%{_prefix}/config/ca-issuer.conf %{buildroot}%{_sysconfdir}/osg/
 %config(noreplace) %{_sysconfdir}/osg/pki/ca-issuer.conf
 
 %changelog
+* Wed Oct 23 2024 Matt Westphall <westphall@wisc.edu> - 3.7.1-2
+- Add python3-m2crpyto and python3-urllib3 as runtime requirements
+
 * Tue Feb 20 2024 Dave Dykstra <dwd@fnal.gov> - 3.7.1
 - Set the default ca_certs bundle for osg-incommon-cert-request.
 
