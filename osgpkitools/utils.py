@@ -7,7 +7,7 @@ import tempfile
 
 from .ExceptionDefinitions import *
 
-VERSION_NUMBER = "3.7.1"
+VERSION_NUMBER = "3.7.2"
 HELP_EMAIL = "help@opensciencegrid.org"
 
 
