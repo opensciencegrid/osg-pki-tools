@@ -12,9 +12,9 @@ jobs:
       fail-fast: false
       matrix:
         yum_repo: ['development', 'testing', 'release']
-        osg_series: ['3.6']
+        osg_series: ['24']
     steps:
-      - uses: opensciencegrid/build-container-action@v0.3.1
+      - uses: opensciencegrid/build-container-action@v0.6.1
         with:
           osg_series: ${{ matrix.osg_series }}
           repo: ${{ matrix.yum_repo }}
@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         yum_repo: ['development', 'testing', 'release']
-        osg_series: ['3.6']
+        osg_series: ['24']
         registry:
           - url: hub.opensciencegrid.org
             username: OSG_HARBOR_ROBOT_USER
