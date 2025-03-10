@@ -1,7 +1,7 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.7.1
-Release: 2%{?dist}
+Version: 3.7.2
+Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
 Group: Grid
@@ -44,6 +44,12 @@ mv %{buildroot}/%{_prefix}/config/ca-issuer.conf %{buildroot}%{_sysconfdir}/osg/
 %config(noreplace) %{_sysconfdir}/osg/pki/ca-issuer.conf
 
 %changelog
+* Fri Mar  7 2025 Dave Dykstra <dwd@fnal.gov> - 3.7.2
+- Fix bug in invocation of urllib3.request() in restclient's get_request();
+  it was passing headers as the 4th parameter instead of identifying it
+  by name.  Broke retrieval of cert with osg-incommon-cert-request in
+  some cases.
+
 * Wed Oct 23 2024 Matt Westphall <westphall@wisc.edu> - 3.7.1-2
 - Add python3-m2crpyto and python3-urllib3 as runtime requirements
 

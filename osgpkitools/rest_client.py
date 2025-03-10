@@ -76,7 +76,7 @@ class InCommonApiClient:
         logger.debug("headers " + str(headers))
 
         try:
-            get_response = self.http.request("GET", url, None, headers)
+            get_response = self.http.request("GET", url, None, headers=headers)
             utils.check_response_500(get_response)
             logger.debug("get response status " + str(get_response.status) + ": " + str(get_response.reason))
         except http.client.BadStatusLine as exc:
