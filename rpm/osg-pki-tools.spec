@@ -1,6 +1,6 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.7.2
+Version: 3.7.3
 Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
@@ -11,7 +11,10 @@ BuildArch: noarch
 %global __python %{__python3}
 
 BuildRequires: python3
+BuildRequires: python3-pip
 BuildRequires: python3-devel
+BuildRequires: python3-setuptools
+BuildRequires: python3-wheel
 
 Requires: python3-m2crypto
 Requires: python3-urllib3
@@ -28,8 +31,12 @@ Requires: python3-urllib3
 find . -type f -exec \
     sed -ri '1s,^#!\s*(/usr)?/bin/(env *)?python.*,#!%{__python},' '{}' +
 
-%{__python} setup.py install --root=%{buildroot}
-rm -f %{buildroot}%{python_sitelib}/*.egg-info
+# pyproject.toml causes pip to download additional dependencies - we don't want this
+rm -f ./pyproject.toml
+
+%{__python} -m pip install . --root=%{buildroot}
+
+rm -rf %{buildroot}%{python_sitelib}/*.egg-info
 mkdir -p %{buildroot}%{_datadir}/man/man1
 gzip -c man/osg-incommon-cert-request.1 >%{buildroot}%{_datadir}/man/man1/osg-incommon-cert-request.1.gz
 
@@ -38,12 +45,16 @@ mv %{buildroot}/%{_prefix}/config/ca-issuer.conf %{buildroot}%{_sysconfdir}/osg/
 
 %files
 %{python3_sitelib}/osgpkitools
+%{python3_sitelib}/osg_pki_tools*.dist-info/*
 %{_bindir}/osg-cert-request
 %{_bindir}/osg-incommon-cert-request
 %{_datadir}/man/man1/osg-incommon-cert-request*
 %config(noreplace) %{_sysconfdir}/osg/pki/ca-issuer.conf
 
 %changelog
+* Mon Sep 08 2025 Matt Westphall <westphall@wisc.edu> - 3.7.3
+- Initial OSG 25 release; switch from distutils to setuptools-based intstall
+
 * Fri Mar  7 2025 Dave Dykstra <dwd@fnal.gov> - 3.7.2
 - Fix bug in invocation of urllib3.request() in restclient's get_request();
   it was passing headers as the 4th parameter instead of identifying it
