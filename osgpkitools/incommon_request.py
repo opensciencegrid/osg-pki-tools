@@ -12,6 +12,7 @@ This script works in two modes:
 
 This script retrieves the certificates and output a set of files: hostname.key (private key) and hostname.pem (certificate)
 """
+
 import argparse
 import configparser
 import http.client

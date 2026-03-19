@@ -1,4 +1,4 @@
-""" This script contains all the exception classes and would be exclusively used for handling exceptions"""
+"""This script contains all the exception classes and would be exclusively used for handling exceptions"""
 
 
 class Exception_500response(Exception):
