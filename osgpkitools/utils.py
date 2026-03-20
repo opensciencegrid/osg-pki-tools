@@ -7,8 +7,8 @@ import tempfile
 
 from .ExceptionDefinitions import *
 
-VERSION_NUMBER = "3.7.2"
-HELP_EMAIL = "help@opensciencegrid.org"
+VERSION_NUMBER = "3.7.4"
+HELP_EMAIL = "help@osg-htc.org"
 
 
 def atomic_write(filename, contents):
