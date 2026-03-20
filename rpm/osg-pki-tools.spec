@@ -1,6 +1,6 @@
 Summary: osg-pki-tools
 Name: osg-pki-tools
-Version: 3.7.3
+Version: 3.7.4
 Release: 1%{?dist}
 Source: osg-pki-tools-%{version}.tar.gz
 License: Apache 2.0
@@ -52,6 +52,11 @@ mv %{buildroot}/%{_prefix}/config/ca-issuer.conf %{buildroot}%{_sysconfdir}/osg/
 %config(noreplace) %{_sysconfdir}/osg/pki/ca-issuer.conf
 
 %changelog
+* Fri Mar 20 2026 Dave Dykstra <dwd@fnal.gov> - 3.7.4
+- Change the certificate term for osg-incommon-cert-request from 395 days
+  to 199 days because that is now the maximum allowed.
+- Change the help email from help@opensciencegrid.org to help@osg-htc.org.
+
 * Mon Sep 08 2025 Matt Westphall <westphall@wisc.edu> - 3.7.3
 - Initial OSG 25 release; switch from distutils to setuptools-based intstall
 
