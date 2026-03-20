@@ -1,5 +1,4 @@
-"""osg-cert-request tool module, separated from the script for unit testing
-"""
+"""osg-cert-request tool module, separated from the script for unit testing"""
 
 import argparse
 import os
